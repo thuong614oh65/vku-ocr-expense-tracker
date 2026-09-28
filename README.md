@@ -10,7 +10,7 @@
 
 ## 🔗 Liên Kết Bàn Giao Dự Án (Submission Deliverables)
 
-* **🌐 Live Demo Web (Cloudflare Pages):** [https://vku-ocr-expense-17t.pages.dev/](https://vku-ocr-expense-17t.pages.dev/)
+* **🌐 Live Demo Web (Cloudflare):** [https://vku-ocr-expense.thuong2213.workers.dev/](https://vku-ocr-expense.thuong2213.workers.dev/)
 * **💻 GitHub Repository:** [https://github.com/thuong614oh65/vku-ocr-expense-tracker](https://github.com/thuong614oh65/vku-ocr-expense-tracker)
 * **📄 Báo Cáo Kỹ Thuật (PDF):** `BAO_CAO_KY_THUAT_REPORT.pdf` (Kèm theo dự án)
 

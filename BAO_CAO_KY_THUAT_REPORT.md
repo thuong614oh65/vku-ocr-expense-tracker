@@ -9,7 +9,7 @@
 ## 1. GENERAL INFORMATION & DELIVERABLE LINKS
 * **Team Members:**
   1. **Nguyễn Thị Thương** — Student ID: **23IT.B219** — Class: **23ITB** — Role: **Full-stack Mobile & AI Engineer (Flutter Architecture, On-Device ML Kit, Regex Heuristics & Custom Canvas)** — Contribution: **100%**
-* **🔗 Live Demo URL:** [https://vku-ocr-expense-17t.pages.dev/](https://vku-ocr-expense-17t.pages.dev/)
+* **🔗 Live Demo URL:** [https://vku-ocr-expense.thuong2213.workers.dev/](https://vku-ocr-expense.thuong2213.workers.dev/)
 * **💻 GitHub Repository:** [https://github.com/thuong614oh65/vku-ocr-expense-tracker](https://github.com/thuong614oh65/vku-ocr-expense-tracker)
 * **🎥 Video Demo / Mobile Access:** Truy cập trực tiếp tại đường dẫn Live Demo trên thiết bị di động (hỗ trợ cả Camera thật và bộ kiểm thử hóa đơn mẫu sinh viên VKU).
 
