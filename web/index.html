@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>VKU OCR Expense Tracker & Receipt Parser | Mini-Project 3</title>
+  <meta name="description" content="Ứng dụng quản lý chi tiêu cá nhân bằng trí tuệ nhân tạo nhận dạng hóa đơn (On-device OCR) viết bằng Flutter & Dart. Sinh viên thực hiện: Nguyễn Thị Thương - 23IT.B219.">
+  <link rel="icon" href="https://vku.udn.vn/favicon.ico">
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- App Container -->
+  <div id="app">
+    <!-- Top App Bar -->
+    <header class="app-bar">
+      <div class="brand-wrap">
+        <span class="vku-badge">VKU MINI-PROJECT 3</span>
+        <h1>Quản Lý Chi Tiêu & OCR Hóa Đơn AI</h1>
+      </div>
+      <div class="header-actions">
+        <button id="btn-reset-data" class="icon-btn" title="Đặt lại dữ liệu mẫu">🔄</button>
+        <button id="btn-install-app" class="install-btn">📲 Cài Đặt App</button>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="content-scroll">
+      <!-- Student Profile Card -->
+      <section class="student-card">
+        <div class="student-avatar">VKU</div>
+        <div class="student-info">
+          <h3>Nguyễn Thị Thương • 23IT.B219</h3>
+          <p>Lớp 23ITB • Học phần Lập Trình Đa Nền Tảng (Tuần 7 - 8)</p>
+        </div>
+      </section>
+
+      <!-- Prominent AI Scanner CTA Card -->
+      <section class="scanner-cta-card">
+        <div class="scanner-icon-wrap">📷</div>
+        <div class="scanner-text-wrap">
+          <h2>Chụp & Nhận Dạng Hóa Đơn AI</h2>
+          <p>On-Device ML Kit & Regex Heuristics Engine (Chạy mượt cả Online & Offline)</p>
+        </div>
+        <button id="btn-open-scanner" class="btn-primary-scan">
+          ⚡ Quét Ngay
+        </button>
+      </section>
+
+      <!-- Quick Sample Receipts Tester (For instant grading/demo) -->
+      <section class="sample-tester-section">
+        <div class="section-title-row">
+          <span class="badge-accent">CHẤM BÀI / THỬ NGHIỆM AI</span>
+          <span class="section-sub">Chọn nhanh hóa đơn mẫu thực tế tại VKU:</span>
+        </div>
+        <div class="sample-chips-row">
+          <button class="sample-chip" data-index="0">🏪 WinMart+ VKU (87.500₫)</button>
+          <button class="sample-chip" data-index="1">☕ Highlands Coffee (115.000₫)</button>
+          <button class="sample-chip" data-index="2">📚 Nhà Sách Fahasa (245.000₫)</button>
+          <button class="sample-chip" data-index="3">⛽ Xăng Petrolimex (70.000₫)</button>
+          <button class="sample-chip" data-index="4">💻 Thế Giới Di Động (350.000₫)</button>
+        </div>
+      </section>
+
+      <!-- KPI Summary Cards -->
+      <section class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-dot blue"></span>
+            <span class="kpi-title">TỔNG CHI TIÊU</span>
+          </div>
+          <div id="kpi-total-amount" class="kpi-value">0 ₫</div>
+          <div id="kpi-total-count" class="kpi-sub">0 giao dịch đã lưu</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-dot green"></span>
+            <span class="kpi-title">NGÂN SÁCH THÁNG</span>
+          </div>
+          <div class="kpi-value">3.500.000 ₫</div>
+          <div id="kpi-budget-progress" class="kpi-sub">Đã dùng: 0%</div>
+        </div>
+      </section>
+
+      <!-- Canvas Chart 1: Donut Pie Chart (CustomPainter) -->
+      <section class="chart-card">
+        <div class="chart-header">
+          <h3>📊 Cơ Cấu Chi Tiêu Theo Danh Mục</h3>
+          <span class="custom-painter-badge">CustomPainter</span>
+        </div>
+        <div class="canvas-wrap">
+          <canvas id="donutChartCanvas" width="300" height="300"></canvas>
+        </div>
+        <div id="pie-legend" class="pie-legend"></div>
+      </section>
+
+      <!-- Canvas Chart 2: Weekly Spending Bar Chart (CustomPainter) -->
+      <section class="chart-card">
+        <div class="chart-header">
+          <h3>📈 Chi Tiêu 7 Ngày Gần Nhất</h3>
+          <span class="custom-painter-badge">T2 → CN</span>
+        </div>
+        <div class="canvas-wrap">
+          <canvas id="barChartCanvas" width="360" height="200"></canvas>
+        </div>
+      </section>
+
+      <!-- Recent Transactions Section -->
+      <section class="transactions-section">
+        <div class="section-title-row">
+          <h3>Danh Sách Chi Tiêu</h3>
+          <span id="txn-count-badge" class="count-badge">0 bản ghi</span>
+        </div>
+        <div id="transactions-list" class="transactions-list"></div>
+      </section>
+    </main>
+
+    <!-- Scanner Modal Viewfinder -->
+    <div id="scanner-modal" class="modal-overlay hidden">
+      <div class="scanner-viewfinder-card">
+        <div class="scanner-top-bar">
+          <button id="btn-close-scanner" class="icon-circle-btn">✕</button>
+          <div class="ai-badge-pill">⚡ On-Device OCR • Offline</div>
+          <button id="btn-toggle-flash" class="icon-circle-btn">⚡</button>
+        </div>
+
+        <div class="camera-frame-area">
+          <div class="scan-bracket top-left"></div>
+          <div class="scan-bracket top-right"></div>
+          <div class="scan-bracket bottom-left"></div>
+          <div class="scan-bracket bottom-right"></div>
+          <div class="laser-scanner-line"></div>
+          <div class="camera-hint-text">Căn chỉnh hóa đơn trong khung hình</div>
+        </div>
+
+        <div class="scanner-bottom-bar">
+          <label class="gallery-btn-label">
+            📁 Tải Ảnh Lên
+            <input type="file" id="file-input-receipt" accept="image/*" style="display:none;">
+          </label>
+          <button id="btn-shutter-capture" class="shutter-btn" title="Chụp ảnh">
+            <div class="shutter-btn-inner"></div>
+          </button>
+          <button id="btn-sample-fast" class="sample-fast-btn" title="Thử mẫu WinMart">
+            ⚡ Mẫu WinMart
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Review & Edit Modal -->
+    <div id="review-modal" class="modal-overlay hidden">
+      <div class="review-modal-card">
+        <div class="modal-header">
+          <div class="header-title-wrap">
+            <span class="modal-icon">🤖</span>
+            <div>
+              <h3>Kiểm Tra & Lưu Hóa Đơn AI</h3>
+              <p>Trích xuất tự động qua Regex Heuristic Engine</p>
+            </div>
+          </div>
+          <button id="btn-close-review" class="icon-btn-close">✕</button>
+        </div>
+
+        <div class="modal-body-scroll">
+          <!-- AI Confidence Banner -->
+          <div id="review-confidence-banner" class="confidence-banner">
+            <span class="conf-icon">✨</span>
+            <div class="conf-text">
+              <strong id="conf-score-text">Độ chính xác AI: 95%</strong>
+              <small>Đã bóc tách thành công Tên quán, Số tiền và Ngày giao dịch.</small>
+            </div>
+          </div>
+
+          <!-- Form Fields -->
+          <div class="form-group">
+            <label>ĐƠN VỊ BÁN HÀNG / TÊN CỬA HÀNG *</label>
+            <input type="text" id="edit-merchant" class="text-input" placeholder="VD: WinMart+, Highlands Coffee...">
+          </div>
+
+          <div class="form-group">
+            <label>TỔNG TIỀN THANH TOÁN (VND) *</label>
+            <div class="currency-input-wrap">
+              <input type="number" id="edit-amount" class="text-input font-bold text-blue" placeholder="VD: 87500">
+              <span class="currency-symbol">₫</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>NGÀY GIAO DỊCH *</label>
+            <input type="date" id="edit-date" class="text-input">
+          </div>
+
+          <div class="form-group">
+            <label>PHÂN LOẠI DANH MỤC CHI TIÊU</label>
+            <div id="category-selector-chips" class="category-chips-wrap"></div>
+          </div>
+
+          <div class="form-group">
+            <label>GHI CHÚ THÊM</label>
+            <input type="text" id="edit-notes" class="text-input" placeholder="VD: Mua đồ ăn ôn thi, giáo trình...">
+          </div>
+
+          <!-- Raw OCR Dropdown -->
+          <details class="raw-ocr-details">
+            <summary>📄 Xem văn bản thô bóc tách bởi OCR (Raw Text)</summary>
+            <pre id="raw-ocr-preview" class="raw-ocr-box"></pre>
+          </details>
+        </div>
+
+        <div class="modal-footer">
+          <button id="btn-confirm-save" class="btn-save-primary">
+            ✓ Xác Nhận & Lưu Vào Sổ Chi Tiêu
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- App Install / APK Download Modal (Matching Project 1 & 2) -->
+    <div id="install-modal" class="modal-overlay hidden">
+      <div class="install-modal-card">
+        <div class="modal-header">
+          <div class="header-title-wrap">
+            <span class="modal-icon">📲</span>
+            <div>
+              <h3>Cài Đặt & Đóng Gói Ứng Dụng</h3>
+              <p>VKU OCR Expense Tracker • Flutter & Dart</p>
+            </div>
+          </div>
+          <button id="btn-close-install" class="icon-btn-close">✕</button>
+        </div>
+
+        <div class="install-tabs-nav">
+          <button class="install-tab active" data-tab="android">🤖 Dành Cho Android</button>
+          <button class="install-tab" data-tab="ios">🍏 Dành Cho iPhone (iOS)</button>
+          <button class="install-tab" data-tab="flutter">💻 Mã Nguồn Flutter</button>
+        </div>
+
+        <div class="install-tab-content">
+          <!-- Android Tab -->
+          <div id="tab-android" class="tab-pane active">
+            <div class="install-option-card highlight">
+              <span class="recommend-badge">KHUYÊN DÙNG</span>
+              <h4>Cách 1: Tải File APK Gốc Về Cài Đặt</h4>
+              <p>Tải trực tiếp tệp tin cài đặt Native Android APK (Google ML Kit on-device) về điện thoại của bạn:</p>
+              <a href="https://github.com/thuong614oh65/vku-ocr-expense-tracker/releases/download/v1.0.0/app-release.apk" class="btn-download-apk" target="_blank">
+                ⬇️ Tải File app-release.apk (~32 MB)
+              </a>
+              <small class="hint">💡 Mẹo: Khi cài đặt, chọn "Vẫn cài đặt" nếu Play Protect cảnh báo ứng dụng nội bộ trường VKU.</small>
+            </div>
+
+            <div class="install-option-card">
+              <h4>Cách 2: Cài Đặt Trực Tiếp Qua Chrome (PWA Standalone)</h4>
+              <p>Thêm ứng dụng vào màn hình chính thông qua công nghệ PWA độc lập:</p>
+              <button id="btn-trigger-pwa" class="btn-pwa-install">📲 Bấm Vào Đây Để Cài Đặt Ngay</button>
+            </div>
+          </div>
+
+          <!-- iOS Tab -->
+          <div id="tab-ios" class="tab-pane">
+            <div class="install-option-card">
+              <h4>🍏 Cài Đặt Trên iPhone (Safari PWA Standalone)</h4>
+              <p>Do chính sách của Apple, bạn có thể cài ứng dụng độc lập qua Safari theo 4 bước:</p>
+              <ol class="step-guide-list">
+                <li>Mở Safari trên iPhone và vào link: <code>vku-ocr-expense-17t.pages.dev</code></li>
+                <li>Bấm vào nút Chia sẻ (biểu tượng hình vuông có mũi tên lên 📤)</li>
+                <li>Cuộn xuống chọn <strong>"Thêm vào MH chính"</strong> (Add to Home Screen)</li>
+                <li>Nhấn "Thêm". Ứng dụng sẽ xuất hiện trên màn hình iPhone, chạy mượt toàn màn hình!</li>
+              </ol>
+            </div>
+          </div>
+
+          <!-- Flutter Source Tab -->
+          <div id="tab-flutter" class="tab-pane">
+            <div class="install-option-card">
+              <h4>💻 Chạy Mã Nguồn Flutter 3.x Trực Tiếp</h4>
+              <p>Thực thi dự án trên máy tính hoặc máy ảo Android:</p>
+              <pre class="code-block"><code>git clone https://github.com/thuong614oh65/vku-ocr-expense-tracker.git
+cd vku-ocr-expense-tracker
+flutter pub get
+flutter run</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

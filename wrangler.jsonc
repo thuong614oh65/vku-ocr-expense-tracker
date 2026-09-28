@@ -1,0 +1,11 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "uan-07-08--ini-roject3---------xpense-racker",
+  "compatibility_date": "2026-09-26",
+  "observability": {
+    "enabled": true
+  },
+  "assets": {
+    "directory": "web"
+  }
+}
