@@ -6,7 +6,12 @@
   <title>VKU OCR Expense Tracker & Receipt Parser | Mini-Project 3 (Flutter & Dart)</title>
   <meta name="description" content="Ứng dụng quản lý chi tiêu cá nhân bằng trí tuệ nhân tạo nhận dạng hóa đơn (On-device OCR) viết bằng Flutter 3.x & Dart 3. Sinh viên: Nguyễn Thị Thương - 23IT.B219 - 23SE4.">
   <meta name="theme-color" content="#0284c7">
-  <link rel="icon" href="https://vku.udn.vn/favicon.ico">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="VKU Expense OCR">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,6 +19,13 @@
   <link rel="stylesheet" href="style.css">
   <!-- Optional On-Device Tesseract.js WebAssembly OCR for real uploaded photos -->
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js" defer></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('/sw.js').catch(function () {});
+      });
+    }
+  </script>
 </head>
 <body>
   <div id="app">
@@ -293,9 +305,16 @@
             </div>
 
             <div class="install-option-card">
-              <h4>Cách 2: Cài Đặt Trực Tiếp Qua Chrome (PWA Standalone)</h4>
-              <p>Thêm ứng dụng vào màn hình chính thông qua công nghệ PWA độc lập:</p>
+              <h4>Cách 2: Cài Đặt Trực Tiếp Qua Chrome / Edge (PWA Standalone)</h4>
+              <p>Thêm ứng dụng vào màn hình chính hoặc Desktop thông qua công nghệ PWA độc lập:</p>
               <button id="btn-trigger-pwa" class="btn-pwa-install">📲 Bấm Vào Đây Để Cài Đặt Ngay</button>
+              <div id="pwa-install-feedback" class="confidence-banner hidden" style="margin-top:10px;">
+                <span class="conf-icon">🚀</span>
+                <div class="conf-text">
+                  <strong id="pwa-feedback-title">Đã sẵn sàng mở Chế độ App Độc Lập!</strong>
+                  <small id="pwa-feedback-desc">Bạn cũng có thể bấm biểu tượng <strong>⊕ Cài đặt</strong> trên thanh địa chỉ trình duyệt (cạnh dấu sao ⭐) để ghim icon ra Desktop/Màn hình chính.</small>
+                </div>
+              </div>
             </div>
           </div>
 

@@ -436,18 +436,53 @@ class AppController {
       this.saveEditedTransaction();
     };
 
-    // PWA Prompt
+    // PWA 3-State Install & Standalone Launcher (No ugly browser alert!)
     let deferredPrompt = null;
+    const headerInstallBtn = document.getElementById('btn-install-app');
+    const modalPwaBtn = document.getElementById('btn-trigger-pwa');
+    const feedbackBox = document.getElementById('pwa-install-feedback');
+
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    if (isStandalone && headerInstallBtn) {
+      headerInstallBtn.textContent = '🟢 Đang Trong App';
+    }
+
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       deferredPrompt = e;
+      if (headerInstallBtn) headerInstallBtn.textContent = '📲 Cài App Ngay';
+      if (modalPwaBtn) modalPwaBtn.textContent = '📲 Bấm Để Cài Đặt App (Native PWA)';
     });
-    document.getElementById('btn-trigger-pwa').onclick = () => {
+
+    window.addEventListener('appinstalled', () => {
+      deferredPrompt = null;
+      if (headerInstallBtn) headerInstallBtn.textContent = '🟢 Đã Cài App';
+      if (modalPwaBtn) modalPwaBtn.textContent = '✅ Đã Cài Đặt Thành Công — Mở App Ngay';
+      if (feedbackBox) feedbackBox.classList.remove('hidden');
+    });
+
+    modalPwaBtn.onclick = async () => {
       if (deferredPrompt) {
         deferredPrompt.prompt();
-      } else {
-        alert('💡 Cài đặt qua Chrome/Safari: Bấm menu trình duyệt → Chọn "Cài đặt ứng dụng" hoặc "Thêm vào màn hình chính" (Add to Home Screen).');
+        const choice = await deferredPrompt.userChoice;
+        if (choice && choice.outcome === 'accepted') {
+          deferredPrompt = null;
+          if (headerInstallBtn) headerInstallBtn.textContent = '🟢 Đã Cài App';
+          modalPwaBtn.textContent = '✅ Đã Cài Đặt Thành Công!';
+        }
+        return;
       }
+      // Show friendly in-modal banner and launch standalone app window
+      if (feedbackBox) feedbackBox.classList.remove('hidden');
+      modalPwaBtn.textContent = '🚀 Đang Mở Cửa Sổ App Độc Lập...';
+      setTimeout(() => {
+        window.open(
+          window.location.href,
+          'VKU_OCR_Expense_App',
+          'width=430,height=840,menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=yes'
+        );
+        modalPwaBtn.textContent = '🚀 Mở Lại Cửa Sổ App Độc Lập (Standalone)';
+      }, 300);
     };
   }
 

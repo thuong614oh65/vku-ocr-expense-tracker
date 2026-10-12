@@ -1080,3 +1080,8 @@ body.dark-mode .raw-ocr-box {
   border-color: #334155;
 }
 
+.hidden {
+  display: none !important;
+}
+
+
