@@ -27,7 +27,7 @@ function New-VkuOcrIcon {
     $whiteBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(255, 255, 255, 255))
     $g.FillRectangle($whiteBrush, $cardRect)
 
-    # Receipt Header Bar (Amber/Red VKU Accent)
+    # Receipt Header Bar (VKU Sky Blue)
     $hdrH = [int]($cardH * 0.22)
     $hdrRect = New-Object System.Drawing.Rectangle($cardX, $cardY, $cardW, $hdrH)
     $hdrBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(255, 2, 132, 199))
@@ -68,4 +68,4 @@ New-VkuOcrIcon -Size 192 -OutPath "$PSScriptRoot\web\icons\icon-192.png"
 New-VkuOcrIcon -Size 512 -OutPath "$PSScriptRoot\web\icons\icon-512.png"
 New-VkuOcrIcon -Size 180 -OutPath "$PSScriptRoot\web\icons\apple-touch-icon.png"
 New-VkuOcrIcon -Size 64  -OutPath "$PSScriptRoot\web\favicon.png"
-Write-Host "✓ Generated VKU OCR icons successfully!"
+Write-Host "Generated VKU OCR icons successfully!"
