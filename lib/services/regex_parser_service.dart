@@ -55,6 +55,15 @@ class RegexReceiptParser {
     'ShopeeFood',
   ];
 
+  /// Dart 3 Record Tuple Parser (Week 7 Slide 13)
+  /// Returns lightweight anonymous tuple (merchant, total, date)
+  static (String merchant, double total, DateTime date) parseReceiptRecord(
+    String rawText,
+  ) {
+    final res = parse(rawText);
+    return (res.merchantName, res.amount, res.dateTime);
+  }
+
   static ParsedReceiptResult parse(String rawText) {
     if (rawText.trim().isEmpty) {
       return ParsedReceiptResult(
@@ -99,7 +108,9 @@ class RegexReceiptParser {
     // 4. Auto-classify Category
     final category = ExpenseCategory.matchFromText(rawText);
 
-    // Normalize confidence
+    // 5. Extract itemized lines
+    final detectedItems = _extractLineItems(lines);
+
     confidence = confidence.clamp(0.1, 0.99);
 
     return ParsedReceiptResult(
@@ -108,21 +119,43 @@ class RegexReceiptParser {
       dateTime: dateTime ?? DateTime.now(),
       categoryType: category.type,
       confidenceScore: double.parse(confidence.toStringAsFixed(2)),
+      detectedItems: detectedItems,
       rawText: rawText,
     );
+  }
+
+  static List<String> _extractLineItems(List<String> lines) {
+    final itemPattern = RegExp(
+      r'^(?:\d+[\.\)]\s*)?([A-Za-zÀ-ỹ0-9\s\(\)\-\+]{3,35})\s+([0-9]{1,3}(?:[.,][0-9]{3})+)\b',
+    );
+    final List<String> items = [];
+    for (final line in lines) {
+      final lower = line.toLowerCase();
+      if (lower.contains('tổng') ||
+          lower.contains('cộng') ||
+          lower.contains('tiền mặt') ||
+          lower.contains('tiền thừa') ||
+          lower.contains('thanh toán') ||
+          lower.contains('chuyển khoản')) {
+        continue;
+      }
+      final m = itemPattern.firstMatch(line);
+      if (m != null) {
+        items.add('${m.group(1)!.trim()} — ${m.group(2)} đ');
+      }
+    }
+    return items;
   }
 
   static String _extractMerchant(List<String> lines) {
     final fullTextLower = lines.join(' ').toLowerCase();
 
-    // Check known brands first
     for (final brand in _knownMerchants) {
       if (fullTextLower.contains(brand.toLowerCase())) {
         return brand;
       }
     }
 
-    // Heuristics: inspect first 4 lines (merchants are usually in the header)
     final ignoreWords = [
       'hóa đơn', 'hoa don', 'receipt', 'bill', 'phiếu thanh toán',
       'phiếu tính tiền', 'cộng hòa', 'chi nhánh', 'địa chỉ', 'mst',
@@ -140,7 +173,6 @@ class RegexReceiptParser {
         }
       }
       if (!shouldIgnore && line.length >= 3 && line.length <= 40) {
-        // Return cleaned line
         return line;
       }
     }
@@ -152,11 +184,9 @@ class RegexReceiptParser {
     List<String> lines,
     String fullText,
   ) {
-    // Regex for Vietnamese Total keywords
-    // e.g. "TỔNG TIỀN: 150.000", "Tổng cộng 245,000 VND", "THANH TOÁN: 89.000 đ"
     final totalPatterns = [
       RegExp(
-        r'(?:tổng\s*(?:cộng|tiền|thanh\s*toán)?|thanh\s*toán|tiền\s*mặt|cộng\s*tiền|phải\s*trả|khách\s*trả|total(?:\s*due)?|grand\s*total)[\s:=-]*([0-9]{1,3}(?:[.,][0-9]{3})*(?:[.,][0-9]{2})?|[0-9]+)\s*(?:đ|vnd|vnđ)?',
+        r'(?:tổng\s*(?:cộng|tiền|thanh\s*toán)?|tong\s*(?:cong|tien)|thanh\s*toán|thanh\s*toan|tiền\s*mặt|cộng\s*tiền|phải\s*trả|khách\s*trả|total(?:\s*due)?|amount\s*due|grand\s*total)[\s:=-]*([0-9]{1,3}(?:[.,][0-9]{3})*(?:[.,][0-9]{2})?|[0-9]+)\s*(?:đ|d|vnd|vnđ)?',
         caseSensitive: false,
       ),
       RegExp(
@@ -180,7 +210,6 @@ class RegexReceiptParser {
       }
     }
 
-    // Fallback: search across all lines for any currency numbers, pick the highest reasonable number
     final numberPattern = RegExp(r'\b([0-9]{1,3}(?:[.,][0-9]{3})+|[0-9]{4,8})\b');
     double maxAmount = 0.0;
 
@@ -189,12 +218,10 @@ class RegexReceiptParser {
       for (final m in matches) {
         final str = m.group(1);
         if (str != null) {
-          // Avoid 10-digit phone numbers or Tax IDs
           if (str.length >= 10 && !str.contains('.') && !str.contains(',')) {
             continue;
           }
           final val = _parseVietnameseNumber(str);
-          // Standard student expense range: 1,000 VND to 100,000,000 VND
           if (val >= 1000 && val <= 50000000 && val > maxAmount) {
             maxAmount = val;
           }
@@ -207,16 +234,11 @@ class RegexReceiptParser {
 
   static double _parseVietnameseNumber(String input) {
     String clean = input.replaceAll(' ', '').trim();
-    // Case 1: "150.000" or "1.500.000" (dot as thousands separator in VN)
     if (clean.contains('.') && !clean.contains(',')) {
       clean = clean.replaceAll('.', '');
-    }
-    // Case 2: "150,000" or "1,500,000" (comma as thousands separator)
-    else if (clean.contains(',') && !clean.contains('.')) {
+    } else if (clean.contains(',') && !clean.contains('.')) {
       clean = clean.replaceAll(',', '');
-    }
-    // Case 3: "150.000,00" (dot thousands, comma decimals)
-    else if (clean.contains('.') && clean.contains(',')) {
+    } else if (clean.contains('.') && clean.contains(',')) {
       if (clean.lastIndexOf(',') > clean.lastIndexOf('.')) {
         clean = clean.replaceAll('.', '').replaceAll(',', '.');
       } else {
@@ -228,7 +250,6 @@ class RegexReceiptParser {
   }
 
   static DateTime? _extractDateTime(String fullText) {
-    // 1. Match DD/MM/YYYY or DD-MM-YYYY
     final datePattern = RegExp(
       r'\b([0-3]?[0-9])[/\-.]([0-1]?[0-9])[/\-.](20[2-3][0-9]|[2-3][0-9])\b',
     );
@@ -240,11 +261,12 @@ class RegexReceiptParser {
       var year = int.tryParse(match.group(3) ?? '') ?? DateTime.now().year;
       if (year < 100) year += 2000;
 
-      // Extract time if available: HH:mm
       final timePattern = RegExp(r'\b([0-2]?[0-9]):([0-5][0-9])\b');
       final timeMatch = timePattern.firstMatch(fullText);
-      final hour = timeMatch != null ? int.tryParse(timeMatch.group(1) ?? '') ?? 12 : 12;
-      final minute = timeMatch != null ? int.tryParse(timeMatch.group(2) ?? '') ?? 0 : 0;
+      final hour =
+          timeMatch != null ? int.tryParse(timeMatch.group(1) ?? '') ?? 12 : 12;
+      final minute =
+          timeMatch != null ? int.tryParse(timeMatch.group(2) ?? '') ?? 0 : 0;
 
       try {
         return DateTime(year, month, day, hour, minute);

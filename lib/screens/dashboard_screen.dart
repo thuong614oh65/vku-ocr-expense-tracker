@@ -1,38 +1,35 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../services/storage_service.dart';
-import '../models/receipt_transaction.dart';
+import '../state/expense_provider.dart';
 import '../models/expense_category.dart';
 import '../widgets/custom_pie_chart.dart';
 import '../widgets/custom_bar_chart.dart';
+import '../widgets/expense_summary_card.dart';
 import 'camera_scanner_screen.dart';
 
-class DashboardScreen extends StatefulWidget {
+class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
 
   @override
-  State<DashboardScreen> createState() => _DashboardScreenState();
+  ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
+class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   final StorageService _storage = StorageService();
-
-  void _refresh() {
-    setState(() {});
-  }
 
   Future<void> _openScanner() async {
     final res = await Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => const CameraScannerScreen()),
     );
-    if (res == true) {
-      _refresh();
+    if (res == true && mounted) {
+      setState(() {});
     }
   }
 
   Future<void> _deleteTxn(String id) async {
-    await _storage.deleteTransaction(id);
-    _refresh();
+    await ref.read(expenseProvider.notifier).removeExpense(id);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Đã xóa giao dịch khỏi sổ chi tiêu')),
@@ -42,13 +39,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final currencyFormatter = NumberFormat.currency(
       locale: 'vi_VN',
       symbol: '₫',
       decimalDigits: 0,
     );
 
-    final transactions = _storage.transactions;
+    final allTransactions = ref.watch(expenseProvider);
+    final selectedCat = ref.watch(categoryFilterProvider);
+    final transactions = selectedCat == null
+        ? allTransactions
+        : allTransactions.where((t) => t.categoryType == selectedCat).toList();
+
     final totalAmount = _storage.totalExpense;
     final categoryData = _storage.expensesByCategory;
     final weeklyData = _storage.weeklyExpenses;
@@ -57,11 +60,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final budgetPercent = (totalAmount / monthlyBudget).clamp(0.0, 1.0);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossTransAxisAlignment.start,
-          children: const [
+        title: const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
             Text(
               'VKU EXPENSE TRACKER',
               style: TextStyle(
@@ -77,31 +79,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w800,
-                color: Color(0xFF0F172A),
               ),
             ),
           ],
         ),
-        backgroundColor: Colors.white,
-        elevation: 0.5,
         actions: [
+          IconButton(
+            tooltip: isDark ? 'Chế độ Sáng (Light Mode)' : 'Chế độ Tối (Dark Mode)',
+            icon: Icon(
+              isDark ? Icons.light_mode : Icons.dark_mode_outlined,
+              color: const Color(0xFF0284C7),
+            ),
+            onPressed: () {
+              ref.read(themeModeProvider.notifier).toggleTheme();
+            },
+          ),
           IconButton(
             tooltip: 'Đặt lại dữ liệu mẫu',
             icon: const Icon(Icons.restart_alt, color: Color(0xFF64748B)),
             onPressed: () async {
-              await _storage.resetToSeedData();
-              _refresh();
+              await ref.read(expenseProvider.notifier).resetToSeedData();
             },
           ),
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: () async => _refresh(),
+        onRefresh: () async => setState(() {}),
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16.0),
           physics: const AlwaysScrollableScrollPhysics(),
           child: Column(
-            crossAxisAlignment: CrossTransAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Student Profile Card
               Container(
@@ -143,12 +151,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    Expanded(
+                    const Expanded(
                       child: Column(
-                        crossAxisAlignment: CrossTransAxisAlignment.start,
-                        children: const [
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                           Text(
-                            'Nguyễn Thị Thương • 23IT.B219',
+                            'Nguyễn Thị Thương • 23IT.B219 • 23SE4',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 14.5,
@@ -157,7 +165,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ),
                           SizedBox(height: 2),
                           Text(
-                            'Mini-Project 3 • Flutter 3.x & Google ML Kit On-Device OCR',
+                            'Mini-Project 3 • Flutter 3.x, Riverpod 2 & Google ML Kit OCR',
                             style: TextStyle(
                               color: Color(0xFFE0F2FE),
                               fontSize: 11,
@@ -177,11 +185,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 onTap: _openScanner,
                 borderRadius: BorderRadius.circular(16),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: isDark ? const Color(0xFF1E293B) : Colors.white,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFF0284C7), width: 1.5),
+                    border: Border.all(
+                        color: const Color(0xFF0284C7), width: 1.5),
                     boxShadow: [
                       BoxShadow(
                         color: const Color(0xFF0284C7).withOpacity(0.08),
@@ -207,18 +217,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       const SizedBox(width: 14),
                       Expanded(
                         child: Column(
-                          crossAxisAlignment: CrossTransAxisAlignment.start,
-                          children: const [
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
                             Text(
                               '📷 Chụp & Quét Hóa Đơn AI',
                               style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w800,
-                                color: Color(0xFF0F172A),
+                                color: isDark
+                                    ? Colors.white
+                                    : const Color(0xFF0F172A),
                               ),
                             ),
-                            SizedBox(height: 3),
-                            Text(
+                            const SizedBox(height: 3),
+                            const Text(
                               'Nhận dạng số tiền, ngày và đơn vị bán lẻ trong sub-100ms offline',
                               style: TextStyle(
                                 fontSize: 11.5,
@@ -228,7 +240,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ],
                         ),
                       ),
-                      const Icon(Icons.arrow_forward_ios, size: 16, color: Color(0xFF0284C7)),
+                      const Icon(
+                        Icons.arrow_forward_ios,
+                        size: 16,
+                        color: Color(0xFF0284C7),
+                      ),
                     ],
                   ),
                 ),
@@ -242,9 +258,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     child: _buildMetricCard(
                       title: 'TỔNG CHI THÁNG',
                       value: currencyFormatter.format(totalAmount),
-                      subtitle: '${transactions.length} khoản chi',
+                      subtitle: '${allTransactions.length} khoản chi',
                       color: const Color(0xFF0284C7),
                       icon: Icons.account_balance_wallet,
+                      isDark: isDark,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -252,11 +269,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     child: _buildMetricCard(
                       title: 'NGÂN SÁCH VKU',
                       value: currencyFormatter.format(monthlyBudget),
-                      subtitle: 'Đã dùng ${(budgetPercent * 100).toStringAsFixed(1)}%',
+                      subtitle:
+                          'Đã dùng ${(budgetPercent * 100).toStringAsFixed(1)}%',
                       color: budgetPercent > 0.8
                           ? const Color(0xFFEF4444)
                           : const Color(0xFF10B981),
                       icon: Icons.savings,
+                      isDark: isDark,
                     ),
                   ),
                 ],
@@ -267,20 +286,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: isDark ? const Color(0xFF1E293B) : Colors.white,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                  border: Border.all(
+                    color: isDark
+                        ? const Color(0xFF334155)
+                        : const Color(0xFFE2E8F0),
+                  ),
                 ),
                 child: Column(
-                  crossAxisAlignment: CrossTransAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: const [
-                        Icon(Icons.pie_chart, color: Color(0xFF0284C7), size: 20),
+                    const Row(
+                      children: [
+                        Icon(Icons.pie_chart,
+                            color: Color(0xFF0284C7), size: 20),
                         SizedBox(width: 8),
                         Text(
                           'Cơ Cấu Chi Tiêu Theo Danh Mục',
-                          style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w800),
+                          style: TextStyle(
+                              fontSize: 14.5, fontWeight: FontWeight.w800),
                         ),
                         Spacer(),
                         Text(
@@ -307,20 +332,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: isDark ? const Color(0xFF1E293B) : Colors.white,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                  border: Border.all(
+                    color: isDark
+                        ? const Color(0xFF334155)
+                        : const Color(0xFFE2E8F0),
+                  ),
                 ),
                 child: Column(
-                  crossAxisAlignment: CrossTransAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: const [
-                        Icon(Icons.bar_chart, color: Color(0xFF0284C7), size: 20),
+                    const Row(
+                      children: [
+                        Icon(Icons.bar_chart,
+                            color: Color(0xFF0284C7), size: 20),
                         SizedBox(width: 8),
                         Text(
                           'Biểu Đồ Chi Tiêu 7 Ngày Gần Nhất',
-                          style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w800),
+                          style: TextStyle(
+                              fontSize: 14.5, fontWeight: FontWeight.w800),
                         ),
                         Spacer(),
                         Text(
@@ -340,6 +371,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               const SizedBox(height: 20),
 
+              // Category Filter Bar
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    FilterChip(
+                      selected: selectedCat == null,
+                      label: const Text('Tất cả'),
+                      onSelected: (_) => ref
+                          .read(categoryFilterProvider.notifier)
+                          .selectCategory(null),
+                    ),
+                    const SizedBox(width: 8),
+                    ...ExpenseCategory.allCategories.map(
+                      (cat) => Padding(
+                        padding: const EdgeInsets.only(right: 8.0),
+                        child: FilterChip(
+                          selected: selectedCat == cat.type,
+                          avatar: Icon(cat.icon, size: 15, color: cat.color),
+                          label: Text(cat.displayName.split(' ')[0]),
+                          onSelected: (_) => ref
+                              .read(categoryFilterProvider.notifier)
+                              .selectCategory(cat.type),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
+
               // Recent Transactions List
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -349,12 +411,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
-                      color: Color(0xFF0F172A),
                     ),
                   ),
                   Text(
                     '${transactions.length} bản ghi',
-                    style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                    style: const TextStyle(
+                        fontSize: 12, color: Color(0xFF64748B)),
                   ),
                 ],
               ),
@@ -364,18 +426,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: isDark ? const Color(0xFF1E293B) : Colors.white,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Center(
                     child: Text(
                       'Chưa có hóa đơn nào. Bấm nút Quét ở trên để bắt đầu!',
-                      style: TextStyle(color: Color(0xFF64748B), fontSize: 13),
+                      style:
+                          TextStyle(color: Color(0xFF64748B), fontSize: 13),
                     ),
                   ),
                 )
               else
-                ...transactions.take(5).map((txn) => _buildTransactionItem(txn)),
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: transactions.length,
+                  itemBuilder: (context, index) {
+                    final txn = transactions[index];
+                    return ExpenseSummaryCard(
+                      key: ValueKey(txn.id),
+                      transaction: txn,
+                      onDelete: () => _deleteTxn(txn.id),
+                    );
+                  },
+                ),
 
               const SizedBox(height: 30),
             ],
@@ -400,16 +475,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
     required String subtitle,
     required Color color,
     required IconData icon,
+    required bool isDark,
   }) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(
+          color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+        ),
       ),
       child: Column(
-        crossAxisAlignment: CrossTransAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
@@ -429,94 +507,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
           const SizedBox(height: 8),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w900,
-              color: Color(0xFF0F172A),
+              color: isDark ? Colors.white : const Color(0xFF0F172A),
             ),
           ),
           const SizedBox(height: 4),
           Text(
             subtitle,
             style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTransactionItem(ReceiptTransaction txn) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: txn.category.color.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(txn.category.icon, color: txn.category.color, size: 20),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossTransAxisAlignment.start,
-              children: [
-                Text(
-                  txn.merchantName,
-                  style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w800),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  '${txn.formattedDate} • ${txn.category.displayName.split(' ')[0]}',
-                  style: const TextStyle(fontSize: 11.5, color: Color(0xFF64748B)),
-                ),
-              ],
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossTransAxisAlignment.end,
-            children: [
-              Text(
-                txn.formattedAmount,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w900,
-                  color: Color(0xFF0284C7),
-                ),
-              ),
-              const SizedBox(height: 2),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF10B981).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  'AI: ${(txn.confidenceScore * 100).toInt()}%',
-                  style: const TextStyle(
-                    fontSize: 9.5,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF10B981),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(width: 4),
-          IconButton(
-            icon: const Icon(Icons.delete_outline, size: 18, color: Color(0xFF94A3B8)),
-            onPressed: () => _deleteTxn(txn.id),
           ),
         ],
       ),

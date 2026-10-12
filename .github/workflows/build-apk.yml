@@ -1,0 +1,64 @@
+name: Build Flutter Release APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-apk:
+    name: Build Signed Flutter Release APK
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Set up Flutter 3.24
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.5'
+          channel: 'stable'
+          cache: true
+
+      - name: Generate Android Gradle Scaffolding & Configure ML Kit MinSDK 21
+        run: |
+          cp lib/main.dart /tmp/main.dart.bak
+          rm -rf android
+          flutter create --platforms=android --org vn.edu.vku --project-name vku_ocr_expense_tracker .
+          cp /tmp/main.dart.bak lib/main.dart
+          if [ -f android/app/build.gradle ]; then
+            sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 21/g' android/app/build.gradle
+            sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 21/g' android/app/build.gradle
+            sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 34/g' android/app/build.gradle
+          fi
+          flutter pub get
+
+      - name: Build Signed Release APK
+        run: flutter build apk --release
+
+      - name: Upload APK as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: VKU-OCR-Expense-Tracker-Release-APK
+          path: build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 30
+
+      - name: Publish Release APK to GitHub Releases v1.0.0
+        uses: softprops/action-gh-release@v2
+        if: github.ref == 'refs/heads/main'
+        with:
+          tag_name: v1.0.0
+          name: "VKU OCR Expense Tracker & Receipt Parser v1.0.0"
+          body: "Signed Production Release APK (Flutter 3.x + Google ML Kit On-Device OCR + CustomPainter Canvas Charts) - Sinh viên: Nguyễn Thị Thương (23IT.B219 - 23SE4)"
+          files: build/app/outputs/flutter-apk/app-release.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

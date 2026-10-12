@@ -1,32 +1,34 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'core/app_theme.dart';
 import 'services/storage_service.dart';
+import 'state/expense_provider.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/camera_scanner_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await StorageService().init();
-  runApp(const VkuOcrExpenseTrackerApp());
+  runApp(
+    const ProviderScope(
+      child: VkuOcrExpenseTrackerApp(),
+    ),
+  );
 }
 
-class VkuOcrExpenseTrackerApp extends StatelessWidget {
+class VkuOcrExpenseTrackerApp extends ConsumerWidget {
   const VkuOcrExpenseTrackerApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeModeProvider);
+
     return MaterialApp(
       title: 'VKU OCR Expense Tracker',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF0284C7),
-          primary: const Color(0xFF0284C7),
-          surface: const Color(0xFFF8FAFC),
-        ),
-        scaffoldBackgroundColor: const Color(0xFFF8FAFC),
-        fontFamily: 'Roboto',
-      ),
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: themeMode,
       home: const MainNavigationShell(),
     );
   }
@@ -42,9 +44,9 @@ class MainNavigationShell extends StatefulWidget {
 class _MainNavigationShellState extends State<MainNavigationShell> {
   int _currentIndex = 0;
 
-  final List<Widget> _screens = [
-    const DashboardScreen(),
-    const CameraScannerScreen(),
+  final List<Widget> _screens = const [
+    DashboardScreen(),
+    CameraScannerScreen(),
   ];
 
   @override
@@ -59,7 +61,6 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
         onDestinationSelected: (idx) {
           setState(() => _currentIndex = idx);
         },
-        backgroundColor: Colors.white,
         elevation: 2,
         destinations: const [
           NavigationDestination(

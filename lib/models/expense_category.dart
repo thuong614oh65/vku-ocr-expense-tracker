@@ -24,6 +24,28 @@ class ExpenseCategory {
     required this.keywords,
   });
 
+  /// Dart 3 Switch Expression for Category Color (Week 7 Slide 14)
+  static Color getCategoryColor(ExpenseCategoryType category) =>
+      switch (category) {
+        ExpenseCategoryType.food => const Color(0xFFEF4444),
+        ExpenseCategoryType.study => const Color(0xFF3B82F6),
+        ExpenseCategoryType.travel => const Color(0xFF10B981),
+        ExpenseCategoryType.gear => const Color(0xFF8B5CF6),
+        ExpenseCategoryType.entertainment => const Color(0xFFF59E0B),
+        ExpenseCategoryType.other => const Color(0xFF6B7280),
+      };
+
+  /// Dart 3 Pattern Matching on Transaction Map (Week 7 Slide 14)
+  static String describeTransaction(Map<String, dynamic> json) =>
+      switch (json) {
+        {'amount': final num a, 'merchantName': final String m}
+            when a >= 500000 =>
+          '🚨 Chi tiêu lớn tại $m: ${a.toStringAsFixed(0)} đ',
+        {'amount': final num a, 'merchantName': final String m} =>
+          'Khoản chi tại $m: ${a.toStringAsFixed(0)} đ',
+        _ => 'Giao dịch chi tiêu khác',
+      };
+
   static const List<ExpenseCategory> allCategories = [
     ExpenseCategory(
       type: ExpenseCategoryType.food,
@@ -91,7 +113,7 @@ class ExpenseCategory {
 
   static ExpenseCategory fromType(ExpenseCategoryType type) {
     return allCategories.firstWhere(
-      (c) => c.type === type,
+      (c) => c.type == type,
       orElse: () => allCategories.last,
     );
   }
@@ -106,6 +128,6 @@ class ExpenseCategory {
         }
       }
     }
-    return allCategories.last; // 'other'
+    return allCategories.last;
   }
 }

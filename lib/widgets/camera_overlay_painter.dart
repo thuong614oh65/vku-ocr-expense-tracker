@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 
 class CameraOverlayPainter extends CustomPainter {
   final double scanProgress; // 0.0 to 1.0
+  final Offset? focusPoint;
 
   const CameraOverlayPainter({
     required this.scanProgress,
+    this.focusPoint,
   });
 
   @override
@@ -18,13 +20,13 @@ class CameraOverlayPainter extends CustomPainter {
     final frameLeft = (size.width - frameWidth) / 2;
     final frameTop = (size.height - frameHeight) / 2 - 20;
 
-    final frameRect = Rect.fromLTWH(frameLeft, frameTop, frameWidth, frameHeight);
+    final frameRect =
+        Rect.fromLTWH(frameLeft, frameTop, frameWidth, frameHeight);
 
     final backgroundPaint = Paint()
       ..color = Colors.black.withOpacity(0.55)
       ..style = PaintingStyle.fill;
 
-    // Use path with difference to punch a hole
     final backgroundPath = Path()
       ..addRect(Rect.fromLTWH(0, 0, size.width, size.height))
       ..addRRect(RRect.fromRectAndRadius(frameRect, const Radius.circular(16)))
@@ -47,7 +49,8 @@ class CameraOverlayPainter extends CustomPainter {
       Path()
         ..moveTo(frameLeft, frameTop + cornerLength)
         ..lineTo(frameLeft, frameTop + cornerRadius)
-        ..quadraticBezierTo(frameLeft, frameTop, frameLeft + cornerRadius, frameTop)
+        ..quadraticBezierTo(
+            frameLeft, frameTop, frameLeft + cornerRadius, frameTop)
         ..lineTo(frameLeft + cornerLength, frameTop),
       cornerPaint,
     );
@@ -57,8 +60,8 @@ class CameraOverlayPainter extends CustomPainter {
       Path()
         ..moveTo(frameLeft + frameWidth - cornerLength, frameTop)
         ..lineTo(frameLeft + frameWidth - cornerRadius, frameTop)
-        ..quadraticBezierTo(
-            frameLeft + frameWidth, frameTop, frameLeft + frameWidth, frameTop + cornerRadius)
+        ..quadraticBezierTo(frameLeft + frameWidth, frameTop,
+            frameLeft + frameWidth, frameTop + cornerRadius)
         ..lineTo(frameLeft + frameWidth, frameTop + cornerLength),
       cornerPaint,
     );
@@ -68,8 +71,8 @@ class CameraOverlayPainter extends CustomPainter {
       Path()
         ..moveTo(frameLeft, frameTop + frameHeight - cornerLength)
         ..lineTo(frameLeft, frameTop + frameHeight - cornerRadius)
-        ..quadraticBezierTo(
-            frameLeft, frameTop + frameHeight, frameLeft + cornerRadius, frameTop + frameHeight)
+        ..quadraticBezierTo(frameLeft, frameTop + frameHeight,
+            frameLeft + cornerRadius, frameTop + frameHeight)
         ..lineTo(frameLeft + cornerLength, frameTop + frameHeight),
       cornerPaint,
     );
@@ -77,11 +80,17 @@ class CameraOverlayPainter extends CustomPainter {
     // Bottom-Right
     canvas.drawPath(
       Path()
-        ..moveTo(frameLeft + frameWidth - cornerLength, frameTop + frameHeight)
-        ..lineTo(frameLeft + frameWidth - cornerRadius, frameTop + frameHeight)
-        ..quadraticBezierTo(frameLeft + frameWidth, frameTop + frameHeight,
-            frameLeft + frameWidth, frameTop + frameHeight - cornerRadius)
-        ..lineTo(frameLeft + frameWidth, frameTop + frameHeight - cornerLength),
+        ..moveTo(
+            frameLeft + frameWidth - cornerLength, frameTop + frameHeight)
+        ..lineTo(
+            frameLeft + frameWidth - cornerRadius, frameTop + frameHeight)
+        ..quadraticBezierTo(
+            frameLeft + frameWidth,
+            frameTop + frameHeight,
+            frameLeft + frameWidth,
+            frameTop + frameHeight - cornerRadius)
+        ..lineTo(
+            frameLeft + frameWidth, frameTop + frameHeight - cornerLength),
       cornerPaint,
     );
 
@@ -94,7 +103,8 @@ class CameraOverlayPainter extends CustomPainter {
           const Color(0xFF38BDF8),
           const Color(0xFF0284C7).withOpacity(0.0),
         ],
-      ).createShader(Rect.fromLTWH(frameLeft + 10, laserY - 1, frameWidth - 20, 2))
+      ).createShader(
+          Rect.fromLTWH(frameLeft + 10, laserY - 1, frameWidth - 20, 2))
       ..strokeWidth = 2.5;
 
     canvas.drawLine(
@@ -103,7 +113,6 @@ class CameraOverlayPainter extends CustomPainter {
       laserPaint,
     );
 
-    // Laser glow gradient underneath
     final glowPaint = Paint()
       ..shader = LinearGradient(
         begin: Alignment.topCenter,
@@ -112,16 +121,32 @@ class CameraOverlayPainter extends CustomPainter {
           const Color(0xFF0284C7).withOpacity(0.25),
           const Color(0xFF0284C7).withOpacity(0.0),
         ],
-      ).createShader(Rect.fromLTWH(frameLeft + 12, laserY, frameWidth - 20, 30));
+      ).createShader(
+          Rect.fromLTWH(frameLeft + 12, laserY, frameWidth - 20, 30));
 
     canvas.drawRect(
       Rect.fromLTWH(frameLeft + 12, laserY, frameWidth - 20, 20),
       glowPaint,
     );
+
+    // 4. Draw Tap-to-Focus Reticle if user tapped viewfinder
+    if (focusPoint != null) {
+      final focusPaint = Paint()
+        ..color = const Color(0xFFF59E0B)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.0;
+      canvas.drawCircle(focusPoint!, 26, focusPaint);
+      canvas.drawCircle(
+        focusPoint!,
+        4,
+        Paint()..color = const Color(0xFFF59E0B),
+      );
+    }
   }
 
   @override
   bool shouldRepaint(covariant CameraOverlayPainter oldDelegate) {
-    return oldDelegate.scanProgress != scanProgress;
+    return oldDelegate.scanProgress != scanProgress ||
+        oldDelegate.focusPoint != focusPoint;
   }
 }

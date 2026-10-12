@@ -16,17 +16,41 @@ function mdToHtml(md) {
 
   const lines = html.split('\n');
   let inTable = false;
+  let inCodeBlock = false;
   let tableHtml = '';
   const resultLines = [];
-  let inCodeBlock = false;
 
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
+    const rawLine = lines[i];
+    const line = rawLine.trim();
+
+    if (line.startsWith('```')) {
+      if (inTable) {
+        inTable = false;
+        tableHtml += '</tbody></table>';
+        resultLines.push(tableHtml);
+      }
+      if (!inCodeBlock) {
+        inCodeBlock = true;
+        resultLines.push('<pre><code>');
+      } else {
+        inCodeBlock = false;
+        resultLines.push('</code></pre>');
+      }
+      continue;
+    }
+
+    if (inCodeBlock) {
+      resultLines.push(rawLine);
+      continue;
+    }
+
     if (line.startsWith('|') && line.endsWith('|')) {
       if (line.includes('---')) {
         continue;
       }
-      const cells = line.slice(1, -1).split('|').map(c => c.trim());
+      // Split by unescaped pipe
+      const cells = line.slice(1, -1).split(/(?<!\\)\|/).map(c => c.replace(/\\\|/g, '|').trim());
       if (!inTable) {
         inTable = true;
         tableHtml = '<table><thead><tr>' + cells.map(c => `<th>${c}</th>`).join('') + '</tr></thead><tbody>';
@@ -39,162 +63,71 @@ function mdToHtml(md) {
         tableHtml += '</tbody></table>';
         resultLines.push(tableHtml);
       }
-      if (line.startsWith('```')) {
-        if (!inCodeBlock) {
-          inCodeBlock = true;
-          resultLines.push('<pre><code>');
-        } else {
-          inCodeBlock = false;
-          resultLines.push('</code></pre>');
-        }
-      } else if (inCodeBlock) {
-        resultLines.push(line.replace(/</g, '&lt;').replace(/>/g, '&gt;'));
-      } else if (line.length > 0 && !line.startsWith('<h') && !line.startsWith('<hr')) {
+      if (line.length > 0 && !line.startsWith('<h') && !line.startsWith('<hr')) {
         resultLines.push(`<p>${line}</p>`);
       } else {
         resultLines.push(line);
       }
     }
   }
-
   if (inTable) {
-    resultLines.push('</tbody></table>');
+    resultLines.push(tableHtml + '</tbody></table>');
   }
 
   return resultLines.join('\n');
 }
 
 const mdPath = path.join(__dirname, 'BAO_CAO_KY_THUAT_REPORT.md');
-const mdContent = fs.readFileSync(mdPath, 'utf8');
-const bodyHtml = mdToHtml(mdContent);
+const mdContent = fs.readFileSync(mdPath, 'utf-8');
+const bodyContent = mdToHtml(mdContent);
 
-const fullHtml = `<!DOCTYPE html>
-<html>
+const htmlTemplate = `<!DOCTYPE html>
+<html lang="vi">
 <head>
-  <meta charset="utf-8">
-  <title>VKU Mini-Project 3 Short Technical Report</title>
+  <meta charset="UTF-8">
+  <title>Báo Cáo Kỹ Thuật - VKU OCR Expense Tracker (Mini-Project 3)</title>
   <style>
-    @page {
-      size: A4;
-      margin: 18mm 16mm 18mm 16mm;
-    }
+    @page { size: A4; margin: 14mm 16mm; }
     body {
-      font-family: 'Segoe UI', Arial, sans-serif;
-      font-size: 10.5pt;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      color: #0f172a;
       line-height: 1.5;
-      color: #1e293b;
+      font-size: 12.2px;
       margin: 0;
       padding: 0;
     }
-    h1 {
-      font-size: 16pt;
-      color: #0284c7;
-      text-align: center;
-      margin-bottom: 4px;
-      text-transform: uppercase;
-      font-weight: 800;
-    }
-    h2 {
-      font-size: 12.5pt;
-      color: #0f172a;
-      border-bottom: 1.5px solid #0284c7;
-      padding-bottom: 4px;
-      margin-top: 14px;
-      margin-bottom: 8px;
-    }
-    h3 {
-      font-size: 11pt;
-      color: #0369a1;
-      margin-top: 10px;
-      margin-bottom: 4px;
-    }
-    p {
-      margin: 4px 0 6px 0;
-      text-align: justify;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin: 8px 0;
-      font-size: 9.5pt;
-    }
-    th, td {
-      border: 1px solid #cbd5e1;
-      padding: 6px 8px;
-      text-align: left;
-    }
-    th {
-      background-color: #f1f5f9;
-      color: #0f172a;
-      font-weight: 700;
-    }
-    tr:nth-child(even) {
-      background-color: #f8fafc;
-    }
-    code {
-      font-family: 'Consolas', monospace;
-      background: #f1f5f9;
-      padding: 2px 4px;
-      border-radius: 4px;
-      font-size: 9pt;
-      color: #0369a1;
-    }
-    pre {
-      background: #0f172a;
-      color: #38bdf8;
-      padding: 10px;
-      border-radius: 6px;
-      overflow-x: auto;
-      font-size: 8.5pt;
-      margin: 6px 0;
-    }
-    pre code {
-      background: transparent;
-      color: inherit;
-      padding: 0;
-    }
-    hr {
-      border: none;
-      border-top: 1px solid #e2e8f0;
-      margin: 12px 0;
-    }
-    a {
-      color: #0284c7;
-      text-decoration: none;
-      font-weight: 600;
-    }
+    h1 { font-size: 19px; color: #0284c7; border-bottom: 2px solid #0284c7; padding-bottom: 5px; margin-top: 0; }
+    h2 { font-size: 14.5px; color: #0369a1; border-bottom: 1px solid #cbd5e1; padding-bottom: 3px; margin-top: 14px; }
+    h3 { font-size: 13px; color: #1e293b; margin-top: 10px; }
+    p { margin: 5px 0; }
+    hr { border: none; border-top: 1px solid #e2e8f0; margin: 10px 0; }
+    table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 11px; }
+    th { background: #f1f5f9; color: #0f172a; font-weight: 700; border: 1px solid #cbd5e1; padding: 6px 8px; text-align: left; }
+    td { border: 1px solid #cbd5e1; padding: 5px 8px; vertical-align: top; }
+    tr:nth-child(even) { background: #f8fafc; }
+    code { background: #f1f5f9; color: #0369a1; padding: 1px 4px; border-radius: 4px; font-family: monospace; font-size: 10.5px; }
+    pre { background: #0f172a; color: #f8fafc; padding: 8px 12px; border-radius: 8px; overflow-x: auto; font-size: 10.5px; line-height: 1.35; }
+    pre code { background: none; color: inherit; padding: 0; }
+    a { color: #0284c7; text-decoration: none; font-weight: 600; }
+    strong { color: #0f172a; }
   </style>
 </head>
 <body>
-  ${bodyHtml}
+  ${bodyContent}
 </body>
 </html>`;
 
-const tempHtmlPath = path.join(__dirname, 'temp_report.html');
-fs.writeFileSync(tempHtmlPath, fullHtml, 'utf8');
+const tempHtml = path.join(__dirname, 'temp_report.html');
+fs.writeFileSync(tempHtml, htmlTemplate, 'utf-8');
 
-const outputPdfPath = path.join(__dirname, 'BAO_CAO_KY_THUAT_REPORT.pdf');
-
-console.log('Rendering PDF via Headless Edge/Chrome...');
+const pdfOut = path.join(__dirname, 'BAO_CAO_KY_THUAT_REPORT.pdf');
 const edgePath = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
-const chromePath = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
 
-let browserPath = fs.existsSync(edgePath) ? edgePath : (fs.existsSync(chromePath) ? chromePath : null);
+console.log('Rendering PDF via Microsoft Edge...');
+execSync(`"${edgePath}" --headless --disable-gpu --print-to-pdf="${pdfOut}" --no-pdf-header-footer "${tempHtml}"`);
 
-if (browserPath) {
-  try {
-    execSync(`"${browserPath}" --headless --disable-gpu --run-all-compositor-stages-before-draw --print-to-pdf="${outputPdfPath}" "${tempHtmlPath}"`, { stdio: 'inherit' });
-    if (fs.existsSync(outputPdfPath)) {
-      const stats = fs.statSync(outputPdfPath);
-      console.log(`✓ PDF Generated Successfully (${stats.size} bytes): ${outputPdfPath}`);
-    }
-  } catch (e) {
-    console.error('Error generating PDF:', e.message);
-  }
-} else {
-  console.log('No headless browser found. HTML generated at:', tempHtmlPath);
+if (fs.existsSync(tempHtml)) {
+  fs.unlinkSync(tempHtml);
 }
 
-if (fs.existsSync(tempHtmlPath)) {
-  fs.unlinkSync(tempHtmlPath);
-}
+console.log(`✓ PDF Generated Successfully: ${pdfOut}`);
