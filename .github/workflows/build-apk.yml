@@ -41,9 +41,10 @@ jobs:
             sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 34/g' android/app/build.gradle
           fi
           flutter pub get
+          flutter analyze --no-fatal-infos --no-fatal-warnings
 
-      - name: Build Signed Release APK
-        run: flutter build apk --release
+      - name: Build Signed Release APK (with --no-shrink for ML Kit optional script classes)
+        run: flutter build apk --release --no-shrink
 
       - name: Upload APK as Artifact
         uses: actions/upload-artifact@v4
