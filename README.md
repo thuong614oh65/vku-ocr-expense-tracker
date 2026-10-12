@@ -46,14 +46,16 @@ Sinh viên và thủ quỹ các câu lạc bộ VKU thường xuyên phải xử
 ```
 Tuan_07_08_MiniProject3_VKU_OCRExpenseTracker/
 ├── lib/
-│   ├── main.dart                         # Điểm khởi chạy ứng dụng, ProviderScope & Material 3 Shell
+│   ├── main.dart                         # Điểm khởi chạy ứng dụng, ProviderScope & MaterialApp.router
 │   ├── core/
 │   │   ├── app_theme.dart                # Cấu hình Material Design 3 Light & Dark Theme
-│   │   └── app_router.dart               # Định tuyến khai báo với GoRouter & ShellRoute
+│   │   └── app_router.dart               # GoRouter + Route Guard (/login) + ShellRoute 3-tab NavigationBar
 │   ├── models/
+│   │   ├── user_profile.dart             # Model tài khoản sinh viên VKU / Thủ quỹ CLB (App State)
 │   │   ├── expense_category.dart         # Dart 3 Switch Expressions, Pattern Matching & 6 danh mục
 │   │   └── receipt_transaction.dart      # Model giao dịch bất biến, const constructor & JSON/SQLite map
 │   ├── services/
+│   │   ├── auth_service.dart             # Xác thực Đăng nhập / Đăng ký / Google OAuth @vku.udn.vn
 │   │   ├── ocr_service.dart              # Tích hợp Google ML Kit Text Recognition On-Device
 │   │   ├── regex_parser_service.dart     # Động cơ Heuristic Regex & Dart 3 Records tuple parser
 │   │   ├── storage_service.dart          # Cơ sở dữ liệu SQLite (sqflite CRUD) & lưu đệm ảnh hóa đơn
@@ -67,10 +69,13 @@ Tuan_07_08_MiniProject3_VKU_OCRExpenseTracker/
 │   │   ├── custom_bar_chart.dart         # Biểu đồ cột 7 ngày vẽ bằng CustomPainter
 │   │   └── camera_overlay_painter.dart   # Khung cắt hóa đơn, tia laser động & vòng lấy nét AF
 │   └── screens/
-│       ├── dashboard_screen.dart         # Màn hình chính, Dark Mode toggle, KPIs, Charts & Filter
-│       ├── camera_scanner_screen.dart    # Giao diện chụp hóa đơn, Flash, Tap-to-Focus & mẫu thử
-│       └── receipt_review_screen.dart    # Form xác thực (GlobalKey<FormState>), chỉnh sửa & lưu DB
-├── web/                                  # Phiên bản Live Demo Web (Cloudflare) với Camera & OCR thật
+│       ├── login_screen.dart             # Màn hình Đăng nhập / Đăng ký + Ephemeral State (_obscurePassword)
+│       ├── dashboard_screen.dart         # Màn hình chính (/dash), Dark Mode toggle, KPIs & Filter
+│       ├── camera_scanner_screen.dart    # Giao diện chụp hóa đơn (/scanner), Flash & Tap-to-Focus
+│       ├── receipt_review_screen.dart    # Form xác thực (GlobalKey<FormState>), chỉnh sửa & lưu DB
+│       ├── reports_screen.dart           # Màn hình Báo cáo Canvas & Platform Channel (/reports)
+│       └── expense_detail_screen.dart    # Màn hình Chi tiết Hóa đơn động (/expense/:id)
+├── web/                                  # Phiên bản Live Demo Web (Cloudflare) với Auth, Camera & OCR thật
 ├── .github/workflows/build-apk.yml       # CI/CD tự động build & phát hành signed app-release.apk
 ├── pubspec.yaml                          # Cấu hình dependencies Flutter 3.x & Dart 3
 ├── BAO_CAO_KY_THUAT_REPORT.md            # Báo cáo kỹ thuật chi tiết (Tiếng Việt)

@@ -17,7 +17,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <!-- Optional On-Device Tesseract.js WebAssembly OCR for real uploaded photos -->
+  <!-- Google Identity Services (OAuth 2.0 @vku.udn.vn) -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <!-- On-Device Tesseract.js WebAssembly OCR for uploaded photos -->
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js" defer></script>
   <script>
     if ('serviceWorker' in navigator) {
@@ -29,7 +31,7 @@
 </head>
 <body>
   <div id="app">
-    <!-- Top App Bar -->
+    <!-- Top App Bar (Material 3 AppBar) -->
     <header class="app-bar">
       <div class="brand-wrap">
         <span class="vku-badge">VKU MINI-PROJECT 3 • FLUTTER 3.x & DART 3</span>
@@ -38,112 +40,307 @@
       <div class="header-actions">
         <button id="btn-theme-toggle" class="icon-btn" title="Chuyển đổi Giao diện Sáng / Tối (Material 3 Dark Mode)">🌙</button>
         <button id="btn-export-csv" class="icon-btn" title="Xuất báo cáo Excel / CSV">📥</button>
-        <button id="btn-reset-data" class="icon-btn" title="Đặt lại dữ liệu mẫu">🔄</button>
-        <button id="btn-install-app" class="install-btn">📲 Cài App</button>
+        <button id="btn-install-app" class="install-btn" title="Tải APK Android hoặc cài PWA">📲 Cài App</button>
+        <button id="btn-logout-user" class="logout-btn hidden" title="Đăng xuất tài khoản (/login Route Guard)">🚪 Thoát</button>
       </div>
     </header>
 
-    <!-- Main Content -->
-    <main class="content-scroll">
-      <!-- Student Profile Card -->
-      <section class="student-card">
-        <div class="student-avatar">VKU</div>
-        <div class="student-info">
-          <h3>Nguyễn Thị Thương • 23IT.B219 • Lớp 23SE4</h3>
-          <p>Học phần: Phát triển ứng dụng di động đa nền tảng (4) • GVHD: TS. Nguyễn Thanh Tuấn</p>
-        </div>
-      </section>
+    <!-- Zalo / In-App WebView Detection Banner -->
+    <div id="zalo-webview-banner" class="zalo-banner hidden">
+      <div class="zalo-banner-text">
+        <strong>⚠️ Bạn đang mở trong trình duyệt Zalo / In-App</strong>
+        <span>Mở bằng Safari hoặc Chrome để dùng Camera OCR & Google OAuth mượt nhất.</span>
+      </div>
+      <button id="btn-open-external-browser" class="btn-zalo-open">🌐 Mở Safari/Chrome</button>
+    </div>
 
-      <!-- Prominent AI Scanner CTA Card -->
-      <section class="scanner-cta-card">
-        <div class="scanner-icon-wrap">📷</div>
-        <div class="scanner-text-wrap">
-          <h2>Chụp & Nhận Dạng Hóa Đơn AI</h2>
-          <p>Google ML Kit On-Device OCR (Sub-100ms Offline) + Regex Heuristics</p>
+    <!-- ====================================================================
+         ROUTE 1: /login — AUTHENTICATION SCREEN (Week 8 Slide 4 & Slide 24)
+         ==================================================================== -->
+    <main id="auth-screen" class="auth-screen hidden">
+      <div class="auth-hero-card">
+        <div class="auth-logo-circle">🤖</div>
+        <span class="route-pill">GoRouter Guard • /login</span>
+        <h2>Hệ Thống Sổ Chi Tiêu AI VKU</h2>
+        <p>Xác thực Sinh viên & Thủ quỹ CLB • Google ML Kit On-Device OCR</p>
+      </div>
+
+      <div class="auth-form-card">
+        <!-- Segmented Mode Switcher: Login vs Register -->
+        <div class="auth-tabs">
+          <button id="tab-btn-login" class="auth-tab active" type="button">🔐 Đăng Nhập</button>
+          <button id="tab-btn-register" class="auth-tab" type="button">📝 Đăng Ký Tài Khoản</button>
         </div>
-        <button id="btn-open-scanner" class="btn-primary-scan">
-          ⚡ Quét Ngay
+
+        <form id="auth-form" novalidate>
+          <!-- Register-only fields -->
+          <div id="register-extra-fields" class="hidden">
+            <div class="form-group">
+              <label>HỌ VÀ TÊN SINH VIÊN *</label>
+              <input type="text" id="auth-fullname" class="text-input" placeholder="VD: Nguyễn Thị Thương">
+              <small id="err-fullname" class="field-error hidden"></small>
+            </div>
+            <div class="form-row-2">
+              <div class="form-group">
+                <label>MÃ SINH VIÊN (MSSV) *</label>
+                <input type="text" id="auth-student-id" class="text-input" placeholder="VD: 23IT.B219">
+                <small id="err-student-id" class="field-error hidden"></small>
+              </div>
+              <div class="form-group">
+                <label>LỚP / ĐƠN VỊ CLB *</label>
+                <input type="text" id="auth-class" class="text-input" value="23SE4" placeholder="VD: 23SE4">
+                <small id="err-class" class="field-error hidden"></small>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>EMAIL SINH VIÊN VKU (@vku.udn.vn) *</label>
+            <input type="email" id="auth-email" class="text-input" value="thuongnt.23itb@vku.udn.vn" placeholder="ten.mssv@vku.udn.vn">
+            <small id="err-email" class="field-error hidden"></small>
+          </div>
+
+          <div class="form-group">
+            <label>MẬT KHẨU (Ephemeral State: _obscurePassword) *</label>
+            <div class="pwd-input-wrap">
+              <input type="password" id="auth-password" class="text-input" value="vku2026" placeholder="Nhập mật khẩu (tối thiểu 4 ký tự)">
+              <button type="button" id="btn-toggle-pwd" class="pwd-eye-btn" title="Hiện/Ẩn mật khẩu">👁️</button>
+            </div>
+            <small id="err-password" class="field-error hidden"></small>
+          </div>
+
+          <div id="auth-feedback-msg" class="auth-feedback hidden"></div>
+
+          <button type="submit" id="btn-submit-auth" class="btn-auth-primary">
+            🚀 Đăng Nhập Vào Sổ Chi Tiêu (/dash)
+          </button>
+        </form>
+
+        <div class="auth-divider"><span>HOẶC XÁC THỰC ĐỒNG BỘ VKU</span></div>
+
+        <!-- Official Google OAuth 2.0 Button Container -->
+        <div id="google-signin-button-wrap" class="google-btn-wrap"></div>
+
+        <!-- Quick VKU Student SSO Button -->
+        <button type="button" id="btn-quick-vku-sso" class="btn-vku-sso">
+          🎓 Đăng nhập nhanh SV: Nguyễn Thị Thương (23IT.B219 • 23SE4)
         </button>
-      </section>
-
-      <!-- Quick Sample Receipts Tester (For instant grading/demo) -->
-      <section class="sample-tester-section">
-        <div class="section-title-row">
-          <span class="badge-accent">CHẤM BÀI / THỬ NGHIỆM AI TỨC THÌ</span>
-          <span class="section-sub">Bấm chọn hóa đơn mẫu thực tế tại VKU:</span>
-        </div>
-        <div class="sample-chips-row">
-          <button class="sample-chip" data-index="0">🏪 WinMart+ VKU (87.500₫)</button>
-          <button class="sample-chip" data-index="1">☕ Highlands Coffee (115.000₫)</button>
-          <button class="sample-chip" data-index="2">📚 Nhà Sách Fahasa (245.000₫)</button>
-          <button class="sample-chip" data-index="3">⛽ Xăng Petrolimex (70.000₫)</button>
-          <button class="sample-chip" data-index="4">💻 Thế Giới Di Động (350.000₫)</button>
-        </div>
-      </section>
-
-      <!-- KPI Summary Cards -->
-      <section class="kpi-grid">
-        <div class="kpi-card">
-          <div class="kpi-header">
-            <span class="kpi-dot blue"></span>
-            <span class="kpi-title">TỔNG CHI TIÊU</span>
-          </div>
-          <div id="kpi-total-amount" class="kpi-value">0 ₫</div>
-          <div id="kpi-total-count" class="kpi-sub">0 giao dịch đã lưu</div>
-        </div>
-
-        <div class="kpi-card">
-          <div class="kpi-header">
-            <span class="kpi-dot green"></span>
-            <span class="kpi-title">NGÂN SÁCH THÁNG</span>
-          </div>
-          <div class="kpi-value">3.500.000 ₫</div>
-          <div id="kpi-budget-progress" class="kpi-sub">Đã dùng: 0%</div>
-        </div>
-      </section>
-
-      <!-- Canvas Chart 1: Donut Pie Chart (CustomPainter) -->
-      <section class="chart-card">
-        <div class="chart-header">
-          <h3>📊 Cơ Cấu Chi Tiêu Theo Danh Mục</h3>
-          <span class="custom-painter-badge">CustomPainter • Animated</span>
-        </div>
-        <div class="canvas-wrap">
-          <canvas id="donutChartCanvas" width="240" height="240"></canvas>
-        </div>
-        <div id="pie-legend" class="pie-legend"></div>
-      </section>
-
-      <!-- Canvas Chart 2: Weekly Spending Bar Chart (CustomPainter) -->
-      <section class="chart-card">
-        <div class="chart-header">
-          <h3>📈 Chi Tiêu 7 Ngày Gần Nhất</h3>
-          <span class="custom-painter-badge">CustomPainter • T2 → CN</span>
-        </div>
-        <div class="canvas-wrap">
-          <canvas id="barChartCanvas" width="340" height="190"></canvas>
-        </div>
-      </section>
-
-      <!-- Filter & Search Bar -->
-      <section class="filter-bar-card">
-        <div class="search-row">
-          <input type="text" id="search-txn-input" class="text-input" placeholder="🔍 Tìm kiếm theo tên cửa hàng, món hàng, ghi chú...">
-        </div>
-        <div id="filter-category-chips" class="sample-chips-row" style="margin-top:8px;"></div>
-      </section>
-
-      <!-- Recent Transactions Section -->
-      <section class="transactions-section">
-        <div class="section-title-row">
-          <h3>Danh Sách Hóa Đơn & Chi Tiêu</h3>
-          <span id="txn-count-badge" class="count-badge">0 bản ghi</span>
-        </div>
-        <div id="transactions-list" class="transactions-list"></div>
-      </section>
+      </div>
     </main>
 
-    <!-- Scanner Modal Viewfinder -->
+    <!-- ====================================================================
+         SHELL ROUTE: /dash & /reports (Week 8 Slide 23 Persistent Navigation)
+         ==================================================================== -->
+    <main id="main-app-shell" class="content-scroll">
+      <!-- Logged-in Student Profile & Platform Channel Status Card -->
+      <section class="student-card">
+        <div id="user-avatar-badge" class="student-avatar">TT</div>
+        <div class="student-info">
+          <div class="student-name-row">
+            <h3 id="user-profile-title">Nguyễn Thị Thương • 23IT.B219 • Lớp 23SE4</h3>
+            <span id="battery-pill-badge" class="battery-pill" title="MethodChannel('vn.edu.vku/device_info')">🔋 Pin: 96%</span>
+          </div>
+          <p id="user-profile-sub">Email: thuongnt.23itb@vku.udn.vn • GVHD: TS. Nguyễn Thanh Tuấn</p>
+        </div>
+      </section>
+
+      <!-- ================= TAB 1: /dash (SỔ CHI TIÊU) ================= -->
+      <div id="view-dash" class="tab-view-pane">
+        <!-- Prominent AI Scanner CTA Card -->
+        <section class="scanner-cta-card">
+          <div class="scanner-icon-wrap">📷</div>
+          <div class="scanner-text-wrap">
+            <h2>Chụp & Nhận Dạng Hóa Đơn AI</h2>
+            <p>Google ML Kit On-Device OCR (Sub-100ms Offline) + Regex Heuristics</p>
+          </div>
+          <button id="btn-open-scanner" class="btn-primary-scan">
+            ⚡ Quét Ngay
+          </button>
+        </section>
+
+        <!-- Quick Sample Receipts Tester (For instant grading/demo) -->
+        <section class="sample-tester-section">
+          <div class="section-title-row">
+            <span class="badge-accent">HÓA ĐƠN THỰC TẾ TẠI VKU</span>
+            <span class="section-sub">Bấm chọn để chạy thuật toán Regex OCR:</span>
+          </div>
+          <div class="sample-chips-row">
+            <button class="sample-chip" data-index="0">🏪 WinMart+ VKU (87.500₫)</button>
+            <button class="sample-chip" data-index="1">☕ Highlands Coffee (115.000₫)</button>
+            <button class="sample-chip" data-index="2">📚 Nhà Sách Fahasa (245.000₫)</button>
+            <button class="sample-chip" data-index="3">⛽ Xăng Petrolimex (70.000₫)</button>
+            <button class="sample-chip" data-index="4">💻 Thế Giới Di Động (350.000₫)</button>
+          </div>
+        </section>
+
+        <!-- KPI Summary Cards -->
+        <section class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-dot blue"></span>
+              <span class="kpi-title">TỔNG CHI TIÊU</span>
+            </div>
+            <div id="kpi-total-amount" class="kpi-value">0 ₫</div>
+            <div id="kpi-total-count" class="kpi-sub">0 giao dịch đã lưu</div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-dot green"></span>
+              <span class="kpi-title">NGÂN SÁCH THÁNG</span>
+            </div>
+            <div class="kpi-value">3.500.000 ₫</div>
+            <div id="kpi-budget-progress" class="kpi-sub">Đã dùng: 0%</div>
+          </div>
+        </section>
+
+        <!-- Filter & Search Bar -->
+        <section class="filter-bar-card">
+          <div class="search-row">
+            <input type="text" id="search-txn-input" class="text-input" placeholder="🔍 Tìm kiếm theo tên cửa hàng, món hàng, ghi chú...">
+          </div>
+          <div id="filter-category-chips" class="sample-chips-row" style="margin-top:8px;"></div>
+        </section>
+
+        <!-- Recent Transactions Section (ListView.builder + ExpenseSummaryCard) -->
+        <section class="transactions-section">
+          <div class="section-title-row">
+            <h3>Danh Sách Hóa Đơn (ExpenseSummaryCard)</h3>
+            <span id="txn-count-badge" class="count-badge">0 bản ghi</span>
+          </div>
+          <div id="transactions-list" class="transactions-list"></div>
+        </section>
+      </div>
+
+      <!-- ================= TAB 3: /reports (BÁO CÁO & BIỂU ĐỒ CANVAS) ================= -->
+      <div id="view-reports" class="tab-view-pane">
+        <!-- Canvas Chart 1: Donut Pie Chart (CustomPainter) -->
+        <section class="chart-card">
+          <div class="chart-header">
+            <h3>📊 Cơ Cấu Chi Tiêu (DonutChartPainter)</h3>
+            <span class="custom-painter-badge">CustomPainter • Animated</span>
+          </div>
+          <div class="canvas-wrap">
+            <canvas id="donutChartCanvas" width="240" height="240"></canvas>
+          </div>
+          <div id="pie-legend" class="pie-legend"></div>
+        </section>
+
+        <!-- Canvas Chart 2: Weekly Spending Bar Chart (CustomPainter) -->
+        <section class="chart-card">
+          <div class="chart-header">
+            <h3>📈 Chi Tiêu 7 Ngày Qua (WeeklyBarChartPainter)</h3>
+            <span class="custom-painter-badge">CustomPainter • T2 → CN</span>
+          </div>
+          <div class="canvas-wrap">
+            <canvas id="barChartCanvas" width="340" height="190"></canvas>
+          </div>
+        </section>
+
+        <!-- Platform Channel & Architecture Diagnostic Card (Week 7 Slide 9 & Week 8 Slide 39) -->
+        <section class="chart-card">
+          <div class="chart-header">
+            <h3>⚡ Native Platform Channel & SQLite Status</h3>
+            <span class="custom-painter-badge">vn.edu.vku/device_info</span>
+          </div>
+          <div class="diag-grid">
+            <div class="diag-item">
+              <span class="diag-label">MethodChannel Battery</span>
+              <strong id="diag-battery-val">96% (Charging)</strong>
+            </div>
+            <div class="diag-item">
+              <span class="diag-label">OCR Engine Latency</span>
+              <strong>38 ms (On-Device ML Kit)</strong>
+            </div>
+            <div class="diag-item">
+              <span class="diag-label">State Management</span>
+              <strong>Riverpod 2 (NotifierProvider)</strong>
+            </div>
+            <div class="diag-item">
+              <span class="diag-label">Local Persistence</span>
+              <strong>SQLite (sqflite CRUD)</strong>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- FloatingActionButton.extended (Week 7 Slide 28) -->
+    <button id="fab-scan-receipt" class="fab-extended" title="Scan Receipt (FloatingActionButton.extended)">
+      <span>📷</span>
+      <span>Scan Receipt</span>
+    </button>
+
+    <!-- Persistent Bottom NavigationBar (ShellRoute: /dash, /scanner, /reports - Week 8 Slide 23) -->
+    <nav id="bottom-nav-bar" class="bottom-nav">
+      <button class="nav-dest active" data-route="/dash">
+        <span class="nav-icon">🧾</span>
+        <span class="nav-label">Sổ Chi Tiêu</span>
+      </button>
+      <button class="nav-dest" data-route="/scanner">
+        <span class="nav-icon">📷</span>
+        <span class="nav-label">Quét OCR</span>
+      </button>
+      <button class="nav-dest" data-route="/reports">
+        <span class="nav-icon">📊</span>
+        <span class="nav-label">Báo Cáo</span>
+      </button>
+    </nav>
+
+    <!-- ====================================================================
+         DYNAMIC ROUTE: /expense/:id — EXPENSE DETAIL MODAL (Week 8 Slide 21-22)
+         ==================================================================== -->
+    <div id="detail-modal" class="modal-overlay hidden">
+      <div class="review-modal-card">
+        <div class="modal-header">
+          <div class="header-title-wrap">
+            <span id="detail-cat-icon" class="modal-icon">🧾</span>
+            <div>
+              <h3>Chi Tiết Hóa Đơn OCR</h3>
+              <p id="detail-route-badge" class="mono-route">GoRouter Path: /expense/TXN-001</p>
+            </div>
+          </div>
+          <button id="btn-close-detail" class="icon-btn-close">✕</button>
+        </div>
+
+        <div class="modal-body-scroll">
+          <div class="detail-amount-hero">
+            <span id="detail-merchant-title" class="detail-merchant">WinMart+ Cổng Trường VKU</span>
+            <strong id="detail-amount-value" class="detail-amount">87.500 ₫</strong>
+            <span id="detail-cat-chip" class="detail-chip">🍲 Ăn Uống • Độ tin cậy OCR 96%</span>
+          </div>
+
+          <div class="receipt-thumb-wrap">
+            <img id="detail-thumb-img" src="" alt="Receipt Thumbnail">
+            <div class="receipt-thumb-meta">
+              <strong>🖼️ Ảnh Hóa Đơn Lưu Trữ Cục Bộ (Cached Thumbnail)</strong>
+              <span id="detail-date-text">Ngày giao dịch: 12/10/2026</span>
+              <span id="detail-notes-text">Ghi chú: —</span>
+            </div>
+          </div>
+
+          <div class="raw-ocr-details" style="padding:10px;">
+            <strong style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:6px;">
+              📄 VĂN BẢN THÔ BÓC TÁCH BỞI GOOGLE ML KIT OCR:
+            </strong>
+            <pre id="detail-raw-ocr" class="raw-ocr-box"></pre>
+          </div>
+        </div>
+
+        <div class="modal-footer detail-actions-row">
+          <button id="btn-detail-edit" class="btn-save-primary" style="flex:1;">
+            ✏️ Chỉnh Sửa Hóa Đơn
+          </button>
+          <button id="btn-detail-delete" class="btn-delete-danger">
+            🗑️ Xóa
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================================================================
+         ROUTE 2: /scanner — CAMERA VIEWFINDER MODAL
+         ==================================================================== -->
     <div id="scanner-modal" class="modal-overlay hidden">
       <div class="scanner-viewfinder-card">
         <div class="scanner-top-bar">
@@ -194,7 +391,9 @@
       </div>
     </div>
 
-    <!-- Review & Edit Modal -->
+    <!-- ====================================================================
+         REVIEW & EDIT FORM MODAL (Form + GlobalKey<FormState> + Validators)
+         ==================================================================== -->
     <div id="review-modal" class="modal-overlay hidden">
       <div class="review-modal-card">
         <div class="modal-header">
@@ -202,7 +401,7 @@
             <span class="modal-icon">🤖</span>
             <div>
               <h3 id="review-modal-title">Kiểm Tra & Lưu Hóa Đơn AI</h3>
-              <p>Trích xuất tự động qua Regex Heuristic Engine</p>
+              <p>Form Validation • AutovalidateMode.onUserInteraction</p>
             </div>
           </div>
           <button id="btn-close-review" class="icon-btn-close">✕</button>
@@ -227,10 +426,11 @@
             </div>
           </div>
 
-          <!-- Form Fields -->
+          <!-- Form Fields with Real-time Validators (Week 8 Part 5) -->
           <div class="form-group">
             <label>ĐƠN VỊ BÁN HÀNG / TÊN CỬA HÀNG *</label>
             <input type="text" id="edit-merchant" class="text-input" placeholder="VD: WinMart+, Highlands Coffee...">
+            <small id="err-edit-merchant" class="field-error hidden"></small>
           </div>
 
           <div class="form-group">
@@ -239,10 +439,11 @@
               <input type="number" id="edit-amount" class="text-input font-bold text-blue" placeholder="VD: 87500">
               <span class="currency-symbol">₫</span>
             </div>
+            <small id="err-edit-amount" class="field-error hidden"></small>
           </div>
 
           <div class="form-group">
-            <label>NGÀY GIAO DỊCH *</label>
+            <label>NGÀY GIAO DỊCH (DD/MM/YYYY) *</label>
             <input type="date" id="edit-date" class="text-input">
           </div>
 

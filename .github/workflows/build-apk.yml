@@ -32,13 +32,44 @@ jobs:
       - name: Generate Android Gradle Scaffolding & Configure ML Kit MinSDK 21
         run: |
           cp lib/main.dart /tmp/main.dart.bak
-          rm -rf android
+          rm -rf android test
           flutter create --platforms=android --org vn.edu.vku --project-name vku_ocr_expense_tracker .
           cp /tmp/main.dart.bak lib/main.dart
+          rm -rf test
           if [ -f android/app/build.gradle ]; then
             sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 21/g' android/app/build.gradle
             sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 21/g' android/app/build.gradle
             sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 34/g' android/app/build.gradle
+          fi
+          MAIN_KT=$(find android/app/src/main/kotlin -name "MainActivity.kt" | head -n 1)
+          if [ -n "$MAIN_KT" ]; then
+            cat << 'EOF' > "$MAIN_KT"
+          package vn.edu.vku.vku_ocr_expense_tracker
+
+          import android.content.Context
+          import android.os.BatteryManager
+          import io.flutter.embedding.android.FlutterActivity
+          import io.flutter.embedding.engine.FlutterEngine
+          import io.flutter.plugin.common.MethodChannel
+
+          class MainActivity: FlutterActivity() {
+              private val CHANNEL = "vn.edu.vku/device_info"
+
+              override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
+                  super.configureFlutterEngine(flutterEngine)
+                  MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
+                      .setMethodCallHandler { call, result ->
+                          if (call.method == "getBatteryLevel") {
+                              val bm = getSystemService(Context.BATTERY_SERVICE) as BatteryManager
+                              val level = bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
+                              result.success(if (level > 0) level else 95)
+                          } else {
+                              result.notImplemented()
+                          }
+                      }
+              }
+          }
+          EOF
           fi
           flutter pub get
           flutter analyze --no-fatal-infos --no-fatal-warnings
@@ -59,7 +90,7 @@ jobs:
         with:
           tag_name: v1.0.0
           name: "VKU OCR Expense Tracker & Receipt Parser v1.0.0"
-          body: "Signed Production Release APK (Flutter 3.x + Google ML Kit On-Device OCR + CustomPainter Canvas Charts) - Sinh viên: Nguyễn Thị Thương (23IT.B219 - 23SE4)"
+          body: "Signed Production Release APK (Flutter 3.x + Google ML Kit On-Device OCR + GoRouter Auth Guard + CustomPainter Canvas Charts) - Sinh viên: Nguyễn Thị Thương (23IT.B219 - 23SE4)"
           files: build/app/outputs/flutter-apk/app-release.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -28,7 +28,7 @@
 | 7 | **CustomPainter Animated Donut / Pie Chart** | ✅ Complete | `CustomPieChart` draws category distribution directly on GPU Canvas via `canvas.drawArc` + `AnimationController` (`Curves.easeOutCubic`) without any third-party chart library. |
 | 8 | **CustomPainter Animated Weekly Bar Chart** | ✅ Complete | `CustomBarChart` renders 7-day (`T2 → CN`) spending bars using `canvas.drawRRect`, `LinearGradient`, dashed grid lines, and `TextPainter` compact currency labels. |
 | 9 | **Material 3 Light / Dark Mode & Polish** | ✅ Complete | Full Material Design 3 seed color harmonization (`#0284C7`), one-tap Light/Dark mode toggle, and `ExpenseSummaryCard` wrapped in `Dismissible(key: ValueKey(txn.id))`. |
-| 10 | **Declarative Routing & Platform Channel** | ✅ Complete | `GoRouter` with `ShellRoute` persistent bottom navigation (`app_router.dart`) and `MethodChannel('vn.edu.vku/device_info')` (`device_info_channel.dart`) for native battery/haptic interop. |
+| 10 | **Auth, GoRouter Guards & Platform Channel** | ✅ Complete | `AuthService` + `LoginScreen` (Login/Register, SHA-256 hash, Google OAuth `@vku.udn.vn`, Ephemeral `_obscurePassword`), `GoRouter` `redirect` guard (`/login`), `ShellRoute` 3-tab `NavigationBar` (`/dash`, `/scanner`, `/reports`), `/expense/:id` (`ExpenseDetailScreen`), and `MethodChannel('vn.edu.vku/device_info')`. |
 
 ---
 
@@ -36,16 +36,16 @@
 
 ### 3.1. End-to-End System Pipeline & Clean Architecture
 ```
-[Camera Capture / Gallery] ──► [Google ML Kit TextRecognizer (Offline <100ms)]
-                                               │
-                                               ▼
+[GoRouter Guard (/login)] ──► [Camera Capture / Gallery (/scanner)] ──► [Google ML Kit TextRecognizer (Offline <100ms)]
+                                                                                       │
+                                                                                       ▼
 [Local SQLite (sqflite) + Thumbnail Cache] ◄── [ReceiptReviewScreen (Form Validation)] ◄── [RegexReceiptParser (Dart 3 Records)]
                    │
                    ▼
-[Riverpod 2 NotifierProvider] ──► [DashboardScreen + Animated CustomPainter Donut & Bar Charts (120Hz Impeller)]
+[Riverpod 2 NotifierProvider] ──► [ShellRoute NavigationBar: /dash + /reports + /expense/:id (120Hz CustomPainter)]
 ```
 
-* **Modular Directory Structure:** `lib/core/` (`app_theme.dart`, `app_router.dart`) • `lib/models/` (`expense_category.dart`, `receipt_transaction.dart`) • `lib/services/` (`ocr_service.dart`, `regex_parser_service.dart`, `storage_service.dart`, `device_info_channel.dart`, `mock_receipts_service.dart`) • `lib/state/` (`expense_provider.dart`) • `lib/widgets/` (`custom_pie_chart.dart`, `custom_bar_chart.dart`, `camera_overlay_painter.dart`, `expense_summary_card.dart`) • `lib/screens/` (`dashboard_screen.dart`, `camera_scanner_screen.dart`, `receipt_review_screen.dart`).
+* **Modular Directory Structure:** `lib/core/` (`app_theme.dart`, `app_router.dart`) • `lib/models/` (`user_profile.dart`, `expense_category.dart`, `receipt_transaction.dart`) • `lib/services/` (`auth_service.dart`, `ocr_service.dart`, `regex_parser_service.dart`, `storage_service.dart`, `device_info_channel.dart`, `mock_receipts_service.dart`) • `lib/state/` (`expense_provider.dart`) • `lib/widgets/` (`custom_pie_chart.dart`, `custom_bar_chart.dart`, `camera_overlay_painter.dart`, `expense_summary_card.dart`) • `lib/screens/` (`login_screen.dart`, `dashboard_screen.dart`, `camera_scanner_screen.dart`, `receipt_review_screen.dart`, `reports_screen.dart`, `expense_detail_screen.dart`).
 
 ### 3.2. Real-World Vietnamese Receipt Regex Tuning Table
 

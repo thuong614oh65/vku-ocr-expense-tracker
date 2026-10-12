@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import '../services/auth_service.dart';
 import '../services/storage_service.dart';
 import '../state/expense_provider.dart';
 import '../models/expense_category.dart';
@@ -40,6 +42,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final user = AuthService.instance.currentUser;
     final currencyFormatter = NumberFormat.currency(
       locale: 'vi_VN',
       symbol: '₫',
@@ -56,7 +59,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final categoryData = _storage.expensesByCategory;
     final weeklyData = _storage.weeklyExpenses;
 
-    const double monthlyBudget = 3500000.0;
+    final double monthlyBudget = user?.monthlyBudget ?? 3500000.0;
     final budgetPercent = (totalAmount / monthlyBudget).clamp(0.0, 1.0);
 
     return Scaffold(
@@ -65,7 +68,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'VKU EXPENSE TRACKER',
+              'VKU EXPENSE OCR',
               style: TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.w900,
@@ -75,7 +78,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ),
             SizedBox(height: 1),
             Text(
-              'Quản Lý Chi Tiêu & OCR Hóa Đơn AI',
+              'Sổ Chi Tiêu & Hóa Đơn AI',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w800,
@@ -85,7 +88,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ),
         actions: [
           IconButton(
-            tooltip: isDark ? 'Chế độ Sáng (Light Mode)' : 'Chế độ Tối (Dark Mode)',
+            tooltip:
+                isDark ? 'Chế độ Sáng (Light Mode)' : 'Chế độ Tối (Dark Mode)',
             icon: Icon(
               isDark ? Icons.light_mode : Icons.dark_mode_outlined,
               color: const Color(0xFF0284C7),
@@ -95,10 +99,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             },
           ),
           IconButton(
-            tooltip: 'Đặt lại dữ liệu mẫu',
-            icon: const Icon(Icons.restart_alt, color: Color(0xFF64748B)),
+            tooltip: 'Đăng xuất tài khoản',
+            icon: const Icon(Icons.logout, color: Color(0xFFEF4444)),
             onPressed: () async {
-              await ref.read(expenseProvider.notifier).resetToSeedData();
+              await AuthService.instance.logout();
+              if (context.mounted) {
+                context.go('/login');
+              }
             },
           ),
         ],
@@ -111,12 +118,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Student Profile Card
+              // Logged-in User Profile Card
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [Color(0xFF0284C7), Color(0xFF0369A1)],
+                    colors: [Color(0xFF2C4570), Color(0xFF0284C7)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -140,33 +147,27 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         border: Border.all(color: Colors.white, width: 1.5),
                       ),
                       child: const Center(
-                        child: Text(
-                          'VKU',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w900,
-                            fontSize: 12,
-                          ),
-                        ),
+                        child: Icon(Icons.verified_user,
+                            color: Colors.white, size: 22),
                       ),
                     ),
                     const SizedBox(width: 12),
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Nguyễn Thị Thương • 23IT.B219 • 23SE4',
-                            style: TextStyle(
+                            '${user?.fullName ?? "Nguyễn Thị Thương"} • ${user?.studentId ?? "23IT.B219"}',
+                            style: const TextStyle(
                               color: Colors.white,
                               fontSize: 14.5,
                               fontWeight: FontWeight.w800,
                             ),
                           ),
-                          SizedBox(height: 2),
+                          const SizedBox(height: 2),
                           Text(
-                            'Mini-Project 3 • Flutter 3.x, Riverpod 2 & Google ML Kit OCR',
-                            style: TextStyle(
+                            '${user?.email ?? "thuongnt.23itb@vku.udn.vn"} • Lớp ${user?.className ?? "23SE4"}',
+                            style: const TextStyle(
                               color: Color(0xFFE0F2FE),
                               fontSize: 11,
                               fontWeight: FontWeight.w500,
@@ -192,13 +193,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
                         color: const Color(0xFF0284C7), width: 1.5),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF0284C7).withOpacity(0.08),
-                        blurRadius: 10,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
                   ),
                   child: Row(
                     children: [
@@ -231,7 +225,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                             ),
                             const SizedBox(height: 3),
                             const Text(
-                              'Nhận dạng số tiền, ngày và đơn vị bán lẻ trong sub-100ms offline',
+                              'Google ML Kit On-Device OCR • Bóc tách tự động dưới 100ms',
                               style: TextStyle(
                                 fontSize: 11.5,
                                 color: Color(0xFF64748B),
@@ -258,7 +252,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     child: _buildMetricCard(
                       title: 'TỔNG CHI THÁNG',
                       value: currencyFormatter.format(totalAmount),
-                      subtitle: '${allTransactions.length} khoản chi',
+                      subtitle: '${allTransactions.length} hóa đơn đã lưu',
                       color: const Color(0xFF0284C7),
                       icon: Icons.account_balance_wallet,
                       isDark: isDark,
@@ -267,7 +261,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: _buildMetricCard(
-                      title: 'NGÂN SÁCH VKU',
+                      title: 'NGÂN SÁCH THÁNG',
                       value: currencyFormatter.format(monthlyBudget),
                       subtitle:
                           'Đã dùng ${(budgetPercent * 100).toStringAsFixed(1)}%',
@@ -407,7 +401,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text(
-                    'Giao Dịch Gần Đây',
+                    'Danh Sách Hóa Đơn Đã Lưu (SQLite)',
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
@@ -447,6 +441,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     return ExpenseSummaryCard(
                       key: ValueKey(txn.id),
                       transaction: txn,
+                      onTap: () => context.push('/expense/${txn.id}'),
                       onDelete: () => _deleteTxn(txn.id),
                     );
                   },
@@ -462,7 +457,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         backgroundColor: const Color(0xFF0284C7),
         icon: const Icon(Icons.camera_alt, color: Colors.white),
         label: const Text(
-          'Quét Hóa Đơn AI',
+          'Scan Receipt',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
         ),
       ),
