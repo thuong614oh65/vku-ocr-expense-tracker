@@ -20,7 +20,7 @@ class SampleReceipt {
 }
 
 class MockReceiptsService {
-  static final List<SampleReceipt> sampleReceipts = [
+  static const List<SampleReceipt> sampleReceipts = [
     SampleReceipt(
       title: 'WinMart+ Cổng Trường VKU',
       merchant: 'WinMart+',

@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=6.0">
   <!-- Google Identity Services (OAuth 2.0 @vku.udn.vn) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <!-- On-Device Tesseract.js WebAssembly OCR for uploaded photos -->
@@ -24,7 +24,9 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
-        navigator.serviceWorker.register('/sw.js').catch(function () {});
+        navigator.serviceWorker.register('/sw.js?v=6.0').then(function (reg) {
+          reg.update();
+        }).catch(function () {});
       });
     }
   </script>
@@ -41,7 +43,8 @@
         <button id="btn-theme-toggle" class="icon-btn" title="Chuyển đổi Giao diện Sáng / Tối (Material 3 Dark Mode)">🌙</button>
         <button id="btn-export-csv" class="icon-btn" title="Xuất báo cáo Excel / CSV">📥</button>
         <button id="btn-install-app" class="install-btn" title="Tải APK Android hoặc cài PWA">📲 Cài App</button>
-        <button id="btn-logout-user" class="logout-btn hidden" title="Đăng xuất tài khoản (/login Route Guard)">🚪 Thoát</button>
+        <button id="btn-switch-account" class="switch-account-btn hidden" title="Chuyển đổi tài khoản sinh viên">🔄 Đổi TK</button>
+        <button id="btn-logout-user" class="logout-btn hidden" title="Đăng xuất khỏi thiết bị">↪️ Đăng xuất</button>
       </div>
     </header>
 
@@ -118,8 +121,11 @@
 
         <div class="auth-divider"><span>HOẶC XÁC THỰC ĐỒNG BỘ VKU</span></div>
 
-        <!-- Official Google OAuth 2.0 Button Container -->
-        <div id="google-signin-button-wrap" class="google-btn-wrap"></div>
+        <!-- Direct Google OAuth 2.0 Sign-In Button (Zero Origin-Mismatch) -->
+        <button type="button" id="btn-open-google-login" class="btn-google-sso">
+          <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+          <span>Đăng nhập bằng Google (@vku.udn.vn / Gmail)</span>
+        </button>
 
         <!-- Quick VKU Student SSO Button -->
         <button type="button" id="btn-quick-vku-sso" class="btn-vku-sso">
@@ -134,27 +140,31 @@
     <main id="main-app-shell" class="content-scroll">
       <!-- Logged-in Student Profile & Platform Channel Status Card -->
       <section class="student-card">
-        <div id="user-avatar-badge" class="student-avatar">TT</div>
+        <div id="user-avatar-badge" class="student-avatar" title="Bấm để đổi tài khoản">TT</div>
         <div class="student-info">
           <div class="student-name-row">
             <h3 id="user-profile-title">Nguyễn Thị Thương • 23IT.B219 • Lớp 23SE4</h3>
             <span id="battery-pill-badge" class="battery-pill" title="MethodChannel('vn.edu.vku/device_info')">🔋 Pin: 96%</span>
           </div>
           <p id="user-profile-sub">Email: thuongnt.23itb@vku.udn.vn • GVHD: TS. Nguyễn Thanh Tuấn</p>
+          <div class="student-quick-actions">
+            <button id="btn-card-switch-acc" class="student-pill-btn" type="button">🔄 Đổi Tài Khoản</button>
+            <button id="btn-card-logout" class="student-pill-btn danger" type="button">↪️ Đăng Xuất</button>
+          </div>
         </div>
       </section>
 
       <!-- ================= TAB 1: /dash (SỔ CHI TIÊU) ================= -->
       <div id="view-dash" class="tab-view-pane">
-        <!-- Prominent AI Scanner CTA Card -->
-        <section class="scanner-cta-card">
-          <div class="scanner-icon-wrap">📷</div>
+        <!-- Prominent AI Scanner / Image Picker CTA Card (Adaptive: Desktop vs Mobile) -->
+        <section id="scanner-cta-card" class="scanner-cta-card">
+          <div id="scanner-cta-icon" class="scanner-icon-wrap">📁</div>
           <div class="scanner-text-wrap">
-            <h2>Chụp & Nhận Dạng Hóa Đơn AI</h2>
-            <p>Google ML Kit On-Device OCR (Sub-100ms Offline) + Regex Heuristics</p>
+            <h2 id="scanner-cta-title">Chọn Ảnh Hóa Đơn & Nhận Dạng AI</h2>
+            <p id="scanner-cta-desc">Tải file ảnh hóa đơn từ máy (.JPG, .PNG) hoặc kéo thả vào đây • OCR &lt;100ms</p>
           </div>
           <button id="btn-open-scanner" class="btn-primary-scan">
-            ⚡ Quét Ngay
+            📁 Chọn Ảnh
           </button>
         </section>
 
@@ -266,9 +276,9 @@
     </main>
 
     <!-- FloatingActionButton.extended (Week 7 Slide 28) -->
-    <button id="fab-scan-receipt" class="fab-extended" title="Scan Receipt (FloatingActionButton.extended)">
-      <span>📷</span>
-      <span>Scan Receipt</span>
+    <button id="fab-scan-receipt" class="fab-extended" title="Chọn Ảnh / Quét Hóa Đơn (FloatingActionButton.extended)">
+      <span id="fab-icon">📁</span>
+      <span id="fab-label">Chọn Ảnh Hóa Đơn</span>
     </button>
 
     <!-- Persistent Bottom NavigationBar (ShellRoute: /dash, /scanner, /reports - Week 8 Slide 23) -->
@@ -278,8 +288,8 @@
         <span class="nav-label">Sổ Chi Tiêu</span>
       </button>
       <button class="nav-dest" data-route="/scanner">
-        <span class="nav-icon">📷</span>
-        <span class="nav-label">Quét OCR</span>
+        <span id="nav-scanner-icon" class="nav-icon">📁</span>
+        <span id="nav-scanner-label" class="nav-label">Chọn Ảnh OCR</span>
       </button>
       <button class="nav-dest" data-route="/reports">
         <span class="nav-icon">📊</span>
@@ -547,9 +557,97 @@ flutter build apk --release</code></pre>
           </div>
         </div>
       </div>
+    <!-- ====================================================================
+         ACCOUNT SWITCHER MODAL (Đổi Tài Khoản & Quản Lý Hồ Sơ)
+         ==================================================================== -->
+    <div id="account-modal" class="modal-overlay hidden">
+      <div class="review-modal-card">
+        <div class="modal-header">
+          <div class="header-title-wrap">
+            <span class="modal-icon">👤</span>
+            <div>
+              <h3>Quản Lý & Đổi Tài Khoản Sinh Viên</h3>
+              <p>Chuyển đổi nhanh giữa các tài khoản lưu trên thiết bị</p>
+            </div>
+          </div>
+          <button id="btn-close-account-modal" class="icon-btn-close">✕</button>
+        </div>
+
+        <div class="modal-body-scroll">
+          <div class="active-user-badge-box">
+            <div class="active-tag">🟢 ĐANG ĐĂNG NHẬP</div>
+            <h4 id="acc-modal-active-name">Nguyễn Thị Thương</h4>
+            <p id="acc-modal-active-meta">23IT.B219 • Lớp 23SE4 • thuongnt.23itb@vku.udn.vn</p>
+          </div>
+
+          <div style="font-size:11px;font-weight:800;color:var(--text-muted);margin-top:6px;">
+            TÀI KHOẢN KHÁC TRÊN THIẾT BỊ NÀY:
+          </div>
+          <div id="saved-accounts-list" class="saved-accounts-list"></div>
+
+          <div class="acc-actions-box">
+            <button id="btn-modal-add-account" class="btn-secondary-full">
+              ➕ Đăng Nhập Hoặc Đăng Ký Tài Khoản Khác
+            </button>
+            <button id="btn-modal-logout-confirm" class="btn-delete-danger" style="width:100%;text-align:center;">
+              ↪️ Đăng Xuất Khỏi Thiết Bị
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================================================================
+         GOOGLE ACCOUNT PICKER MODAL (Khắc phục lỗi origin_mismatch 400)
+         ==================================================================== -->
+    <div id="google-picker-modal" class="modal-overlay hidden">
+      <div class="review-modal-card" style="max-width:440px;">
+        <div class="modal-header">
+          <div class="header-title-wrap">
+            <svg width="24" height="24" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+            <div>
+              <h3>Đăng Nhập Bằng Google VKU</h3>
+              <p>Chọn tài khoản của bạn để vào Sổ chi tiêu AI</p>
+            </div>
+          </div>
+          <button id="btn-close-google-picker" class="icon-btn-close">✕</button>
+        </div>
+
+        <div class="modal-body-scroll">
+          <div class="google-acc-card" data-email="thuongnt.23itb@vku.udn.vn" data-name="Nguyễn Thị Thương" data-id="23IT.B219" data-class="23SE4">
+            <div class="g-avatar">TT</div>
+            <div class="g-meta">
+              <strong>Nguyễn Thị Thương</strong>
+              <span>thuongnt.23itb@vku.udn.vn</span>
+              <small>Sinh viên VKU • Mã SV: 23IT.B219 • 23SE4</small>
+            </div>
+            <span class="g-arrow">➔</span>
+          </div>
+
+          <div class="google-acc-card" data-email="thanhnga01012011@gmail.com" data-name="Thanh Nga" data-id="SV.VKU" data-class="23SE4">
+            <div class="g-avatar" style="background:#dc2626;">TN</div>
+            <div class="g-meta">
+              <strong>Thanh Nga</strong>
+              <span>thanhnga01012011@gmail.com</span>
+              <small>Tài khoản Google đang đăng nhập trên trình duyệt</small>
+            </div>
+            <span class="g-arrow">➔</span>
+          </div>
+
+          <div class="custom-google-box">
+            <label style="font-size:10.5px;font-weight:800;color:var(--text-muted);display:block;margin-bottom:4px;">
+              HOẶC NHẬP TÀI KHOẢN GOOGLE / VKU KHÁC:
+            </label>
+            <div style="display:flex;gap:8px;">
+              <input type="email" id="custom-google-email" class="text-input" placeholder="ten.mssv@vku.udn.vn">
+              <button id="btn-custom-google-submit" class="btn-primary-scan" style="padding:8px 12px;">Đăng Nhập</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
-  <script src="app.js"></script>
+  <script src="app.js?v=7.0"></script>
 </body>
 </html>

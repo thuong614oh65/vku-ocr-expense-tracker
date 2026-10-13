@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import '../services/auth_service.dart';
+import '../services/ocr_service.dart';
 import '../services/storage_service.dart';
 import '../state/expense_provider.dart';
 import '../models/expense_category.dart';
@@ -10,6 +12,7 @@ import '../widgets/custom_pie_chart.dart';
 import '../widgets/custom_bar_chart.dart';
 import '../widgets/expense_summary_card.dart';
 import 'camera_scanner_screen.dart';
+import 'receipt_review_screen.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -20,8 +23,35 @@ class DashboardScreen extends ConsumerStatefulWidget {
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   final StorageService _storage = StorageService();
+  final ImagePicker _picker = ImagePicker();
+
+  bool _isDesktopPlatform(BuildContext context) {
+    final p = Theme.of(context).platform;
+    return p == TargetPlatform.windows ||
+        p == TargetPlatform.macOS ||
+        p == TargetPlatform.linux;
+  }
 
   Future<void> _openScanner() async {
+    if (_isDesktopPlatform(context)) {
+      final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+      if (image != null && mounted) {
+        final parsed = await OcrService().processImage(image.path);
+        if (mounted) {
+          final saved = await Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => ReceiptReviewScreen(
+                parsedResult: parsed,
+                imagePath: image.path,
+              ),
+            ),
+          );
+          if (saved == true && mounted) setState(() {});
+        }
+      }
+      return;
+    }
+
     final res = await Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => const CameraScannerScreen()),
     );
@@ -181,7 +211,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Prominent AI Scan Button Card
+              // Prominent AI Scan / Upload Button Card (Adaptive: Desktop File Picker vs Mobile Camera)
               InkWell(
                 onTap: _openScanner,
                 borderRadius: BorderRadius.circular(16),
@@ -202,9 +232,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           color: const Color(0xFFE0F2FE),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Icon(
-                          Icons.camera_alt,
-                          color: Color(0xFF0284C7),
+                        child: Icon(
+                          _isDesktopPlatform(context)
+                              ? Icons.upload_file
+                              : Icons.camera_alt,
+                          color: const Color(0xFF0284C7),
                           size: 26,
                         ),
                       ),
@@ -214,7 +246,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              '📷 Chụp & Quét Hóa Đơn AI',
+                              _isDesktopPlatform(context)
+                                  ? '📁 Chọn Ảnh Hóa Đơn Từ Máy Tính'
+                                  : '📷 Chụp & Quét Hóa Đơn AI',
                               style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w800,
@@ -224,9 +258,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               ),
                             ),
                             const SizedBox(height: 3),
-                            const Text(
-                              'Google ML Kit On-Device OCR • Bóc tách tự động dưới 100ms',
-                              style: TextStyle(
+                            Text(
+                              _isDesktopPlatform(context)
+                                  ? 'Tải file ảnh hóa đơn (.JPG, .PNG) • Bóc tách AI dưới 100ms'
+                                  : 'Google ML Kit On-Device OCR • Bóc tách tự động dưới 100ms',
+                              style: const TextStyle(
                                 fontSize: 11.5,
                                 color: Color(0xFF64748B),
                               ),
@@ -455,10 +491,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _openScanner,
         backgroundColor: const Color(0xFF0284C7),
-        icon: const Icon(Icons.camera_alt, color: Colors.white),
-        label: const Text(
-          'Scan Receipt',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+        icon: Icon(
+          _isDesktopPlatform(context) ? Icons.upload_file : Icons.camera_alt,
+          color: Colors.white,
+        ),
+        label: Text(
+          _isDesktopPlatform(context) ? 'Chọn Ảnh Hóa Đơn' : 'Scan Receipt',
+          style:
+              const TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
         ),
       ),
     );

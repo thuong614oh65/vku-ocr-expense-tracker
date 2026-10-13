@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import 'package:intl/intl.dart' show NumberFormat;
 
 class CustomBarChart extends StatefulWidget {
   final List<double> weeklyData; // 7 days: T2 to CN

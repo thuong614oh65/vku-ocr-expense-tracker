@@ -1,9 +1,9 @@
-const CACHE_NAME = 'vku-ocr-expense-v3';
+const CACHE_NAME = 'vku-ocr-expense-v7';
 const ASSETS = [
   '/',
   '/index.html',
-  '/style.css',
-  '/app.js',
+  '/style.css?v=7.0',
+  '/app.js?v=7.0',
   '/manifest.json',
   '/icons/icon-192.png',
   '/icons/icon-512.png'
@@ -24,15 +24,23 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+// Network-First Strategy for fresh updates on live site & PWA
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
-  event.respondWith(
-    fetch(event.request)
-      .then((res) => {
-        const copy = res.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy)).catch(() => {});
-        return res;
-      })
-      .catch(() => caches.match(event.request).then((cached) => cached || caches.match('/index.html')))
-  );
+  const url = new URL(event.request.url);
+
+  // If fetching our app's pages/scripts, fetch network first
+  if (url.origin === self.location.origin) {
+    event.respondWith(
+      fetch(event.request, { cache: 'no-cache' })
+        .then((res) => {
+          if (res && res.status === 200) {
+            const copy = res.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy)).catch(() => {});
+          }
+          return res;
+        })
+        .catch(() => caches.match(event.request).then((cached) => cached || caches.match('/index.html')))
+    );
+  }
 });

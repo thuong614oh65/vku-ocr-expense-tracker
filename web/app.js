@@ -400,13 +400,65 @@ class AppController {
     this.cameraStream = null;
     this.isTorchOn = false;
     this.isDarkMode = localStorage.getItem(StorageManager.THEME_KEY) === 'dark';
+    this.isDesktop = !(/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(navigator.userAgent));
 
     this.applyTheme();
+    this.initDesktopAdaptation();
     this.initZaloDetector();
     this.initBatteryPlatformChannel();
     this.initAuthUI();
     this.initUI();
     this.syncRouteGuard();
+  }
+
+  initDesktopAdaptation() {
+    if (this.isDesktop) {
+      const ctaIcon = document.getElementById('scanner-cta-icon');
+      const ctaTitle = document.getElementById('scanner-cta-title');
+      const ctaDesc = document.getElementById('scanner-cta-desc');
+      const ctaBtn = document.getElementById('btn-open-scanner');
+      const fabIcon = document.getElementById('fab-icon');
+      const fabLabel = document.getElementById('fab-label');
+      const navIcon = document.getElementById('nav-scanner-icon');
+      const navLabel = document.getElementById('nav-scanner-label');
+
+      if (ctaIcon) ctaIcon.textContent = '📁';
+      if (ctaTitle) ctaTitle.textContent = 'Chọn Ảnh Hóa Đơn Từ Máy Tính';
+      if (ctaDesc) ctaDesc.textContent = 'Tải file ảnh hóa đơn (.JPG, .PNG) hoặc kéo thả vào đây • Bóc tách AI <100ms';
+      if (ctaBtn) ctaBtn.textContent = '📁 Chọn Ảnh';
+      if (fabIcon) fabIcon.textContent = '📁';
+      if (fabLabel) fabLabel.textContent = 'Chọn Ảnh Hóa Đơn';
+      if (navIcon) navIcon.textContent = '📁';
+      if (navLabel) navLabel.textContent = 'Chọn Ảnh OCR';
+    }
+
+    // Drag and Drop for Desktop
+    const ctaCard = document.getElementById('scanner-cta-card');
+    if (ctaCard) {
+      ctaCard.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        ctaCard.classList.add('drag-over');
+      });
+      ctaCard.addEventListener('dragleave', () => {
+        ctaCard.classList.remove('drag-over');
+      });
+      ctaCard.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        ctaCard.classList.remove('drag-over');
+        if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) {
+          await this.processUploadedImageFile(e.dataTransfer.files[0]);
+        }
+      });
+    }
+  }
+
+  triggerScanOrFilePicker() {
+    if (this.isDesktop) {
+      const fileInput = document.getElementById('file-input-receipt');
+      if (fileInput) fileInput.click();
+    } else {
+      this.openScannerModal();
+    }
   }
 
   applyTheme() {
@@ -464,6 +516,7 @@ class AppController {
     const logoutBtn = document.getElementById('btn-logout-user');
 
     // Route Guard: Redirect unauthenticated user to /login
+    const switchBtn = document.getElementById('btn-switch-account');
     if (!this.currentUser) {
       this.currentRoute = '/login';
       authScreen.classList.remove('hidden');
@@ -471,6 +524,7 @@ class AppController {
       bottomNav.classList.add('hidden');
       fab.classList.add('hidden');
       logoutBtn.classList.add('hidden');
+      if (switchBtn) switchBtn.classList.add('hidden');
       return;
     }
 
@@ -480,6 +534,7 @@ class AppController {
     bottomNav.classList.remove('hidden');
     fab.classList.remove('hidden');
     logoutBtn.classList.remove('hidden');
+    if (switchBtn) switchBtn.classList.remove('hidden');
 
     // Populate UserProfile Banner
     const initials = (this.currentUser.fullName || 'VKU')
@@ -502,7 +557,7 @@ class AppController {
 
   navigateShell(route) {
     if (route === '/scanner') {
-      this.openScannerModal();
+      this.triggerScanOrFilePicker();
       return;
     }
     this.currentRoute = route;
@@ -636,6 +691,70 @@ class AppController {
       this.syncRouteGuard();
     };
 
+    // Google Account Picker Modal (Solves Google origin_mismatch 400 error)
+    const googleModal = document.getElementById('google-picker-modal');
+    const openGoogleBtn = document.getElementById('btn-open-google-login');
+    if (openGoogleBtn && googleModal) {
+      openGoogleBtn.onclick = () => {
+        googleModal.classList.remove('hidden');
+      };
+    }
+    const closeGoogleBtn = document.getElementById('btn-close-google-picker');
+    if (closeGoogleBtn && googleModal) {
+      closeGoogleBtn.onclick = () => {
+        googleModal.classList.add('hidden');
+      };
+    }
+    document.querySelectorAll('.google-acc-card').forEach(card => {
+      card.onclick = () => {
+        const email = card.dataset.email;
+        const name = card.dataset.name;
+        const id = card.dataset.id;
+        const cls = card.dataset.class;
+        const user = {
+          id: 'USR-G-' + Date.now(),
+          fullName: name,
+          studentId: id,
+          className: cls,
+          email: email,
+          role: 'Tài khoản Google VKU'
+        };
+        const users = AuthService.getUsers();
+        users[email.toLowerCase()] = user;
+        AuthService.saveUsers(users);
+        AuthService.setCurrentUser(user);
+        googleModal.classList.add('hidden');
+        this.currentRoute = '/dash';
+        this.syncRouteGuard();
+      };
+    });
+    const customGSubmit = document.getElementById('btn-custom-google-submit');
+    if (customGSubmit) {
+      customGSubmit.onclick = () => {
+        const email = (document.getElementById('custom-google-email').value || '').trim();
+        if (!email || !email.includes('@')) {
+          alert('Vui lòng nhập địa chỉ email hợp lệ!');
+          return;
+        }
+        const name = email.split('@')[0];
+        const user = {
+          id: 'USR-G-' + Date.now(),
+          fullName: name,
+          studentId: 'SV.VKU',
+          className: '23SE4',
+          email: email,
+          role: 'Tài khoản Google VKU'
+        };
+        const users = AuthService.getUsers();
+        users[email.toLowerCase()] = user;
+        AuthService.saveUsers(users);
+        AuthService.setCurrentUser(user);
+        googleModal.classList.add('hidden');
+        this.currentRoute = '/dash';
+        this.syncRouteGuard();
+      };
+    }
+
     // Initialize Official Google OAuth 2.0 (@vku.udn.vn)
     window.addEventListener('load', () => {
       if (window.google && window.google.accounts && window.google.accounts.id) {
@@ -695,8 +814,61 @@ class AppController {
       btn.onclick = () => this.navigateShell(btn.dataset.route);
     });
 
-    // FloatingActionButton.extended (Scan Receipt)
-    document.getElementById('fab-scan-receipt').onclick = () => this.openScannerModal();
+    // FloatingActionButton.extended (Scan / Upload Receipt)
+    document.getElementById('fab-scan-receipt').onclick = () => this.triggerScanOrFilePicker();
+
+    // Scanner CTA Card & Button (Adaptive: Desktop File Picker vs Mobile Camera)
+    const ctaCard = document.getElementById('scanner-cta-card');
+    if (ctaCard) {
+      ctaCard.onclick = (e) => {
+        if (!e.target.closest('#btn-open-scanner')) {
+          this.triggerScanOrFilePicker();
+        }
+      };
+    }
+    document.getElementById('btn-open-scanner').onclick = () => this.triggerScanOrFilePicker();
+
+    // Account Switcher and Logout Buttons
+    const openAccModal = () => this.openAccountModal();
+    const btnSwitch = document.getElementById('btn-switch-account');
+    if (btnSwitch) btnSwitch.onclick = openAccModal;
+
+    const btnCardSwitch = document.getElementById('btn-card-switch-acc');
+    if (btnCardSwitch) btnCardSwitch.onclick = openAccModal;
+
+    const btnCardLogout = document.getElementById('btn-card-logout');
+    if (btnCardLogout) {
+      btnCardLogout.onclick = () => {
+        AuthService.logout();
+        this.syncRouteGuard();
+      };
+    }
+
+    const btnCloseAccModal = document.getElementById('btn-close-account-modal');
+    if (btnCloseAccModal) {
+      btnCloseAccModal.onclick = () => {
+        document.getElementById('account-modal').classList.add('hidden');
+      };
+    }
+
+    const btnModalLogout = document.getElementById('btn-modal-logout-confirm');
+    if (btnModalLogout) {
+      btnModalLogout.onclick = () => {
+        AuthService.logout();
+        document.getElementById('account-modal').classList.add('hidden');
+        this.syncRouteGuard();
+      };
+    }
+
+    const btnModalAddAcc = document.getElementById('btn-modal-add-account');
+    if (btnModalAddAcc) {
+      btnModalAddAcc.onclick = () => {
+        AuthService.logout();
+        document.getElementById('account-modal').classList.add('hidden');
+        this.isLoginMode = false;
+        this.syncRouteGuard();
+      };
+    }
 
     // Search Input
     document.getElementById('search-txn-input').oninput = (e) => {
@@ -718,8 +890,7 @@ class AppController {
       };
     });
 
-    // Scanner Modal & Real Camera Viewfinder
-    document.getElementById('btn-open-scanner').onclick = () => this.openScannerModal();
+    // Scanner Modal Close Button
     document.getElementById('btn-close-scanner').onclick = () => this.closeScannerModal();
 
     // Tap-to-Focus on Camera Viewfinder
@@ -895,6 +1066,50 @@ class AppController {
         modalPwaBtn.textContent = '🚀 Mở Lại Cửa Sổ App Độc Lập (Standalone)';
       }, 300);
     };
+  }
+
+  /**
+   * Opens Account Switcher Modal (Đổi Tài Khoản & Quản Lý Hồ Sơ Sinh Viên)
+   */
+  openAccountModal() {
+    const modal = document.getElementById('account-modal');
+    if (!modal || !this.currentUser) return;
+    const nameEl = document.getElementById('acc-modal-active-name');
+    const metaEl = document.getElementById('acc-modal-active-meta');
+    if (nameEl) nameEl.textContent = this.currentUser.fullName;
+    if (metaEl) metaEl.textContent = `${this.currentUser.studentId} • Lớp ${this.currentUser.className} • ${this.currentUser.email}`;
+
+    const list = document.getElementById('saved-accounts-list');
+    if (list) {
+      list.innerHTML = '';
+      const allUsers = AuthService.getUsers();
+      const currentEmail = (this.currentUser.email || '').toLowerCase();
+      const otherEmails = Object.keys(allUsers).filter(e => e.toLowerCase() !== currentEmail);
+
+      if (otherEmails.length === 0) {
+        list.innerHTML = '<div style="font-size:11.5px;color:var(--text-muted);padding:8px 0;">Chưa có tài khoản nào khác được lưu trên thiết bị này.</div>';
+      } else {
+        otherEmails.forEach(email => {
+          const u = allUsers[email];
+          const item = document.createElement('div');
+          item.className = 'saved-acc-item';
+          item.innerHTML = `
+            <div class="acc-meta">
+              <strong>${u.fullName}</strong>
+              <span>${u.studentId || ''} • ${u.email}</span>
+            </div>
+            <button class="btn-switch-to-acc" type="button">Chuyển sang ➔</button>
+          `;
+          item.onclick = () => {
+            AuthService.setCurrentUser(u);
+            modal.classList.add('hidden');
+            this.syncRouteGuard();
+          };
+          list.appendChild(item);
+        });
+      }
+    }
+    modal.classList.remove('hidden');
   }
 
   /**
