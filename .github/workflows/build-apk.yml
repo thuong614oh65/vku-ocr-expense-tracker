@@ -40,6 +40,12 @@ jobs:
             sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 21/g' android/app/build.gradle
             sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 21/g' android/app/build.gradle
             sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 34/g' android/app/build.gradle
+            cat << 'EOF' > android/app/proguard-rules.pro
+-keep class com.google.mlkit.** { *; }
+-keep class com.google.android.gms.** { *; }
+-dontwarn com.google.mlkit.**
+-dontwarn com.google.android.gms.**
+EOF
           fi
           MAIN_KT=$(find android/app/src/main/kotlin -name "MainActivity.kt" | head -n 1)
           if [ -n "$MAIN_KT" ]; then
@@ -74,8 +80,8 @@ jobs:
           flutter pub get
           flutter analyze --no-fatal-infos --no-fatal-warnings
 
-      - name: Build Signed Release APK (with --no-shrink for ML Kit optional script classes)
-        run: flutter build apk --release --no-shrink
+      - name: Build Signed Release APK
+        run: flutter build apk --release
 
       - name: Upload APK as Artifact
         uses: actions/upload-artifact@v4
