@@ -16,13 +16,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=25.0">
+  <link rel="stylesheet" href="style.css?v=26.0">
   <!-- Google Identity Services (OAuth 2.0 @vku.udn.vn) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <!-- On-Device Tesseract.js WebAssembly OCR (Local Zero-Latency Engine) -->
   <script src="/tesseract/tesseract.min.js" defer></script>
   <script>
-    const APP_VERSION = '25.0';
+    const APP_VERSION = '26.0';
     if (localStorage.getItem('vku_app_cache_v') !== APP_VERSION) {
       if ('caches' in window) {
         caches.keys().then(function(names) {
@@ -34,12 +34,11 @@
           for (var reg of regs) { reg.unregister(); }
         });
       }
-      localStorage.removeItem('vku_ocr_auth_session_v1');
       localStorage.setItem('vku_app_cache_v', APP_VERSION);
     }
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
-        navigator.serviceWorker.register('/sw.js?v=25.0').then(function (reg) {
+        navigator.serviceWorker.register('/sw.js?v=26.0').then(function (reg) {
           reg.update();
         }).catch(function () {});
       });
@@ -89,128 +88,147 @@
     </div>
 
     <!-- ====================================================================
-         AUTHENTICATION SCREEN
+         AUTHENTICATION SCREEN (Identical to MP2 VKU Room Booking AuthModal)
          ==================================================================== -->
     <main id="auth-screen" class="auth-screen">
-      <div class="auth-hero-card">
-        <div class="auth-logo-circle">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
-        </div>
-        <span class="route-pill">Đăng Nhập</span>
-        <h2>SmartSpend AI</h2>
-        <p>Trợ lý thông minh quản lý chi tiêu và nhận dạng hóa đơn</p>
-      </div>
-
-      <div class="auth-form-card">
-        <!-- Segmented Mode Switcher: Login vs Register -->
-        <div class="auth-tabs">
-          <button id="tab-btn-login" class="auth-tab active" type="button">Đăng Nhập</button>
-          <button id="tab-btn-register" class="auth-tab" type="button">Đăng Ký Tài Khoản</button>
+      <div class="vku-auth-card">
+        <!-- Header -->
+        <div class="vku-auth-header">
+          <div class="vku-header-content">
+            <span class="vku-school-tag">TRƯỜNG ĐẠI HỌC CNTT & TT VIỆT - HÀN (VKU)</span>
+            <h2 id="auth-modal-title" class="vku-header-title">Đăng Nhập Tài Khoản</h2>
+          </div>
         </div>
 
-        <form id="auth-form" novalidate>
-          <!-- Register-only fields -->
-          <div id="register-extra-fields" class="hidden">
-            <div class="form-group">
-              <label>HỌ VÀ TÊN *</label>
-              <input type="text" id="auth-fullname" class="text-input" placeholder="VD: Nguyễn Văn A">
-              <small id="err-fullname" class="field-error hidden"></small>
+        <!-- Mode Tabs -->
+        <div class="vku-tab-row">
+          <button type="button" id="tab-btn-login" class="vku-tab-btn active">Đăng Nhập</button>
+          <button type="button" id="tab-btn-register" class="vku-tab-btn">Đăng Ký Mới</button>
+        </div>
+
+        <div class="vku-auth-body">
+          <div id="auth-error-box" class="vku-error-box hidden">
+            <span id="auth-error-text" class="vku-error-text"></span>
+          </div>
+
+          <!-- Nút Google OAuth 2.0 chuẩn Google Identity Services (100% accounts.google.com) -->
+          <button type="button" id="btn-open-google-login" class="vku-google-btn" aria-label="Tiếp tục với Google (@vku.udn.vn)">
+            <span class="vku-google-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="20px" height="20px"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>
+            </span>
+            <span id="btn-google-text" class="vku-google-btn-text">Tiếp tục với Google (@vku.udn.vn)</span>
+          </button>
+
+          <!-- Zalo Security Box -->
+          <div id="zalo-security-box" class="zalo-security-box hidden">
+            <div class="zalo-security-title">🔒 Bảo mật Google OAuth 2.0 (accounts.google.com)</div>
+            <p class="zalo-security-desc">
+              Theo tiêu chuẩn bảo mật của Google (RFC 8252), đăng nhập Google thật chỉ thực hiện trên trình duyệt chuẩn (<strong>Safari / Chrome</strong>) và chặn trình duyệt nhúng của Zalo để bảo vệ tài khoản <strong>@vku.udn.vn</strong> không bị ứng dụng thứ ba theo dõi.
+            </p>
+            <div class="zalo-action-row">
+              <button type="button" id="btn-zalo-open-browser" class="zalo-open-browser-btn">🧭 Mở ngay bằng Safari / Chrome</button>
+              <button type="button" id="btn-zalo-copy-link" class="zalo-copy-btn">📋 Chép link</button>
             </div>
+            <small class="zalo-step-hint">💡 Hoặc bấm biểu tượng <strong>•••</strong> ở góc trên bên phải Zalo ➔ chọn <strong>"Mở bằng trình duyệt / Safari"</strong>.</small>
+          </div>
+
+          <div class="vku-divider-row">
+            <div class="vku-divider-line"></div>
+            <span class="vku-divider-text">HOẶC ĐĂNG NHẬP VỚI TÀI KHOẢN VKU</span>
+            <div class="vku-divider-line"></div>
+          </div>
+
+          <!-- LOGIN MODE -->
+          <div id="auth-view-login">
+            <label class="vku-label" for="auth-identifier">Mã Sinh Viên (MSSV) hoặc Email VKU</label>
+            <input type="text" id="auth-identifier" class="vku-input" placeholder="VD: 23IT.B219 hoặc thuongnt.23itb@vku.udn.vn" autocomplete="username" autocapitalize="none">
+
+            <div class="vku-label-row">
+              <label class="vku-label" for="auth-password" style="margin:0;">Mật khẩu</label>
+              <button type="button" id="btn-forgot-pwd" class="vku-forgot-link">Quên mật khẩu?</button>
+            </div>
+
+            <div class="vku-pwd-wrap">
+              <input type="password" id="auth-password" class="vku-pwd-input" placeholder="Nhập mật khẩu của bạn" autocomplete="current-password">
+              <button type="button" id="btn-toggle-pwd" class="vku-eye-btn" title="Hiện/Ẩn mật khẩu">Hiện</button>
+            </div>
+
+            <button type="button" id="btn-login-submit" class="vku-primary-btn">
+              Đăng Nhập
+            </button>
+          </div>
+
+          <!-- REGISTER MODE -->
+          <div id="auth-view-register" class="hidden">
+            <label class="vku-label" for="auth-reg-name">Họ và tên sinh viên *</label>
+            <input type="text" id="auth-reg-name" class="vku-input" placeholder="VD: Nguyễn Thị Thương">
+
             <div class="form-row-2">
-              <div class="form-group">
-                <label>SỐ ĐIỆN THOẠI / MÃ THÀNH VIÊN (TÙY CHỌN)</label>
-                <input type="text" id="auth-student-id" class="text-input" placeholder="VD: 0912345678 hoặc MEM-01">
-                <small id="err-student-id" class="field-error hidden"></small>
+              <div>
+                <label class="vku-label" for="auth-reg-student-id">Mã sinh viên (MSSV) *</label>
+                <input type="text" id="auth-reg-student-id" class="vku-input" placeholder="VD: 23IT.B219" autocapitalize="characters">
               </div>
-              <div class="form-group">
-                <label>ĐƠN VỊ / NHÓM (TÙY CHỌN)</label>
-                <input type="text" id="auth-class" class="text-input" placeholder="VD: Cá nhân, Gia đình...">
-                <small id="err-class" class="field-error hidden"></small>
+              <div>
+                <label class="vku-label" for="auth-reg-major">Lớp / Chuyên ngành</label>
+                <input type="text" id="auth-reg-major" class="vku-input" placeholder="VD: Kỹ Thuật Phần Mềm (23SE4)" value="Kỹ Thuật Phần Mềm (Lớp 23SE4)">
               </div>
             </div>
+
+            <label class="vku-label" for="auth-reg-email">Email sinh viên VKU *</label>
+            <input type="email" id="auth-reg-email" class="vku-input" placeholder="VD: thuongnt.23itb@vku.udn.vn" autocapitalize="none">
+
+            <label class="vku-label" for="auth-reg-password">Mật khẩu (tối thiểu 6 ký tự) *</label>
+            <div class="vku-pwd-wrap">
+              <input type="password" id="auth-reg-password" class="vku-pwd-input" placeholder="Tạo mật khẩu đăng nhập">
+              <button type="button" id="btn-reg-toggle-pwd" class="vku-eye-btn" title="Hiện/Ẩn mật khẩu">Hiện</button>
+            </div>
+
+            <!-- Password strength bars -->
+            <div id="reg-strength-box" class="vku-strength-box hidden">
+              <div class="vku-strength-bars">
+                <div class="vku-strength-segment" id="str-seg-1"></div>
+                <div class="vku-strength-segment" id="str-seg-2"></div>
+                <div class="vku-strength-segment" id="str-seg-3"></div>
+                <div class="vku-strength-segment" id="str-seg-4"></div>
+              </div>
+              <div id="reg-strength-label" class="vku-strength-label">Độ mạnh mật khẩu: Chưa nhập</div>
+            </div>
+
+            <label class="vku-label" for="auth-reg-confirm-password">Xác nhận lại mật khẩu *</label>
+            <input type="password" id="auth-reg-confirm-password" class="vku-input" placeholder="Nhập lại mật khẩu bên trên">
+
+            <button type="button" id="btn-register-submit" class="vku-primary-btn">
+              Đăng Ký Tài Khoản
+            </button>
           </div>
 
-          <div class="form-group">
-            <label>ĐỊA CHỈ EMAIL *</label>
-            <input type="email" id="auth-email" class="text-input" placeholder="name@gmail.com hoặc email trường">
-            <small id="err-email" class="field-error hidden"></small>
-          </div>
+          <!-- Quick 1-Tap Chips (convenient for testing & phones) -->
+          <div class="quick-student-login-box">
+            <div class="quick-login-label">⚡ ĐĂNG NHẬP 1-CHẠM (DÀNH CHO ĐIỆN THOẠI & TEST):</div>
+            <div class="quick-student-chips">
+              <button type="button" id="btn-quick-fill-thuong" class="student-chip active" style="width:100%;margin-top:6px;" title="Bấm để đăng nhập ngay tài khoản Sinh viên VKU">
+                <span class="chip-avatar" style="background: linear-gradient(135deg, #0284c7, #0369a1);">TT</span>
+                <div class="chip-info">
+                  <strong>Nguyễn Thị Thương (Sinh viên VKU)</strong>
+                  <small>thuongnt.23itb@vku.udn.vn • Lớp 23ITB (Google Verified)</small>
+                </div>
+                <span class="chip-arrow">➔</span>
+              </button>
 
-          <div class="form-group">
-            <label>MẬT KHẨU *</label>
-            <div class="pwd-input-wrap">
-              <input type="password" id="auth-password" class="text-input" placeholder="Nhập mật khẩu (tối thiểu 8 ký tự)">
-              <button type="button" id="btn-toggle-pwd" class="pwd-eye-btn" title="Hiện/Ẩn mật khẩu" aria-label="Hiện hoặc ẩn mật khẩu">
-                <svg id="svg-eye" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-                <svg id="svg-eye-off" class="hidden" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
+              <button type="button" id="btn-quick-fill-demo" class="student-chip" style="width:100%;margin-top:4px;" title="Bấm để trải nghiệm ngay với tư cách Khách">
+                <span class="chip-avatar" style="background:#10b981;">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                </span>
+                <div class="chip-info">
+                  <strong>Vào Thử Ngay (Chế Độ Khách / Demo)</strong>
+                  <small>Trải nghiệm đầy đủ tính năng Quét OCR, Biểu đồ & Sổ chi tiêu</small>
+                </div>
+                <span class="chip-arrow">➔</span>
               </button>
             </div>
-            <small class="pwd-fixed-hint">Tối thiểu 8 ký tự. Lưu ý: Mật khẩu chỉ lưu trên thiết bị này, đừng dùng mật khẩu thật.</small>
-            <small id="err-password" class="field-error hidden"></small>
           </div>
 
-          <div class="auth-aux-row">
-            <label class="remember-label"><input type="checkbox" id="auth-remember-me" checked> Ghi nhớ đăng nhập</label>
-            <button type="button" id="btn-forgot-pwd" class="btn-text-link">Quên mật khẩu?</button>
-          </div>
-
-          <div id="auth-feedback-msg" class="auth-feedback hidden"></div>
-
-          <button type="submit" id="btn-submit-auth" class="btn-auth-primary">
-            Đăng Nhập Vào Sổ Chi Tiêu
-          </button>
-        </form>
-
-        <div class="auth-divider"><span>HOẶC XÁC THỰC GOOGLE</span></div>
-
-        <!-- Direct Google OAuth 2.0 Sign-In Button (Zero Origin-Mismatch) -->
-        <button type="button" id="btn-open-google-login" class="btn-google-sso" aria-label="Đăng nhập bằng tài khoản Google">
-          <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-          <span id="btn-google-text">Tiếp tục với Google</span>
-        </button>
-
-        <!-- Quick Student / Guest 1-Tap Login -->
-        <div class="quick-student-login-box">
-          <div class="quick-login-label">⚡ ĐĂNG NHẬP 1-CHẠM (DÀNH CHO ĐIỆN THOẠI & TEST):</div>
-          <div class="quick-student-chips">
-            <!-- VKU Student 1-Tap Chip -->
-            <button type="button" id="btn-quick-fill-thuong" class="student-chip active" style="width:100%;margin-top:6px;" title="Bấm để đăng nhập ngay tài khoản Sinh viên VKU">
-              <span class="chip-avatar" style="background: linear-gradient(135deg, #0284c7, #0369a1);">TT</span>
-              <div class="chip-info">
-                <strong>Nguyễn Thị Thương (Sinh viên VKU)</strong>
-                <small>thuongnt.23itb@vku.udn.vn • Lớp 23ITB (Google Verified)</small>
-              </div>
-              <span class="chip-arrow">➔</span>
-            </button>
-
-            <!-- Guest / Demo Chip -->
-            <button type="button" id="btn-quick-fill-demo" class="student-chip" style="width:100%;margin-top:4px;" title="Bấm để trải nghiệm ngay với tư cách Khách">
-              <span class="chip-avatar" style="background:#10b981;">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-              </span>
-              <div class="chip-info">
-                <strong>Vào Thử Ngay (Chế Độ Khách / Demo)</strong>
-                <small>Trải nghiệm đầy đủ tính năng Quét OCR, Biểu đồ & Sổ chi tiêu</small>
-              </div>
-              <span class="chip-arrow">➔</span>
-            </button>
-          </div>
-          <p class="demo-subtext">Đăng nhập nhanh 1-chạm không bao giờ bị nghẽn mạng hay chặn popup trên Safari.</p>
         </div>
-
-        <!-- Zalo / In-app WebView Security Notice -->
-        <div id="zalo-security-box" class="zalo-security-box hidden">
-          <div class="zalo-security-title">Mở trên trình duyệt chuẩn (Safari / Chrome)</div>
-          <p class="zalo-security-desc">
-            Để đăng nhập Google và sử dụng camera quét OCR tốt nhất, hãy mở ứng dụng trên trình duyệt chuẩn (<strong>Safari / Chrome</strong>) thay vì trình duyệt nhúng của Zalo.
-          </p>
-          <div class="zalo-action-row">
-            <button type="button" id="btn-zalo-open-browser" class="zalo-open-browser-btn">Mở ngay bằng Safari / Chrome</button>
-            <button type="button" id="btn-zalo-copy-link" class="zalo-copy-btn">Chép link</button>
-          </div>
-          <small class="zalo-step-hint">Hoặc bấm biểu tượng <strong>•••</strong> ở góc trên bên phải Zalo ➔ chọn <strong>"Mở bằng trình duyệt / Safari"</strong>.</small>
-        </div>
-
       </div>
     </main>
 
@@ -985,6 +1003,6 @@ flutter build apk --release</code></pre>
     <span id="sync-toast-msg">Đã đồng bộ với Đám Mây</span>
   </div>
 
-  <script src="app.js?v=25.0"></script>
+  <script src="app.js?v=26.0"></script>
 </body>
 </html>

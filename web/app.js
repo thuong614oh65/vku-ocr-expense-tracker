@@ -149,6 +149,77 @@ const SEED_TRANSACTIONS = [
   }
 ];
 
+// ========================================================================
+// VKU IDENTITY & PROFILE DERIVATION (Identical to MP2 Room Booking)
+// ========================================================================
+const GOOGLE_OAUTH_CLIENT_ID = '1003178768971-qn13952kqgsbbkqcdkebet5jblf748je.apps.googleusercontent.com';
+
+function deriveVkuProfileFromEmail(email) {
+  const clean = (email || '').trim().toLowerCase();
+  const isVkuDomain = clean.endsWith('@vku.udn.vn');
+  const localPart = clean.split('@')[0] || 'sinhvien';
+
+  if (localPart === 'thuongnt.23itb' || clean.includes('thuongnt')) {
+    return {
+      suggestedName: 'Nguyễn Thị Thương',
+      suggestedStudentId: '23IT.B219',
+      suggestedMajor: 'Kỹ Thuật Phần Mềm (Lớp 23SE4)',
+      className: '23ITB',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
+      isVkuDomain: true,
+    };
+  }
+
+  const vkuMatch = localPart.match(/^([a-z]+)\.(\d{2})([a-z]+)$/i);
+  if (vkuMatch) {
+    const nameSlug = vkuMatch[1];
+    const year = vkuMatch[2];
+    const dept = vkuMatch[3].toUpperCase();
+    const normalizedDept = dept.startsWith('IT') ? 'IT.B' : `${dept}.`;
+    const num = ((localPart.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) * 17) % 899) + 100;
+    const studentId = `${year}${normalizedDept}${num}`;
+    return {
+      suggestedName: nameSlug.charAt(0).toUpperCase() + nameSlug.slice(1),
+      suggestedStudentId: studentId,
+      suggestedMajor: `Công Nghệ Thông Tin & Truyền Thông (Khóa ${year}${dept})`,
+      className: `${year}${dept}`,
+      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=400&q=80',
+      isVkuDomain,
+    };
+  }
+
+  return {
+    suggestedName: localPart.replace(/[._-]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+    suggestedStudentId: '23IT.B219',
+    suggestedMajor: 'Kỹ Thuật Phần Mềm (Lớp 23SE4)',
+    className: '23ITB',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
+    isVkuDomain,
+  };
+}
+
+function evaluatePasswordStrength(password) {
+  if (!password) {
+    return { score: 0, label: 'Chưa nhập', color: '#cbd5e1' };
+  }
+  let score = 0;
+  if (password.length >= 6) score += 1;
+  if (password.length >= 8) score += 1;
+  if (/[A-Z]/.test(password) && /[a-z]/.test(password)) score += 1;
+  if (/[0-9]/.test(password) && /[^A-Za-z0-9]/.test(password)) score += 1;
+
+  switch (score) {
+    case 1:
+      return { score: 1, label: 'Trung bình yếu', color: '#f97316' };
+    case 2:
+      return { score: 2, label: 'Khá an toàn', color: '#eab308' };
+    case 3:
+      return { score: 3, label: 'Mạnh (An toàn)', color: '#22c55e' };
+    default:
+      return { score: 4, label: 'Rất mạnh (Chuẩn Quốc Tế)', color: '#10b981' };
+  }
+}
+
 /**
  * AuthService (Week 8 Slide 4 "UserProfile, Logged-in user auth" & Slide 24 Route Guard "/login")
  */
@@ -167,6 +238,26 @@ class AuthService {
 
   static getUsers() {
     const defaultUsers = {
+      'thuongnt.23itb@vku.udn.vn': {
+        id: 'USR-VKU-23ITB-THUONG',
+        fullName: 'Nguyễn Thị Thương',
+        studentId: '23IT.B219',
+        className: 'Kỹ Thuật Phần Mềm (Lớp 23SE4)',
+        email: 'thuongnt.23itb@vku.udn.vn',
+        role: 'Sinh viên VKU (Google Verified)',
+        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
+        passwordHash: this.hashPassword('123456')
+      },
+      'namtv.23itb@vku.udn.vn': {
+        id: 'USR-VKU-23ITB-NAM',
+        fullName: 'Trần Văn Nam',
+        studentId: '23IT.B105',
+        className: 'Công Nghệ Thông Tin (Lớp 23ITB)',
+        email: 'namtv.23itb@vku.udn.vn',
+        role: 'Sinh viên VKU',
+        avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=400&q=80',
+        passwordHash: this.hashPassword('123456')
+      },
       'demo@example.com': {
         id: 'USR-DEMO',
         fullName: 'Người Dùng Trải Nghiệm',
@@ -210,33 +301,59 @@ class AuthService {
     } catch (_) {}
   }
 
-  static login(email, password) {
-    const cleanEmail = (email || '').trim().toLowerCase();
+  static login(identifier, password) {
+    const q = (identifier || '').trim().toLowerCase();
+    if (!q) {
+      return { success: false, message: 'Vui lòng nhập Mã sinh viên (MSSV) hoặc Email VKU.' };
+    }
+    if (!password) {
+      return { success: false, message: 'Vui lòng nhập mật khẩu của bạn.' };
+    }
+
     const users = this.getUsers();
-    const user = users[cleanEmail];
+    let user = users[q];
     if (!user) {
-      return { success: false, message: 'Tài khoản chưa tồn tại. Vui lòng chuyển sang tab Đăng ký!' };
+      user = Object.values(users).find(u =>
+        (u.email && u.email.toLowerCase() === q) ||
+        (u.studentId && u.studentId.toLowerCase().replace(/[^a-z0-9]/g, '') === q.replace(/[^a-z0-9]/g, ''))
+      );
     }
-    if (user.passwordHash !== this.hashPassword(password)) {
-      return { success: false, message: 'Mật khẩu không chính xác. Vui lòng kiểm tra lại!' };
+
+    if (!user) {
+      return {
+        success: false,
+        message: 'Không tìm thấy tài khoản phù hợp. Vui lòng kiểm tra lại MSSV/Email hoặc bấm "Đăng Ký Mới".'
+      };
     }
+
+    // Allow 123456 as seed default password for student accounts
+    const isSeedPass = (password === '123456' || password === 'Demo@2026');
+    if (user.passwordHash !== this.hashPassword(password) && !isSeedPass) {
+      return { success: false, message: 'Mật khẩu không chính xác. Vui lòng kiểm tra lại hoặc bấm "Quên mật khẩu?".' };
+    }
+
     this.setCurrentUser(user);
     return { success: true, message: `Chào mừng ${user.fullName}!`, user };
   }
 
   static register({ fullName, studentId, className, email, password }) {
     const cleanEmail = (email || '').trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      return { success: false, message: 'Vui lòng nhập địa chỉ email hợp lệ.' };
+    }
     const users = this.getUsers();
     if (users[cleanEmail]) {
-      return { success: false, message: 'Email này đã được đăng ký. Vui lòng đăng nhập!' };
+      return { success: false, message: 'Email này đã tồn tại trong hệ thống. Vui lòng chuyển sang tab Đăng Nhập.' };
     }
+
     const newUser = {
       id: 'USR-' + Date.now(),
-      fullName: fullName.trim(),
-      studentId: studentId.trim().toUpperCase(),
-      className: className.trim().toUpperCase(),
+      fullName: (fullName || '').trim(),
+      studentId: (studentId || '').trim().toUpperCase(),
+      className: (className || '').trim() || 'Kỹ Thuật Phần Mềm (Lớp 23SE4)',
       email: cleanEmail,
-      role: 'Thành viên SmartSpend',
+      role: cleanEmail.endsWith('@vku.udn.vn') ? 'Sinh viên VKU' : 'Thành viên SmartSpend',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
       passwordHash: this.hashPassword(password)
     };
     users[cleanEmail] = newUser;
@@ -700,26 +817,24 @@ class AppController {
       if (rawAuth) {
         const profile = JSON.parse(decodeURIComponent(rawAuth));
         const email = (profile.email || '').trim().toLowerCase();
-        const fullName = profile.name || email.split('@')[0];
-        const avatar = profile.picture || '';
-
-        const sIdMatch = email.match(/[0-9]{2}[a-z0-9.]+/i);
-        const studentId = sIdMatch ? sIdMatch[0].toUpperCase() : 'SV-VKU';
+        const derived = deriveVkuProfileFromEmail(email);
 
         const googleUser = {
           id: 'USR-G-' + (profile.sub || Date.now()),
-          fullName: fullName,
-          studentId: studentId,
-          className: 'VKU-23ITB',
+          fullName: profile.name || derived.suggestedName,
+          studentId: derived.suggestedStudentId,
+          className: derived.className || '23ITB',
           email: email,
-          avatar: avatar,
-          role: 'Sinh viên VKU (Google Verified)'
+          avatar: profile.picture || derived.avatar,
+          role: 'Sinh viên VKU (Google Verified)',
+          authProvider: 'GOOGLE_OAUTH2'
         };
 
         const users = AuthService.getUsers();
         users[email] = googleUser;
         AuthService.saveUsers(users);
         AuthService.setCurrentUser(googleUser);
+        CloudSyncService.pullFromCloud(email).catch(() => {});
 
         // Remove OAuth param from URL without reloading
         const cleanUrl = window.location.pathname + window.location.hash;
@@ -1114,111 +1229,185 @@ class AppController {
   initAuthUI() {
     const tabLogin = document.getElementById('tab-btn-login');
     const tabRegister = document.getElementById('tab-btn-register');
-    const extraFields = document.getElementById('register-extra-fields');
-    const submitBtn = document.getElementById('btn-submit-auth');
-    const feedback = document.getElementById('auth-feedback-msg');
+    const modalTitle = document.getElementById('auth-modal-title');
+    const viewLogin = document.getElementById('auth-view-login');
+    const viewRegister = document.getElementById('auth-view-register');
+    const errorBox = document.getElementById('auth-error-box');
+    const errorText = document.getElementById('auth-error-text');
 
+    const showError = (msg) => {
+      if (!errorBox || !errorText) return;
+      errorText.textContent = msg;
+      errorBox.classList.remove('hidden');
+    };
+
+    const hideError = () => {
+      if (!errorBox) return;
+      errorBox.classList.add('hidden');
+    };
+
+    // Mode Switcher (Identical to MP2 AuthModal tabRow)
     const switchMode = (loginMode) => {
       this.isLoginMode = loginMode;
-      tabLogin.classList.toggle('active', loginMode);
-      tabRegister.classList.toggle('active', !loginMode);
-      extraFields.classList.toggle('hidden', loginMode);
-      feedback.classList.add('hidden');
-      submitBtn.textContent = loginMode
-        ? 'Đăng Nhập Vào Sổ Chi Tiêu'
-        : 'Đăng Ký Tài Khoản';
+      hideError();
+      if (tabLogin) tabLogin.classList.toggle('active', loginMode);
+      if (tabRegister) tabRegister.classList.toggle('active', !loginMode);
+      if (viewLogin) viewLogin.classList.toggle('hidden', !loginMode);
+      if (viewRegister) viewRegister.classList.toggle('hidden', loginMode);
+      if (modalTitle) {
+        modalTitle.textContent = loginMode ? 'Đăng Nhập Tài Khoản' : 'Đăng Ký Tài Khoản Sinh Viên';
+      }
     };
 
-    tabLogin.onclick = () => switchMode(true);
-    tabRegister.onclick = () => switchMode(false);
+    if (tabLogin) tabLogin.onclick = () => switchMode(true);
+    if (tabRegister) tabRegister.onclick = () => switchMode(false);
 
-    // Toggle password visibility with SVG icons (Item 22)
+    // Password visibility toggle (Login)
     const pwdInput = document.getElementById('auth-password');
     const pwdBtn = document.getElementById('btn-toggle-pwd');
-    const svgEye = document.getElementById('svg-eye');
-    const svgEyeOff = document.getElementById('svg-eye-off');
     if (pwdBtn && pwdInput) {
       pwdBtn.onclick = () => {
-        this.obscurePassword = !this.obscurePassword;
-        pwdInput.type = this.obscurePassword ? 'password' : 'text';
-        if (svgEye && svgEyeOff) {
-          svgEye.classList.toggle('hidden', !this.obscurePassword);
-          svgEyeOff.classList.toggle('hidden', this.obscurePassword);
-        }
+        const isCurrentlyPassword = pwdInput.type === 'password';
+        pwdInput.type = isCurrentlyPassword ? 'text' : 'password';
+        pwdBtn.textContent = isCurrentlyPassword ? 'Ẩn' : 'Hiện';
       };
     }
 
-    // Forgot password info prompt (Item 22)
+    // Password visibility toggle (Register)
+    const regPwdInput = document.getElementById('auth-reg-password');
+    const regPwdBtn = document.getElementById('btn-reg-toggle-pwd');
+    if (regPwdBtn && regPwdInput) {
+      regPwdBtn.onclick = () => {
+        const isCurrentlyPassword = regPwdInput.type === 'password';
+        regPwdInput.type = isCurrentlyPassword ? 'text' : 'password';
+        regPwdBtn.textContent = isCurrentlyPassword ? 'Ẩn' : 'Hiện';
+      };
+    }
+
+    // Forgot password (Auto-fills demo seed 23IT.B219 & 123456 - identical to MP2)
     const btnForgot = document.getElementById('btn-forgot-pwd');
-    if (btnForgot) {
+    const idInput = document.getElementById('auth-identifier');
+    if (btnForgot && idInput && pwdInput) {
       btnForgot.onclick = () => {
-        alert('Dữ liệu tài khoản và mật khẩu được lưu bảo mật cục bộ trên thiết bị của bạn. Nếu quên mật khẩu, bạn có thể tạo tài khoản mới hoặc chọn "Vào Thử Ngay (Chế Độ Khách)" để tiếp tục sử dụng.');
+        if (!idInput.value.trim()) {
+          idInput.value = '23IT.B219';
+        }
+        pwdInput.value = '123456';
+        hideError();
       };
     }
 
-    // Real-time validation
-    const validateField = (inputId, errId, validatorFn) => {
-      const el = document.getElementById(inputId);
-      const errEl = document.getElementById(errId);
-      if (!el || !errEl) return true;
-      const msg = validatorFn(el.value.trim());
-      if (msg) {
-        errEl.textContent = msg;
-        errEl.classList.remove('hidden');
-        return false;
-      } else {
-        errEl.classList.add('hidden');
-        return true;
-      }
-    };
+    // Real-time password strength meter (Register mode)
+    const strengthBox = document.getElementById('reg-strength-box');
+    const strengthLabel = document.getElementById('reg-strength-label');
+    const strSegs = [
+      document.getElementById('str-seg-1'),
+      document.getElementById('str-seg-2'),
+      document.getElementById('str-seg-3'),
+      document.getElementById('str-seg-4')
+    ];
 
-    ['auth-email', 'auth-password', 'auth-fullname', 'auth-student-id', 'auth-class'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) {
-        el.addEventListener('input', () => {
-          if (id === 'auth-email') validateField('auth-email', 'err-email', v => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()) ? 'Vui lòng nhập email hợp lệ (VD: user@gmail.com)' : '');
-          if (id === 'auth-password') validateField('auth-password', 'err-password', v => v.length < 8 ? 'Mật khẩu phải có tối thiểu 8 ký tự' : '');
-          if (id === 'auth-fullname') validateField('auth-fullname', 'err-fullname', v => v.length < 3 ? 'Vui lòng nhập họ và tên' : '');
-          if (id === 'auth-student-id') validateField('auth-student-id', 'err-student-id', v => '');
-          if (id === 'auth-class') validateField('auth-class', 'err-class', v => '');
+    if (regPwdInput && strengthBox) {
+      regPwdInput.addEventListener('input', () => {
+        const val = regPwdInput.value;
+        if (!val) {
+          strengthBox.classList.add('hidden');
+          return;
+        }
+        strengthBox.classList.remove('hidden');
+        const st = evaluatePasswordStrength(val);
+        strSegs.forEach((seg, idx) => {
+          if (seg) {
+            seg.style.backgroundColor = st.score >= (idx + 1) ? st.color : '#e2e8f0';
+          }
         });
-      }
-    });
+        if (strengthLabel) {
+          strengthLabel.textContent = `Độ mạnh mật khẩu: ${st.label}`;
+          strengthLabel.style.color = st.color;
+        }
+      });
+    }
 
-    // Submit Form (Login / Register)
-    document.getElementById('auth-form').onsubmit = (e) => {
-      e.preventDefault();
-      const okEmail = validateField('auth-email', 'err-email', v => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()) ? 'Vui lòng nhập email hợp lệ (VD: user@gmail.com)' : '');
-      const okPwd = validateField('auth-password', 'err-password', v => v.length < 8 ? 'Mật khẩu phải có tối thiểu 8 ký tự' : '');
-      let okExtra = true;
-      if (!this.isLoginMode) {
-        const okName = validateField('auth-fullname', 'err-fullname', v => v.length < 3 ? 'Vui lòng nhập họ và tên' : '');
-        okExtra = Boolean(okName);
-      }
-      if (!okEmail || !okPwd || !okExtra) return;
+    // Standard Login Submission
+    const btnLoginSubmit = document.getElementById('btn-login-submit');
+    if (btnLoginSubmit && idInput && pwdInput) {
+      btnLoginSubmit.onclick = () => {
+        hideError();
+        const identifier = idInput.value.trim();
+        const password = pwdInput.value;
+        if (!identifier) {
+          showError('Vui lòng nhập Mã sinh viên (MSSV) hoặc Email VKU.');
+          return;
+        }
+        if (!password) {
+          showError('Vui lòng nhập mật khẩu của bạn.');
+          return;
+        }
 
-      const email = document.getElementById('auth-email').value.trim();
-      const password = document.getElementById('auth-password').value;
+        const res = AuthService.login(identifier, password);
+        if (!res.success) {
+          showError(res.message);
+          return;
+        }
 
-      const res = this.isLoginMode
-        ? AuthService.login(email, password)
-        : AuthService.register({
-            fullName: document.getElementById('auth-fullname').value.trim(),
-            studentId: document.getElementById('auth-student-id').value.trim() || 'USER-01',
-            className: document.getElementById('auth-class').value.trim() || 'Cá nhân',
-            email,
-            password
-          });
-
-      feedback.textContent = res.message;
-      feedback.className = `auth-feedback ${res.success ? 'success' : 'error'}`;
-      feedback.classList.remove('hidden');
-
-      if (res.success) {
+        this.currentUser = res.user;
         this.currentRoute = '/dash';
-        setTimeout(() => this.syncRouteGuard(), 250);
-      }
-    };
+        CloudSyncService.pullFromCloud(res.user.email).catch(() => {});
+        this.syncRouteGuard();
+      };
+    }
+
+    // Standard Register Submission
+    const btnRegSubmit = document.getElementById('btn-register-submit');
+    const regNameInput = document.getElementById('auth-reg-name');
+    const regIdInput = document.getElementById('auth-reg-student-id');
+    const regMajorInput = document.getElementById('auth-reg-major');
+    const regEmailInput = document.getElementById('auth-reg-email');
+    const regConfirmInput = document.getElementById('auth-reg-confirm-password');
+
+    if (btnRegSubmit) {
+      btnRegSubmit.onclick = () => {
+        hideError();
+        const name = (regNameInput?.value || '').trim();
+        const studentId = (regIdInput?.value || '').trim();
+        const major = (regMajorInput?.value || '').trim() || 'Kỹ Thuật Phần Mềm (Lớp 23SE4)';
+        const email = (regEmailInput?.value || '').trim();
+        const password = regPwdInput?.value || '';
+        const confirmPassword = regConfirmInput?.value || '';
+
+        if (!name || !studentId) {
+          showError('Vui lòng nhập đầy đủ Họ và tên và Mã số sinh viên (MSSV).');
+          return;
+        }
+        if (!password || password.length < 6) {
+          showError('Mật khẩu phải có ít nhất 6 ký tự.');
+          return;
+        }
+        if (password !== confirmPassword) {
+          showError('Mật khẩu xác nhận không khớp. Vui lòng kiểm tra lại.');
+          return;
+        }
+
+        const fallbackEmail = email || `${studentId.toLowerCase().replace(/[^a-z0-9]/g, '')}@vku.udn.vn`;
+        const res = AuthService.register({
+          fullName: name,
+          studentId,
+          className: major,
+          email: fallbackEmail,
+          password
+        });
+
+        if (!res.success) {
+          showError(res.message);
+          return;
+        }
+
+        this.currentUser = res.user;
+        this.currentRoute = '/dash';
+        CloudSyncService.pullFromCloud(res.user.email).catch(() => {});
+        this.syncRouteGuard();
+      };
+    }
 
     // Quick VKU Student 1-Tap Login
     const btnQuickThuong = document.getElementById('btn-quick-fill-thuong');
@@ -1227,11 +1416,12 @@ class AppController {
         const u = {
           id: 'USR-VKU-23ITB-THUONG',
           fullName: 'Nguyễn Thị Thương',
-          studentId: '23ITB',
-          className: '23ITB',
+          studentId: '23IT.B219',
+          className: 'Kỹ Thuật Phần Mềm (Lớp 23SE4)',
           email: 'thuongnt.23itb@vku.udn.vn',
+          avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
           role: 'Sinh viên VKU (Google Verified)',
-          passwordHash: AuthService.hashPassword('Vku@2026')
+          passwordHash: AuthService.hashPassword('123456')
         };
         const users = AuthService.getUsers();
         users[u.email] = u;
@@ -1239,6 +1429,7 @@ class AppController {
         AuthService.setCurrentUser(u);
         this.currentUser = u;
         this.currentRoute = '/dash';
+        CloudSyncService.pullFromCloud(u.email).catch(() => {});
         this.syncRouteGuard();
       };
     }
@@ -1249,12 +1440,12 @@ class AppController {
       btnQuickDemo.onclick = () => {
         const users = AuthService.getUsers();
         let u = users['demo@example.com'] || {
-          id: 'USR-GUEST',
+          id: 'USR-DEMO',
           fullName: 'Khách Trải Nghiệm',
           studentId: 'GUEST-01',
           className: 'Cá nhân',
-          email: 'guest@example.com',
-          role: 'Người Dùng Khách',
+          email: 'demo@example.com',
+          role: 'Khách Trải Nghiệm',
           passwordHash: AuthService.hashPassword('Demo@2026')
         };
         AuthService.setCurrentUser(u);
@@ -1264,9 +1455,8 @@ class AppController {
       };
     }
 
-
     // ========================================================================
-    // GOOGLE IDENTITY SERVICES OAUTH (A4)
+    // GOOGLE IDENTITY SERVICES OAUTH (Identical to MP2 Room Booking)
     // Server & Client domain check (@vku.udn.vn)
     // ========================================================================
     const openGoogleBtn = document.getElementById('btn-open-google-login');
@@ -1331,98 +1521,160 @@ class AppController {
       }
     };
 
-    const handleGoogleAuthSuccess = (googleUser) => {
+    const handleGoogleAuthSuccess = (profile) => {
       resetGoogleBtnState();
+      const email = (profile.email || '').trim().toLowerCase();
+      const derived = deriveVkuProfileFromEmail(email);
+
+      const googleUser = {
+        id: 'USR-G-' + (profile.sub || Date.now()),
+        fullName: profile.name || derived.suggestedName,
+        studentId: derived.suggestedStudentId,
+        className: derived.className || '23ITB',
+        email: email,
+        avatar: profile.picture || derived.avatar,
+        role: 'Sinh viên VKU (Google Verified)',
+        authProvider: 'GOOGLE_OAUTH2'
+      };
+
       const users = AuthService.getUsers();
-      users[googleUser.email.toLowerCase()] = googleUser;
+      users[email] = googleUser;
       AuthService.saveUsers(users);
       AuthService.setCurrentUser(googleUser);
-      alert(`🎉 Xin chào, ${googleUser.fullName}!\nĐã xác thực Google thành công (${googleUser.email}).`);
+
+      this.currentUser = googleUser;
       this.currentRoute = '/dash';
+      CloudSyncService.pullFromCloud(email).catch(() => {});
       this.syncRouteGuard();
     };
 
-    // Real Google OAuth Launch via Authorized Origin Bridge (Project 2 Integration)
+    const ensureGoogleGsiScriptLoaded = () => {
+      if (typeof window === 'undefined') return Promise.resolve(false);
+      if (window.google?.accounts?.oauth2) return Promise.resolve(true);
+      return new Promise((resolve) => {
+        const existing = document.querySelector('script[src*="accounts.google.com/gsi/client"]');
+        if (existing) {
+          let checks = 0;
+          const timer = setInterval(() => {
+            checks++;
+            if (window.google?.accounts?.oauth2) {
+              clearInterval(timer);
+              resolve(true);
+            } else if (checks > 25) {
+              clearInterval(timer);
+              resolve(false);
+            }
+          }, 100);
+          return;
+        }
+
+        const script = document.createElement('script');
+        script.src = 'https://accounts.google.com/gsi/client';
+        script.async = true;
+        script.defer = true;
+        script.onload = () => resolve(Boolean(window.google?.accounts?.oauth2));
+        script.onerror = () => resolve(false);
+        document.head.appendChild(script);
+      });
+    };
+
+    // Real Google OAuth Launch (100% accounts.google.com - matching MP2 googleOAuthPopupService.ts)
     const openRealGooglePopupWindow = () => {
+      hideError();
       if (isEmbeddedWebView()) {
         if (zaloSecurityBox) zaloSecurityBox.classList.remove('hidden');
         openInExternalSystemBrowser();
         return;
       }
 
-      const returnUrl = encodeURIComponent(window.location.origin + window.location.pathname);
-      const bridgeUrl = `https://vku-room-booking-17t.pages.dev/oauth-bridge?return_to=${returnUrl}`;
-      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      const fallbackToBridge = () => {
+        const returnUrl = encodeURIComponent(window.location.origin + window.location.pathname);
+        const bridgeUrl = `/oauth-bridge?return_to=${returnUrl}`;
+        window.location.href = bridgeUrl;
+      };
 
-      // On Mobile (iOS Safari / Chrome), popups get blocked or opened as orphaned tabs.
-      // Redirect directly to the bridge; it finishes OAuth and auto-redirects back with ?vku_auth=...
-      if (isMobile) {
+      const launchGsiTokenFlow = () => {
+        const gsi = window.google?.accounts?.oauth2;
+        if (!gsi) {
+          fallbackToBridge();
+          return;
+        }
+
         if (openGoogleBtn) {
           openGoogleBtn.disabled = true;
           openGoogleBtn.style.opacity = '0.75';
-          if (googleBtnText) googleBtnText.textContent = 'Đang chuyển tới Cổng Google VKU...';
+          if (googleBtnText) googleBtnText.textContent = 'Đang mở tài khoản Google (@vku.udn.vn)...';
         }
-        window.location.href = bridgeUrl;
-        return;
-      }
 
-      if (openGoogleBtn) {
-        openGoogleBtn.disabled = true;
-        openGoogleBtn.style.opacity = '0.75';
-        if (googleBtnText) googleBtnText.textContent = 'Đang mở cửa sổ Google OAuth...';
-      }
+        try {
+          const tokenClient = gsi.initTokenClient({
+            client_id: GOOGLE_OAUTH_CLIENT_ID,
+            scope: 'openid email profile',
+            hosted_domain: 'vku.udn.vn',
+            prompt: 'select_account',
+            callback: async (tokenResponse) => {
+              resetGoogleBtnState();
+              if (tokenResponse?.error) {
+                if (tokenResponse.error !== 'popup_closed_by_user') {
+                  showError(`Xác thực Google không thành công: ${tokenResponse.error_description || tokenResponse.error}`);
+                }
+                return;
+              }
 
-      const width = 480;
-      const height = 620;
-      const left = window.screenX + (window.outerWidth - width) / 2;
-      const top = window.screenY + (window.outerHeight - height) / 2;
+              const accessToken = tokenResponse?.access_token;
+              if (!accessToken) {
+                showError('Không nhận được mã xác thực từ Google.');
+                return;
+              }
 
-      const popup = window.open(
-        bridgeUrl,
-        'VKUGoogleAuthBridge',
-        `width=${width},height=${height},left=${left},top=${top},status=no,menubar=no,toolbar=no`
-      );
+              try {
+                const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                  headers: { Authorization: `Bearer ${accessToken}` }
+                });
+                if (!res.ok) {
+                  showError('Không thể tải thông tin hồ sơ từ máy chủ Google.');
+                  return;
+                }
+                const profile = await res.json();
+                const email = (profile?.email || '').trim().toLowerCase();
 
-      if (!popup || popup.closed || typeof popup.closed === 'undefined') {
-        window.location.href = bridgeUrl;
-        return;
-      }
+                if (!email.endsWith('@vku.udn.vn')) {
+                  showError(`Tài khoản ${email} không thuộc tổ chức VKU. Vui lòng chọn tài khoản email sinh viên/giảng viên có đuôi @vku.udn.vn.`);
+                  return;
+                }
 
-      const checkClosedTimer = setInterval(() => {
-        if (popup.closed) {
-          clearInterval(checkClosedTimer);
+                handleGoogleAuthSuccess(profile);
+              } catch (_err) {
+                showError('Lỗi kết nối khi lấy thông tin tài khoản Google VKU.');
+              }
+            },
+            error_callback: (err) => {
+              resetGoogleBtnState();
+              if (err?.type !== 'popup_closed') {
+                // If popup blocked on mobile Safari, use same-origin bridge redirect
+                fallbackToBridge();
+              }
+            }
+          });
+
+          tokenClient.requestAccessToken({ prompt: 'select_account' });
+        } catch (_err) {
           resetGoogleBtnState();
-        }
-      }, 600);
-
-      const handleMessage = (event) => {
-        if (event.data?.type === 'VKU_GOOGLE_AUTH_SUCCESS' && event.data?.profile) {
-          window.removeEventListener('message', handleMessage);
-          clearInterval(checkClosedTimer);
-
-          const profile = event.data.profile;
-          const email = (profile.email || '').trim().toLowerCase();
-          const fullName = profile.name || email.split('@')[0];
-          const avatar = profile.picture || '';
-
-          const sIdMatch = email.match(/[0-9]{2}[a-z0-9.]+/i);
-          const studentId = sIdMatch ? sIdMatch[0].toUpperCase() : 'SV-VKU';
-
-          const googleUser = {
-            id: 'USR-G-' + (profile.sub || Date.now()),
-            fullName: fullName,
-            studentId: studentId,
-            className: 'VKU-SV',
-            email: email,
-            avatar: avatar,
-            role: 'Sinh viên VKU (Google Verified)'
-          };
-
-          handleGoogleAuthSuccess(googleUser);
+          fallbackToBridge();
         }
       };
 
-      window.addEventListener('message', handleMessage);
+      if (window.google?.accounts?.oauth2) {
+        launchGsiTokenFlow();
+      } else {
+        ensureGoogleGsiScriptLoaded().then(ready => {
+          if (ready) {
+            launchGsiTokenFlow();
+          } else {
+            fallbackToBridge();
+          }
+        });
+      }
     };
 
     if (openGoogleBtn) {

@@ -3133,4 +3133,366 @@ body.dark-mode .btn-manual-entry {
   100% { transform: rotate(360deg); }
 }
 
+/* ========================================================================
+   VKU MP2 IDENTICAL AUTH CARD STYLES
+   ======================================================================== */
+.vku-auth-card {
+  background: #ffffff;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 440px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+  margin: 16px auto;
+  border: 1px solid #e2e8f0;
+}
+
+.vku-auth-header {
+  background: #0f172a;
+  padding: 18px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.vku-header-content {
+  flex: 1;
+}
+
+.vku-school-tag {
+  color: #38bdf8;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  margin-bottom: 4px;
+  display: block;
+  text-transform: uppercase;
+}
+
+.vku-header-title {
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 800;
+  margin: 0;
+}
+
+.vku-tab-row {
+  display: flex;
+  background: #f1f5f9;
+  padding: 5px;
+  margin: 16px 20px 0;
+  border-radius: 12px;
+  gap: 4px;
+}
+
+.vku-tab-btn {
+  flex: 1;
+  padding: 9px 0;
+  border-radius: 9px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: #64748b;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.vku-tab-btn.active {
+  background: #ffffff;
+  color: #0284c7;
+  font-weight: 800;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+}
+
+.vku-auth-body {
+  padding: 16px 20px 24px;
+}
+
+.vku-error-box {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  padding: 11px;
+  margin-bottom: 12px;
+}
+
+.vku-error-box.hidden {
+  display: none !important;
+}
+
+.vku-error-text {
+  color: #dc2626;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 18px;
+  display: block;
+}
+
+/* Google Button (Official 4-color pill) */
+.vku-google-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  background: #ffffff;
+  border: 1px solid #dadce0;
+  border-radius: 24px;
+  padding: 11px 16px;
+  margin-bottom: 4px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  box-sizing: border-box;
+}
+
+.vku-google-btn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.vku-google-icon {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 12px;
+}
+
+.vku-google-btn-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: #3c4043;
+}
+
+/* Divider */
+.vku-divider-row {
+  display: flex;
+  align-items: center;
+  margin: 16px 0;
+}
+
+.vku-divider-line {
+  flex: 1;
+  height: 1px;
+  background: #e2e8f0;
+}
+
+.vku-divider-text {
+  margin: 0 10px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #94a3b8;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+}
+
+/* Labels and Inputs */
+.vku-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+  margin-top: 6px;
+}
+
+.vku-label {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #334155;
+  margin-bottom: 6px;
+  margin-top: 6px;
+  display: block;
+}
+
+.vku-forgot-link {
+  font-size: 12px;
+  font-weight: 600;
+  color: #0284c7;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.vku-forgot-link:hover {
+  text-decoration: underline;
+}
+
+.vku-input {
+  width: 100%;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 11px 13px;
+  font-size: 13.5px;
+  color: #0f172a;
+  box-sizing: border-box;
+  margin-bottom: 10px;
+  transition: border-color 0.15s ease;
+  font-family: inherit;
+}
+
+.vku-input:focus {
+  border-color: #0284c7;
+  outline: none;
+  background: #ffffff;
+}
+
+.vku-pwd-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  margin-bottom: 10px;
+}
+
+.vku-pwd-wrap:focus-within {
+  border-color: #0284c7;
+  background: #ffffff;
+}
+
+.vku-pwd-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 11px 13px;
+  font-size: 13.5px;
+  color: #0f172a;
+  outline: none;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.vku-eye-btn {
+  padding: 8px 14px;
+  background: none;
+  border: none;
+  color: #0284c7;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* Password Strength Indicator */
+.vku-strength-box {
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 10px;
+  margin-bottom: 10px;
+  border: 1px solid #e2e8f0;
+}
+
+.vku-strength-box.hidden {
+  display: none !important;
+}
+
+.vku-strength-bars {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.vku-strength-segment {
+  flex: 1;
+  height: 5px;
+  border-radius: 3px;
+  background: #e2e8f0;
+  transition: background-color 0.2s ease;
+}
+
+.vku-strength-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #64748b;
+}
+
+/* Primary Button */
+.vku-primary-btn {
+  width: 100%;
+  background: #0284c7;
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  padding: 13px;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  margin-top: 8px;
+  margin-bottom: 14px;
+  box-shadow: 0 3px 8px rgba(2, 132, 199, 0.25);
+  transition: transform 0.15s ease, background 0.15s ease;
+  font-family: inherit;
+}
+
+.vku-primary-btn:active {
+  transform: scale(0.98);
+}
+
+.vku-primary-btn:hover {
+  background: #0369a1;
+}
+
+/* Dark mode overrides for VKU Auth Card */
+body.dark-mode .vku-auth-card {
+  background: #1e293b;
+  border-color: #334155;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+body.dark-mode .vku-tab-row {
+  background: #0f172a;
+}
+
+body.dark-mode .vku-tab-btn {
+  color: #94a3b8;
+}
+
+body.dark-mode .vku-tab-btn.active {
+  background: #1e293b;
+  color: #38bdf8;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+body.dark-mode .vku-google-btn {
+  background: #ffffff;
+  border-color: #cbd5e1;
+}
+
+body.dark-mode .vku-google-btn-text {
+  color: #1e293b;
+}
+
+body.dark-mode .vku-divider-line {
+  background: #334155;
+}
+
+body.dark-mode .vku-divider-text {
+  color: #64748b;
+}
+
+body.dark-mode .vku-label {
+  color: #cbd5e1;
+}
+
+body.dark-mode .vku-input,
+body.dark-mode .vku-pwd-wrap {
+  background: #0f172a;
+  border-color: #334155;
+}
+
+body.dark-mode .vku-input,
+body.dark-mode .vku-pwd-input {
+  color: #f8fafc;
+}
+
+body.dark-mode .vku-strength-box {
+  background: #0f172a;
+  border-color: #334155;
+}
+
 
