@@ -31,9 +31,11 @@ jobs:
 
       - name: Generate Android Gradle Scaffolding & Configure ML Kit MinSDK 21
         run: |
+          cp pubspec.yaml /tmp/pubspec.yaml.bak
           cp lib/main.dart /tmp/main.dart.bak
           rm -rf android test
           flutter create --platforms=android --org vn.edu.vku --project-name vku_ocr_expense_tracker .
+          cp /tmp/pubspec.yaml.bak pubspec.yaml
           cp /tmp/main.dart.bak lib/main.dart
           rm -rf test
           if [ -f android/app/build.gradle ]; then

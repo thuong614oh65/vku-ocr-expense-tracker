@@ -113,6 +113,13 @@ export default {
       "frame-src https://accounts.google.com;"
     );
 
+    // Disable caching on HTML, SW, JS, CSS to guarantee instant updates
+    if (url.pathname === '/' || url.pathname.endsWith('.html') || url.pathname.endsWith('sw.js') || url.pathname.endsWith('.js') || url.pathname.endsWith('.css')) {
+      newHeaders.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+      newHeaders.set('Pragma', 'no-cache');
+      newHeaders.set('Expires', '0');
+    }
+
     return new Response(response.body, {
       status: response.status,
       statusText: response.statusText,

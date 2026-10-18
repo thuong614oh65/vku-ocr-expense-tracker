@@ -16,15 +16,29 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=9.0">
+  <link rel="stylesheet" href="style.css?v=11.0">
   <!-- Google Identity Services (OAuth 2.0 @vku.udn.vn) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <!-- On-Device Tesseract.js WebAssembly OCR for uploaded photos -->
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js" defer></script>
   <script>
+    const APP_VERSION = '11.0';
+    if (localStorage.getItem('vku_app_cache_v') !== APP_VERSION) {
+      if ('caches' in window) {
+        caches.keys().then(function(names) {
+          return Promise.all(names.map(function(name) { return caches.delete(name); }));
+        });
+      }
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(regs) {
+          for (var reg of regs) { reg.unregister(); }
+        });
+      }
+      localStorage.setItem('vku_app_cache_v', APP_VERSION);
+    }
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
-        navigator.serviceWorker.register('/sw.js?v=9.0').then(function (reg) {
+        navigator.serviceWorker.register('/sw.js?v=11.0').then(function (reg) {
           reg.update();
         }).catch(function () {});
       });
@@ -669,6 +683,6 @@ flutter build apk --release</code></pre>
     </div>
   </div>
 
-  <script src="app.js?v=9.0"></script>
+  <script src="app.js?v=11.0"></script>
 </body>
 </html>
