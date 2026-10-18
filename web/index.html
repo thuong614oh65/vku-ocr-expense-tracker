@@ -16,13 +16,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=15.0">
+  <link rel="stylesheet" href="style.css?v=16.0">
   <!-- Google Identity Services (OAuth 2.0 @vku.udn.vn) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <!-- On-Device Tesseract.js WebAssembly OCR for uploaded photos -->
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js" defer></script>
   <script>
-    const APP_VERSION = '15.0';
+    const APP_VERSION = '16.0';
     if (localStorage.getItem('vku_app_cache_v') !== APP_VERSION) {
       if ('caches' in window) {
         caches.keys().then(function(names) {
@@ -38,7 +38,7 @@
     }
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
-        navigator.serviceWorker.register('/sw.js?v=15.0').then(function (reg) {
+        navigator.serviceWorker.register('/sw.js?v=16.0').then(function (reg) {
           reg.update();
         }).catch(function () {});
       });
@@ -51,14 +51,23 @@
     <header class="app-bar">
       <div class="brand-wrap">
         <span class="vku-badge">SMARTSPEND AI • FINANCIAL ASSISTANT</span>
-        <h1>Sổ Chi Tiêu & Quét Hóa Đơn AI</h1>
+        <h1 class="brand-title">Sổ Chi Tiêu & Quét Hóa Đơn AI</h1>
       </div>
       <div class="header-actions">
-        <button id="btn-theme-toggle" class="icon-btn" title="Chuyển đổi Giao diện Sáng / Tối" aria-label="Chuyển đổi giao diện sáng tối">🌙</button>
-        <button id="btn-export-csv" class="icon-btn" title="Xuất báo cáo CSV / Excel" aria-label="Xuất báo cáo CSV">📥</button>
-        <button id="btn-install-app" class="install-btn" title="Tải APK Android hoặc cài PWA" aria-label="Cài đặt ứng dụng">📲 Cài App</button>
-        <button id="btn-switch-account" class="switch-account-btn hidden" title="Chuyển đổi tài khoản" aria-label="Chuyển đổi tài khoản">🔄 Đổi tài khoản</button>
-        <button id="btn-logout-user" class="logout-btn hidden" title="Đăng xuất khỏi thiết bị" aria-label="Đăng xuất khỏi thiết bị">↪️ Đăng xuất</button>
+        <button id="btn-theme-toggle" class="icon-btn" title="Chuyển đổi Giao diện Sáng / Tối" aria-label="Chuyển đổi giao diện sáng tối">
+          <svg class="svg-icon-sun hidden" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+          <svg class="svg-icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+        </button>
+        <button id="btn-export-csv" class="icon-btn" title="Xuất báo cáo CSV / Excel" aria-label="Xuất báo cáo CSV">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </button>
+        <button id="btn-install-app" class="install-btn" title="Tải APK Android hoặc cài PWA" aria-label="Cài đặt ứng dụng">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>
+          <span class="btn-text-label">Cài App</span>
+        </button>
+        <button id="btn-header-avatar" class="header-avatar-btn" title="Tài khoản & Thiết bị" aria-label="Menu tài khoản">
+          <span id="user-avatar-badge" class="avatar-circle">US</span>
+        </button>
       </div>
     </header>
 
@@ -76,8 +85,10 @@
          ==================================================================== -->
     <main id="auth-screen" class="auth-screen hidden">
       <div class="auth-hero-card">
-        <div class="auth-logo-circle">💳</div>
-        <span class="route-pill">Cổng Đăng Nhập An Toàn</span>
+        <div class="auth-logo-circle">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+        </div>
+        <span class="route-pill">Đăng Nhập</span>
         <h2>SmartSpend AI</h2>
         <p>Trợ lý thông minh quản lý chi tiêu và nhận dạng hóa đơn</p>
       </div>
@@ -85,8 +96,8 @@
       <div class="auth-form-card">
         <!-- Segmented Mode Switcher: Login vs Register -->
         <div class="auth-tabs">
-          <button id="tab-btn-login" class="auth-tab active" type="button">🔐 Đăng Nhập</button>
-          <button id="tab-btn-register" class="auth-tab" type="button">📝 Đăng Ký Tài Khoản</button>
+          <button id="tab-btn-login" class="auth-tab active" type="button">Đăng Nhập</button>
+          <button id="tab-btn-register" class="auth-tab" type="button">Đăng Ký Tài Khoản</button>
         </div>
 
         <form id="auth-form" novalidate>
@@ -121,15 +132,24 @@
             <label>MẬT KHẨU *</label>
             <div class="pwd-input-wrap">
               <input type="password" id="auth-password" class="text-input" placeholder="Nhập mật khẩu (tối thiểu 8 ký tự)">
-              <button type="button" id="btn-toggle-pwd" class="pwd-eye-btn" title="Hiện/Ẩn mật khẩu" aria-label="Hiện hoặc ẩn mật khẩu">👁️</button>
+              <button type="button" id="btn-toggle-pwd" class="pwd-eye-btn" title="Hiện/Ẩn mật khẩu" aria-label="Hiện hoặc ẩn mật khẩu">
+                <svg id="svg-eye" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg id="svg-eye-off" class="hidden" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
+              </button>
             </div>
+            <small class="pwd-fixed-hint">Tối thiểu 8 ký tự. Lưu ý: Mật khẩu chỉ lưu trên thiết bị này, đừng dùng mật khẩu thật.</small>
             <small id="err-password" class="field-error hidden"></small>
+          </div>
+
+          <div class="auth-aux-row">
+            <label class="remember-label"><input type="checkbox" id="auth-remember-me" checked> Ghi nhớ đăng nhập</label>
+            <button type="button" id="btn-forgot-pwd" class="btn-text-link">Quên mật khẩu?</button>
           </div>
 
           <div id="auth-feedback-msg" class="auth-feedback hidden"></div>
 
           <button type="submit" id="btn-submit-auth" class="btn-auth-primary">
-            🚀 Đăng Nhập Vào Sổ Chi Tiêu
+            Đăng Nhập Vào Sổ Chi Tiêu
           </button>
         </form>
 
@@ -143,28 +163,31 @@
 
         <!-- Quick Guest / Demo Experience Mode -->
         <div class="quick-student-login-box">
-          <div class="quick-login-label">✨ TRẢI NGHIỆM NGAY KHÔNG CẦN TÀI KHOẢN:</div>
+          <div class="quick-login-label">TRẢI NGHIỆM NGAY KHÔNG CẦN TÀI KHOẢN:</div>
           <button type="button" id="btn-quick-fill-demo" class="student-chip active" style="width:100%;margin-top:6px;" title="Bấm để trải nghiệm ngay với tư cách Khách">
-            <span class="chip-avatar">🚀</span>
+            <span class="chip-avatar">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            </span>
             <div class="chip-info">
               <strong>Vào Thử Ngay (Chế Độ Khách / Demo)</strong>
               <small>Trải nghiệm đầy đủ tính năng Quét OCR, Biểu đồ & Sổ chi tiêu</small>
             </div>
             <span class="chip-arrow">➔</span>
           </button>
+          <p class="demo-subtext">Dữ liệu chỉ lưu trên thiết bị này và sẽ mất nếu xóa dữ liệu trình duyệt.</p>
         </div>
 
         <!-- Zalo / In-app WebView Security Notice -->
         <div id="zalo-security-box" class="zalo-security-box hidden">
-          <div class="zalo-security-title">🔒 Mở trên trình duyệt chuẩn (Safari / Chrome)</div>
+          <div class="zalo-security-title">Mở trên trình duyệt chuẩn (Safari / Chrome)</div>
           <p class="zalo-security-desc">
             Để đăng nhập Google và sử dụng camera quét OCR tốt nhất, hãy mở ứng dụng trên trình duyệt chuẩn (<strong>Safari / Chrome</strong>) thay vì trình duyệt nhúng của Zalo.
           </p>
           <div class="zalo-action-row">
-            <button type="button" id="btn-zalo-open-browser" class="zalo-open-browser-btn">🧭 Mở ngay bằng Safari / Chrome</button>
-            <button type="button" id="btn-zalo-copy-link" class="zalo-copy-btn">📋 Chép link</button>
+            <button type="button" id="btn-zalo-open-browser" class="zalo-open-browser-btn">Mở ngay bằng Safari / Chrome</button>
+            <button type="button" id="btn-zalo-copy-link" class="zalo-copy-btn">Chép link</button>
           </div>
-          <small class="zalo-step-hint">💡 Hoặc bấm biểu tượng <strong>•••</strong> ở góc trên bên phải Zalo ➔ chọn <strong>"Mở bằng trình duyệt / Safari"</strong>.</small>
+          <small class="zalo-step-hint">Hoặc bấm biểu tượng <strong>•••</strong> ở góc trên bên phải Zalo ➔ chọn <strong>"Mở bằng trình duyệt / Safari"</strong>.</small>
         </div>
 
       </div>
@@ -222,15 +245,19 @@
 
         <!-- Quick Action Hub (Primary Actions) -->
         <section class="quick-action-hub">
-          <button id="btn-open-scanner" class="action-card-btn primary-scan" aria-label="Quét hóa đơn">
-            <span class="action-card-icon">📸</span>
+          <button id="btn-open-scanner" class="action-card-btn primary-scan" aria-label="Quét hóa đơn AI">
+            <span class="action-card-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+            </span>
             <div class="action-card-text">
               <strong>Quét Hóa Đơn AI</strong>
               <small>Bóc tách tự động</small>
             </div>
           </button>
           <button id="btn-manual-add" class="action-card-btn secondary-cash" aria-label="Nhập chi tiêu tiền mặt">
-            <span class="action-card-icon">➕</span>
+            <span class="action-card-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </span>
             <div class="action-card-text">
               <strong>Ghi Tiền Mặt</strong>
               <small>Nhập nhanh 3 giây</small>
@@ -240,7 +267,9 @@
 
         <!-- Drop Zone for PC / Laptop -->
         <section id="scanner-cta-card" class="scanner-cta-card">
-          <div id="scanner-cta-icon" class="scanner-icon-wrap">📁</div>
+          <div id="scanner-cta-icon" class="scanner-icon-wrap">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg>
+          </div>
           <div class="scanner-text-wrap">
             <h2 id="scanner-cta-title">Tải Ảnh Hóa Đơn Hoặc Kéo Thả File</h2>
             <p id="scanner-cta-desc">Hỗ trợ ảnh chụp (.JPG, .PNG) • Trí tuệ nhân tạo OCR tự động nhận diện</p>
@@ -250,31 +279,40 @@
         <!-- Quick Sample Receipts Tester -->
         <section class="sample-tester-section">
           <div class="section-title-row">
-            <span class="badge-accent">DỮ LIỆU MẪU THỰC TẾ</span>
+            <span class="badge-accent">DỮ LIỆU MẪU THỬ NGHIỆM</span>
             <span class="section-sub">Bấm chọn để nạp mẫu kiểm tra:</span>
           </div>
-          <div class="sample-chips-row">
-            <button class="sample-chip" data-index="0">🏪 Siêu Thị WinMart+ (87.500₫)</button>
-            <button class="sample-chip" data-index="1">☕ Highlands Coffee (115.000₫)</button>
-            <button class="sample-chip" data-index="2">📚 Nhà Sách Fahasa (245.000₫)</button>
-            <button class="sample-chip" data-index="3">⛽ Xăng Petrolimex (70.000₫)</button>
-            <button class="sample-chip" data-index="4">💻 Thế Giới Di Động (350.000₫)</button>
+          <div class="chips-scroll-container">
+            <div class="sample-chips-row">
+              <button class="sample-chip" data-index="0">Siêu Thị WinMart+ (87.500₫)</button>
+              <button class="sample-chip" data-index="1">Highlands Coffee (115.000₫)</button>
+              <button class="sample-chip" data-index="2">Nhà Sách Fahasa (245.000₫)</button>
+              <button class="sample-chip" data-index="3">Cây Xăng Petrolimex (70.000₫)</button>
+              <button class="sample-chip" data-index="4">Thế Giới Di Động (350.000₫)</button>
+            </div>
           </div>
         </section>
 
         <!-- Filter & Search Bar -->
         <section class="filter-bar-card">
           <div class="search-row">
-            <input type="text" id="search-txn-input" class="text-input" placeholder="🔍 Tìm kiếm theo tên cửa hàng, món hàng, ghi chú...">
+            <div class="search-input-wrap">
+              <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" id="search-txn-input" class="text-input" placeholder="Tìm kiếm theo tên cửa hàng, món hàng, ghi chú...">
+            </div>
           </div>
           <!-- Date Range Filters -->
-          <div class="date-filter-row">
-            <button class="date-filter-pill active" data-range="all">Tất cả</button>
-            <button class="date-filter-pill" data-range="this_month">Tháng này</button>
-            <button class="date-filter-pill" data-range="this_week">7 ngày qua</button>
-            <button class="date-filter-pill" data-range="today">Hôm nay</button>
+          <div class="chips-scroll-container">
+            <div class="date-filter-row">
+              <button class="date-filter-pill active" data-range="all">Tất cả</button>
+              <button class="date-filter-pill" data-range="this_month">Tháng này</button>
+              <button class="date-filter-pill" data-range="this_week">7 ngày qua</button>
+              <button class="date-filter-pill" data-range="today">Hôm nay</button>
+            </div>
           </div>
-          <div id="filter-category-chips" class="sample-chips-row" style="margin-top:8px;"></div>
+          <div class="chips-scroll-container" style="margin-top:8px;">
+            <div id="filter-category-chips" class="sample-chips-row"></div>
+          </div>
         </section>
 
         <!-- Recent Transactions Section -->
@@ -433,32 +471,59 @@
             <li id="profile-battery-row"><span>🔋</span> <strong id="profile-battery-text">Mức pin thiết bị: Đang kiểm tra...</strong></li>
           </ul>
         </section>
+
+        <!-- Technical Information Collapsible Section (Item 7) -->
+        <details class="tech-info-card">
+          <summary class="tech-summary">
+            <span>⚙️ Thông Tin Kỹ Thuật (Architecture & PWA)</span>
+            <span class="summary-arrow">▾</span>
+          </summary>
+          <div class="tech-details-body">
+            <ul class="tech-info-list">
+              <li><span>Mô hình ứng dụng:</span> <strong>Progressive Web App (PWA) Standalone</strong></li>
+              <li><span>Động cơ OCR:</span> <strong>Tesseract.js v5 WebAssembly (vie+eng)</strong></li>
+              <li><span>Cơ chế lưu trữ:</span> <strong>IndexedDB / LocalStorage (Client-Side)</strong></li>
+              <li><span>Xử lý hình ảnh:</span> <strong>HTML5 Canvas 2D Grayscale & Contrast Pipeline</strong></li>
+              <li><span>Mạng biên & Bảo mật:</span> <strong>Cloudflare Workers (Edge SSL, Strict CSP, Nosniff)</strong></li>
+            </ul>
+          </div>
+        </details>
       </div>
     </main>
 
-    <!-- FloatingActionButton.extended -->
-    <button id="fab-scan-receipt" class="fab-extended" title="Chọn Ảnh Hóa Đơn" aria-label="Chọn ảnh hóa đơn để nhận dạng">
-      <span id="fab-icon">📷</span>
-      <span id="fab-label">Quét Hóa Đơn</span>
+    <!-- Circular 56px FloatingActionButton for OCR Camera Scan -->
+    <button id="fab-scan-receipt" class="fab-circle-56" title="Quét Hóa Đơn AI" aria-label="Quét hóa đơn AI">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+        <circle cx="12" cy="13" r="3"/>
+      </svg>
     </button>
 
-    <!-- Persistent Bottom NavigationBar (ShellRoute: /dash, /scanner, /reports, /profile - Week 8 Slide 23) -->
+    <!-- Persistent Bottom NavigationBar -->
     <nav id="bottom-nav-bar" class="bottom-nav">
-      <button class="nav-dest active" data-route="/dash">
-        <span class="nav-icon">🧾</span>
+      <button class="nav-dest active" data-route="/dash" aria-label="Sổ Chi Tiêu">
+        <span class="nav-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-8"/><path d="M16 12h-8"/><path d="M12 16h-4"/></svg>
+        </span>
         <span class="nav-label">Sổ Chi Tiêu</span>
       </button>
-      <button class="nav-dest" data-route="/scanner">
-        <span id="nav-scanner-icon" class="nav-icon">📷</span>
+      <button class="nav-dest" data-route="/scanner" aria-label="Quét OCR">
+        <span id="nav-scanner-icon" class="nav-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+        </span>
         <span id="nav-scanner-label" class="nav-label">Quét OCR</span>
       </button>
-      <button class="nav-dest" data-route="/reports">
-        <span class="nav-icon">📊</span>
+      <button class="nav-dest" data-route="/reports" aria-label="Báo Cáo">
+        <span class="nav-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+        </span>
         <span class="nav-label">Báo Cáo</span>
       </button>
-      <button class="nav-dest" data-route="/profile">
-        <span class="nav-icon">👤</span>
-        <span class="nav-label">Cá Nhân</span>
+      <button class="nav-dest" data-route="/profile" aria-label="Tài Khoản">
+        <span class="nav-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </span>
+        <span class="nav-label">Tài Khoản</span>
       </button>
     </nav>
 
@@ -765,6 +830,6 @@ flutter build apk --release</code></pre>
     </div>
   </div>
 
-  <script src="app.js?v=15.0"></script>
+  <script src="app.js?v=16.0"></script>
 </body>
 </html>

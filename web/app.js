@@ -99,42 +99,42 @@ function generateReceiptImageBase64(merchant, amount, dateStr, rawText) {
 const SEED_TRANSACTIONS = [
   {
     id: 'TXN-001',
-    merchant: 'WinMart+ Cổng Trường VKU',
+    merchant: 'Siêu Thị WinMart+',
     amount: 87500,
     date: '2026-10-12',
     category: 'food',
     confidence: 0.96,
-    notes: 'Đồ ăn nhẹ ôn tập Mini-Project 3',
+    notes: 'Bánh mì chà bông, sữa chua, cà phê',
     rawText: SAMPLE_RECEIPTS[0].rawText
   },
   {
     id: 'TXN-002',
-    merchant: 'Highlands Coffee VKU',
+    merchant: 'Highlands Coffee',
     amount: 115000,
     date: '2026-10-11',
     category: 'food',
     confidence: 0.94,
-    notes: 'Họp nhóm đồ án Tòa nhà V',
+    notes: 'Phin sữa đá, Trà sen vàng, bánh mousse',
     rawText: SAMPLE_RECEIPTS[1].rawText
   },
   {
     id: 'TXN-003',
-    merchant: 'Nhà Sách Fahasa Đà Nẵng',
+    merchant: 'Nhà Sách Fahasa',
     amount: 245000,
     date: '2026-10-10',
     category: 'study',
     confidence: 0.91,
-    notes: 'Giáo trình lập trình Flutter & tập vở',
+    notes: 'Giáo trình & đồ dùng văn phòng phẩm',
     rawText: SAMPLE_RECEIPTS[2].rawText
   },
   {
     id: 'TXN-004',
-    merchant: 'Petrolimex Nam Kỳ Khởi Nghĩa',
+    merchant: 'Cây Xăng Petrolimex',
     amount: 70000,
     date: '2026-10-09',
     category: 'travel',
     confidence: 0.92,
-    notes: 'Đổ xăng đi học tại VKU',
+    notes: 'Đổ xăng xe máy E5 RON 92-II',
     rawText: SAMPLE_RECEIPTS[3].rawText
   },
   {
@@ -144,7 +144,7 @@ const SEED_TRANSACTIONS = [
     date: '2026-10-08',
     category: 'gear',
     confidence: 0.95,
-    notes: 'Chuột không dây & cáp sạc Type-C',
+    notes: 'Chuột không dây & cáp sạc nhanh Type-C',
     rawText: SAMPLE_RECEIPTS[4].rawText
   }
 ];
@@ -481,8 +481,12 @@ class AppController {
 
   applyTheme() {
     document.body.classList.toggle('dark-mode', this.isDarkMode);
-    const btn = document.getElementById('btn-theme-toggle');
-    if (btn) btn.textContent = this.isDarkMode ? '☀️' : '🌙';
+    const sunIcon = document.querySelector('.svg-icon-sun');
+    const moonIcon = document.querySelector('.svg-icon-moon');
+    if (sunIcon && moonIcon) {
+      sunIcon.classList.toggle('hidden', !this.isDarkMode);
+      moonIcon.classList.toggle('hidden', this.isDarkMode);
+    }
   }
 
   initZaloDetector() {
@@ -624,6 +628,11 @@ class AppController {
     const viewReports = document.getElementById('view-reports');
     const viewProfile = document.getElementById('view-profile');
     const fab = document.getElementById('fab-scan-receipt');
+    const mainShell = document.getElementById('main-app-shell');
+
+    if (mainShell) {
+      mainShell.classList.toggle('route-profile', route === '/profile');
+    }
 
     if (route === '/profile') {
       if (viewDash) viewDash.classList.add('hidden');
@@ -664,21 +673,34 @@ class AppController {
       extraFields.classList.toggle('hidden', loginMode);
       feedback.classList.add('hidden');
       submitBtn.textContent = loginMode
-        ? '🚀 Đăng Nhập Vào Sổ Chi Tiêu'
-        : '📝 Đăng Ký Tài Khoản';
+        ? 'Đăng Nhập Vào Sổ Chi Tiêu'
+        : 'Đăng Ký Tài Khoản';
     };
 
     tabLogin.onclick = () => switchMode(true);
     tabRegister.onclick = () => switchMode(false);
 
-    // Toggle password visibility
+    // Toggle password visibility with SVG icons (Item 22)
     const pwdInput = document.getElementById('auth-password');
     const pwdBtn = document.getElementById('btn-toggle-pwd');
+    const svgEye = document.getElementById('svg-eye');
+    const svgEyeOff = document.getElementById('svg-eye-off');
     if (pwdBtn && pwdInput) {
       pwdBtn.onclick = () => {
         this.obscurePassword = !this.obscurePassword;
         pwdInput.type = this.obscurePassword ? 'password' : 'text';
-        pwdBtn.textContent = this.obscurePassword ? '👁️' : '🙈';
+        if (svgEye && svgEyeOff) {
+          svgEye.classList.toggle('hidden', !this.obscurePassword);
+          svgEyeOff.classList.toggle('hidden', this.obscurePassword);
+        }
+      };
+    }
+
+    // Forgot password info prompt (Item 22)
+    const btnForgot = document.getElementById('btn-forgot-pwd');
+    if (btnForgot) {
+      btnForgot.onclick = () => {
+        alert('Dữ liệu tài khoản và mật khẩu được lưu bảo mật cục bộ trên thiết bị của bạn. Nếu quên mật khẩu, bạn có thể tạo tài khoản mới hoặc chọn "Vào Thử Ngay (Chế Độ Khách)" để tiếp tục sử dụng.');
       };
     }
 
@@ -1003,6 +1025,9 @@ class AppController {
 
     // Account Switcher and Logout Buttons
     const openAccModal = () => this.openAccountModal();
+    const btnHeaderAvatar = document.getElementById('btn-header-avatar');
+    if (btnHeaderAvatar) btnHeaderAvatar.onclick = openAccModal;
+
     const btnSwitch = document.getElementById('btn-switch-account');
     if (btnSwitch) btnSwitch.onclick = openAccModal;
 
@@ -1450,6 +1475,53 @@ class AppController {
     reader.readAsDataURL(file);
   }
 
+  async preprocessImageForOCR(imageDataUrl) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = 'Anonymous';
+      img.onload = () => {
+        const maxDim = 1600;
+        let w = img.width;
+        let h = img.height;
+        if (w > maxDim || h > maxDim) {
+          if (w > h) {
+            h = Math.round((h * maxDim) / w);
+            w = maxDim;
+          } else {
+            w = Math.round((w * maxDim) / h);
+            h = maxDim;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+
+        try {
+          const imgData = ctx.getImageData(0, 0, w, h);
+          const data = imgData.data;
+          const contrast = 1.25;
+          const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
+          for (let i = 0; i < data.length; i += 4) {
+            const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+            const enhanced = factor * (gray - 128) + 128;
+            const clamped = Math.min(255, Math.max(0, enhanced));
+            data[i] = clamped;
+            data[i + 1] = clamped;
+            data[i + 2] = clamped;
+          }
+          ctx.putImageData(imgData, 0, 0);
+          resolve(canvas.toDataURL('image/jpeg', 0.9));
+        } catch (_) {
+          resolve(imageDataUrl);
+        }
+      };
+      img.onerror = () => resolve(imageDataUrl);
+      img.src = imageDataUrl;
+    });
+  }
+
   async runRealOrFallbackOcr(imageDataUrl, fileName) {
     const loadingEl = document.getElementById('ocr-loading-overlay');
     const statusMsg = document.getElementById('ocr-status-msg');
@@ -1457,7 +1529,7 @@ class AppController {
 
     if (scannerModal && !scannerModal.classList.contains('hidden')) {
       if (loadingEl) loadingEl.classList.remove('hidden');
-      if (statusMsg) statusMsg.textContent = 'Đang nhận dạng văn bản bằng Tesseract.js OCR...';
+      if (statusMsg) statusMsg.textContent = 'Đang chuẩn bị nhận dạng văn bản...';
     }
 
     const startTime = performance.now();
@@ -1465,8 +1537,24 @@ class AppController {
     let ocrConfidence = 0;
 
     try {
+      // Lazy load Tesseract.js if not yet available (Item 29)
+      if (!window.Tesseract) {
+        if (statusMsg) statusMsg.textContent = 'Đang nạp mô hình AI Vision (Tesseract.js)...';
+        await new Promise((res, rej) => {
+          const script = document.createElement('script');
+          script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+          script.onload = res;
+          script.onerror = rej;
+          document.head.appendChild(script);
+        });
+      }
+
+      // Preprocess image contrast & grayscale before recognition (Item 26)
+      if (statusMsg) statusMsg.textContent = 'Đang tối ưu độ tương phản & khử nhiễu ảnh...';
+      const processedImage = await this.preprocessImageForOCR(imageDataUrl);
+
       if (window.Tesseract) {
-        const res = await window.Tesseract.recognize(imageDataUrl, 'vie+eng', {
+        const res = await window.Tesseract.recognize(processedImage, 'vie+eng', {
           logger: (m) => {
             if (m && m.status === 'recognizing text' && statusMsg) {
               const pct = Math.round((m.progress || 0) * 100);
@@ -1705,6 +1793,12 @@ class AppController {
     }, 150);
   }
 
+  loadSampleReceipt(idx = 0) {
+    const sample = SAMPLE_RECEIPTS[idx] || SAMPLE_RECEIPTS[0];
+    const thumb = generateReceiptImageBase64(sample.merchant, sample.amount, sample.date, sample.rawText);
+    this.triggerOcr(sample.rawText, thumb);
+  }
+
   exportJsonBackup() {
     const backupData = {
       appName: 'Smart Expense OCR Tracker',
@@ -1893,7 +1987,25 @@ class AppController {
     const listWrap = document.getElementById('transactions-list');
     listWrap.innerHTML = '';
     if (filtered.length === 0) {
-      listWrap.innerHTML = '<div style="padding:20px;text-align:center;color:#64748b;">Chưa có giao dịch nào. Bấm "Chọn Ảnh Hóa Đơn" hoặc thử mẫu để bắt đầu.</div>';
+      listWrap.innerHTML = `
+        <div class="empty-state-card">
+          <div class="empty-icon-circle">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-8"/><path d="M16 12h-8"/><path d="M12 16h-4"/></svg>
+          </div>
+          <h4>Chưa có khoản chi tiêu nào</h4>
+          <p>Bắt đầu ghi chép bằng cách quét hóa đơn AI hoặc dùng thử dữ liệu mẫu</p>
+          <div class="empty-actions-row">
+            <button type="button" class="btn-empty-scan" onclick="app.triggerImagePicker()">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+              Quét Hóa Đơn
+            </button>
+            <button type="button" class="btn-empty-sample" onclick="app.loadSampleReceipt(0)">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              Thử Dữ Liệu Mẫu
+            </button>
+          </div>
+        </div>
+      `;
     } else {
       filtered.forEach(t => {
         const cat = CATEGORIES[t.category] || CATEGORIES.other;
