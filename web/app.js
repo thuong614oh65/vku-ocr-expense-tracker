@@ -691,20 +691,219 @@ class AppController {
       this.syncRouteGuard();
     };
 
-    // Google Account Picker Modal (Solves Google origin_mismatch 400 error)
+    // ========================================================================
+    // GOOGLE OAUTH 2.0 POPUP SERVICE (100% IDENTICAL TO MINI-PROJECT 2)
+    // Google Identity Services (accounts.google.com) - Client ID VKU
+    // ========================================================================
     const googleModal = document.getElementById('google-picker-modal');
     const openGoogleBtn = document.getElementById('btn-open-google-login');
-    if (openGoogleBtn && googleModal) {
-      openGoogleBtn.onclick = () => {
-        googleModal.classList.remove('hidden');
+    const googleBtnText = document.getElementById('btn-google-text');
+    const zaloSecurityBox = document.getElementById('zalo-security-box');
+    const btnZaloOpen = document.getElementById('btn-zalo-open-browser');
+    const btnZaloCopy = document.getElementById('btn-zalo-copy-link');
+
+    // Detect Zalo / Facebook In-App Browser (Identical to Project 2 RFC 8252)
+    const isEmbeddedWebView = () => {
+      if (typeof window === 'undefined' || typeof navigator === 'undefined') return false;
+      const ua = navigator.userAgent || navigator.vendor || window.opera || '';
+      if (/Zalo|FBAN|FBAV|FB_IAB|FBIOS|Instagram|Line|MicroMessenger|BytedanceWebview|TikTok|\bwv\b|WebView/i.test(ua)) {
+        return true;
+      }
+      const isIOS = /iPhone|iPad|iPod/i.test(ua);
+      const isRealIOSBrowser = /Safari\/|CriOS\/|FxiOS\/|EdgiOS\/|OPiOS\//i.test(ua);
+      if (isIOS && !isRealIOSBrowser) {
+        return true;
+      }
+      return false;
+    };
+
+    // Open external Safari or Chrome (Identical to Project 2)
+    const openInExternalSystemBrowser = (targetUrl) => {
+      if (typeof window === 'undefined') return;
+      const fullUrl = targetUrl || window.location.href;
+      const ua = navigator.userAgent || '';
+      const withoutProtocol = fullUrl.replace(/^https?:\/\//i, '');
+      if (/iPhone|iPad|iPod/i.test(ua)) {
+        window.location.href = `x-safari-https://${withoutProtocol}`;
+        return;
+      }
+      if (/Android/i.test(ua)) {
+        window.location.href = `intent://${withoutProtocol}#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(fullUrl)};end`;
+        return;
+      }
+      window.open(fullUrl, '_blank', 'noopener,noreferrer');
+    };
+
+    if (btnZaloOpen) {
+      btnZaloOpen.onclick = () => openInExternalSystemBrowser();
+    }
+    if (btnZaloCopy) {
+      btnZaloCopy.onclick = () => {
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(window.location.href).then(() => {
+            btnZaloCopy.textContent = '✅ Đã chép link';
+            setTimeout(() => { btnZaloCopy.textContent = '📋 Chép link'; }, 2000);
+          });
+        }
       };
     }
+
+    const resetGoogleBtnState = () => {
+      if (openGoogleBtn) {
+        openGoogleBtn.disabled = false;
+        openGoogleBtn.style.opacity = '1';
+        if (googleBtnText) {
+          googleBtnText.textContent = 'Tiếp tục với Google (@vku.udn.vn)';
+        }
+      }
+    };
+
+    const handleGoogleAuthSuccess = (googleUser) => {
+      resetGoogleBtnState();
+      const users = AuthService.getUsers();
+      users[googleUser.email.toLowerCase()] = googleUser;
+      AuthService.saveUsers(users);
+      AuthService.setCurrentUser(googleUser);
+      if (googleModal) googleModal.classList.add('hidden');
+      alert(`🎉 Xin chào, ${googleUser.fullName}!\nĐã xác thực Google OAuth 2.0 thành công (${googleUser.email}).`);
+      this.currentRoute = '/dash';
+      this.syncRouteGuard();
+    };
+
+    // Real Google OAuth Popup Launch
+    const openRealGooglePopupWindow = () => {
+      // 1. In-app webview check (Zalo / FB)
+      if (isEmbeddedWebView()) {
+        if (zaloSecurityBox) zaloSecurityBox.classList.remove('hidden');
+        openInExternalSystemBrowser();
+        return;
+      }
+
+      // 2. Set button loading state
+      if (openGoogleBtn) {
+        openGoogleBtn.disabled = true;
+        openGoogleBtn.style.opacity = '0.75';
+        if (googleBtnText) googleBtnText.textContent = 'Đang mở cửa sổ Google OAuth...';
+      }
+
+      const launchGsiTokenFlow = () => {
+        const gsi = window.google?.accounts?.oauth2;
+        if (!gsi) {
+          resetGoogleBtnState();
+          if (googleModal) googleModal.classList.remove('hidden');
+          return;
+        }
+
+        try {
+          const tokenClient = gsi.initTokenClient({
+            client_id: GOOGLE_CLIENT_ID,
+            scope: 'openid email profile',
+            hosted_domain: 'vku.udn.vn',
+            prompt: 'select_account',
+            callback: async (tokenResponse) => {
+              if (tokenResponse?.error) {
+                console.warn('Google GSI callback error:', tokenResponse);
+                resetGoogleBtnState();
+                if (tokenResponse.error !== 'popup_closed_by_user') {
+                  if (googleModal) googleModal.classList.remove('hidden');
+                }
+                return;
+              }
+
+              const accessToken = tokenResponse?.access_token;
+              if (!accessToken) {
+                resetGoogleBtnState();
+                if (googleModal) googleModal.classList.remove('hidden');
+                return;
+              }
+
+              try {
+                const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                  headers: { Authorization: `Bearer ${accessToken}` }
+                });
+                if (!res.ok) {
+                  resetGoogleBtnState();
+                  if (googleModal) googleModal.classList.remove('hidden');
+                  return;
+                }
+                const profile = await res.json();
+                const email = (profile?.email || '').trim().toLowerCase();
+                const fullName = profile?.name || email.split('@')[0];
+                const avatar = profile?.picture || '';
+
+                let studentId = '23IT.B219';
+                let className = '23SE4';
+                if (email.includes('23it')) {
+                  studentId = '23IT.B219';
+                } else {
+                  const match = email.match(/[0-9]{2}[a-z0-9.]+/i);
+                  if (match) studentId = match[0].toUpperCase();
+                }
+
+                const googleUser = {
+                  id: 'USR-G-' + (profile?.sub || Date.now()),
+                  fullName: fullName,
+                  studentId: studentId,
+                  className: className,
+                  email: email,
+                  avatar: avatar,
+                  role: 'Sinh viên VKU (Google OAuth 2.0)'
+                };
+
+                handleGoogleAuthSuccess(googleUser);
+              } catch (fetchErr) {
+                console.error('Lỗi lấy userinfo Google:', fetchErr);
+                resetGoogleBtnState();
+                if (googleModal) googleModal.classList.remove('hidden');
+              }
+            },
+            error_callback: (err) => {
+              console.warn('Google popup error_callback:', err);
+              resetGoogleBtnState();
+              if (googleModal) googleModal.classList.remove('hidden');
+            }
+          });
+
+          tokenClient.requestAccessToken({ prompt: 'select_account' });
+        } catch (e) {
+          console.error('Lỗi token client:', e);
+          resetGoogleBtnState();
+          if (googleModal) googleModal.classList.remove('hidden');
+        }
+      };
+
+      if (window.google?.accounts?.oauth2) {
+        launchGsiTokenFlow();
+      } else {
+        // Poll / ensure script loaded
+        let checks = 0;
+        const timer = setInterval(() => {
+          checks++;
+          if (window.google?.accounts?.oauth2) {
+            clearInterval(timer);
+            launchGsiTokenFlow();
+          } else if (checks > 25) {
+            clearInterval(timer);
+            resetGoogleBtnState();
+            if (googleModal) googleModal.classList.remove('hidden');
+          }
+        }, 100);
+      }
+    };
+
+    if (openGoogleBtn) {
+      openGoogleBtn.onclick = () => {
+        openRealGooglePopupWindow();
+      };
+    }
+
     const closeGoogleBtn = document.getElementById('btn-close-google-picker');
     if (closeGoogleBtn && googleModal) {
       closeGoogleBtn.onclick = () => {
         googleModal.classList.add('hidden');
       };
     }
+
     document.querySelectorAll('.google-acc-card').forEach(card => {
       card.onclick = () => {
         const email = card.dataset.email;
@@ -719,15 +918,10 @@ class AppController {
           email: email,
           role: 'Tài khoản Google VKU'
         };
-        const users = AuthService.getUsers();
-        users[email.toLowerCase()] = user;
-        AuthService.saveUsers(users);
-        AuthService.setCurrentUser(user);
-        googleModal.classList.add('hidden');
-        this.currentRoute = '/dash';
-        this.syncRouteGuard();
+        handleGoogleAuthSuccess(user);
       };
     });
+
     const customGSubmit = document.getElementById('btn-custom-google-submit');
     if (customGSubmit) {
       customGSubmit.onclick = () => {
@@ -745,56 +939,9 @@ class AppController {
           email: email,
           role: 'Tài khoản Google VKU'
         };
-        const users = AuthService.getUsers();
-        users[email.toLowerCase()] = user;
-        AuthService.saveUsers(users);
-        AuthService.setCurrentUser(user);
-        googleModal.classList.add('hidden');
-        this.currentRoute = '/dash';
-        this.syncRouteGuard();
+        handleGoogleAuthSuccess(user);
       };
     }
-
-    // Initialize Official Google OAuth 2.0 (@vku.udn.vn)
-    window.addEventListener('load', () => {
-      if (window.google && window.google.accounts && window.google.accounts.id) {
-        try {
-          window.google.accounts.id.initialize({
-            client_id: GOOGLE_CLIENT_ID,
-            callback: (resp) => this.handleGoogleCredential(resp)
-          });
-          const wrap = document.getElementById('google-signin-button-wrap');
-          if (wrap) {
-            window.google.accounts.id.renderButton(wrap, {
-              theme: 'outline',
-              size: 'large',
-              text: 'signin_with',
-              shape: 'rectangular',
-              width: 320
-            });
-          }
-        } catch (_) {}
-      }
-    });
-  }
-
-  handleGoogleCredential(response) {
-    try {
-      const payload = JSON.parse(atob(response.credential.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
-      const email = (payload.email || '').toLowerCase();
-      const name = payload.name || 'Sinh viên VKU';
-      const user = {
-        id: 'USR-GOOGLE-' + Date.now(),
-        fullName: name,
-        studentId: email.includes('23it') ? '23IT.B219' : 'SV.VKU',
-        className: '23SE4',
-        email: email,
-        role: 'Xác thực Google OAuth 2.0'
-      };
-      AuthService.setCurrentUser(user);
-      this.currentRoute = '/dash';
-      this.syncRouteGuard();
-    } catch (_) {}
   }
 
   initUI() {

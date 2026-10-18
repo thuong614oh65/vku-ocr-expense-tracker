@@ -1,9 +1,9 @@
-const CACHE_NAME = 'vku-ocr-expense-v7';
+const CACHE_NAME = 'vku-ocr-expense-v8';
 const ASSETS = [
   '/',
   '/index.html',
-  '/style.css?v=7.0',
-  '/app.js?v=7.0',
+  '/style.css?v=8.0',
+  '/app.js?v=8.0',
   '/manifest.json',
   '/icons/icon-192.png',
   '/icons/icon-512.png'

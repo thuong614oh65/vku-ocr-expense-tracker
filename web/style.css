@@ -1571,6 +1571,80 @@ body.dark-mode .diag-item {
   border-color: #94a3b8;
 }
 
+/* Zalo / In-app WebView Security Box (Project 2 RFC 8252) */
+.zalo-security-box {
+  margin-top: 10px;
+  background-color: #eff6ff;
+  border: 1px solid #93c5fd;
+  border-radius: 12px;
+  padding: 12px;
+  text-align: left;
+}
+
+.zalo-security-box.hidden {
+  display: none !important;
+}
+
+.zalo-security-title {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #1e3a8a;
+  margin-bottom: 5px;
+}
+
+.zalo-security-desc {
+  font-size: 11.5px;
+  color: #1e40af;
+  line-height: 1.4;
+  margin-bottom: 10px;
+}
+
+.zalo-action-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.zalo-open-browser-btn {
+  flex: 1;
+  background-color: #0284c7;
+  color: #ffffff;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: none;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.zalo-open-browser-btn:hover {
+  background-color: #0369a1;
+}
+
+.zalo-copy-btn {
+  background-color: #ffffff;
+  border: 1px solid #93c5fd;
+  color: #0369a1;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.zalo-copy-btn:hover {
+  background-color: #f0f9ff;
+}
+
+.zalo-step-hint {
+  display: block;
+  font-size: 11px;
+  color: #1d4ed8;
+  line-height: 1.3;
+}
+
 /* Scanner Desktop Drag & Drop State */
 .scanner-cta-card.drag-over {
   border-color: var(--primary) !important;
