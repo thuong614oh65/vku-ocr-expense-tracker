@@ -6,6 +6,7 @@ import '../screens/dashboard_screen.dart';
 import '../screens/camera_scanner_screen.dart';
 import '../screens/reports_screen.dart';
 import '../screens/expense_detail_screen.dart';
+import '../screens/profile_screen.dart';
 
 /// Declarative Routing with GoRouter, ShellRoute & Route Guards (Week 8 Part 4 Slides 19-24)
 final GoRouter appRouter = GoRouter(
@@ -42,7 +43,9 @@ final GoRouter appRouter = GoRouter(
             ? 1
             : loc == '/reports'
                 ? 2
-                : 0;
+                : loc == '/profile'
+                    ? 3
+                    : 0;
 
         return Scaffold(
           body: child,
@@ -52,6 +55,7 @@ final GoRouter appRouter = GoRouter(
               if (idx == 0) context.go('/dash');
               if (idx == 1) context.go('/scanner');
               if (idx == 2) context.go('/reports');
+              if (idx == 3) context.go('/profile');
             },
             destinations: const [
               NavigationDestination(
@@ -70,6 +74,11 @@ final GoRouter appRouter = GoRouter(
                 selectedIcon: Icon(Icons.pie_chart, color: Color(0xFF0284C7)),
                 label: 'Báo Cáo',
               ),
+              NavigationDestination(
+                icon: Icon(Icons.person_outline),
+                selectedIcon: Icon(Icons.person, color: Color(0xFF0284C7)),
+                label: 'Cá Nhân',
+              ),
             ],
           ),
         );
@@ -86,6 +95,10 @@ final GoRouter appRouter = GoRouter(
         GoRoute(
           path: '/reports',
           builder: (context, state) => const ReportsScreen(),
+        ),
+        GoRoute(
+          path: '/profile',
+          builder: (context, state) => const ProfileScreen(),
         ),
       ],
     ),

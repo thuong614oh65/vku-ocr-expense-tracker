@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=8.0">
+  <link rel="stylesheet" href="style.css?v=9.0">
   <!-- Google Identity Services (OAuth 2.0 @vku.udn.vn) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <!-- On-Device Tesseract.js WebAssembly OCR for uploaded photos -->
@@ -24,7 +24,7 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
-        navigator.serviceWorker.register('/sw.js?v=8.0').then(function (reg) {
+        navigator.serviceWorker.register('/sw.js?v=9.0').then(function (reg) {
           reg.update();
         }).catch(function () {});
       });
@@ -152,22 +152,6 @@
          SHELL ROUTE: /dash & /reports (Week 8 Slide 23 Persistent Navigation)
          ==================================================================== -->
     <main id="main-app-shell" class="content-scroll">
-      <!-- Logged-in Student Profile & Platform Channel Status Card -->
-      <section class="student-card">
-        <div id="user-avatar-badge" class="student-avatar" title="Bấm để đổi tài khoản">TT</div>
-        <div class="student-info">
-          <div class="student-name-row">
-            <h3 id="user-profile-title">Nguyễn Thị Thương • 23IT.B219 • Lớp 23SE4</h3>
-            <span id="battery-pill-badge" class="battery-pill" title="MethodChannel('vn.edu.vku/device_info')">🔋 Pin: 96%</span>
-          </div>
-          <p id="user-profile-sub">Email: thuongnt.23itb@vku.udn.vn • GVHD: TS. Nguyễn Thanh Tuấn</p>
-          <div class="student-quick-actions">
-            <button id="btn-card-switch-acc" class="student-pill-btn" type="button">🔄 Đổi Tài Khoản</button>
-            <button id="btn-card-logout" class="student-pill-btn danger" type="button">↪️ Đăng Xuất</button>
-          </div>
-        </div>
-      </section>
-
       <!-- ================= TAB 1: /dash (SỔ CHI TIÊU) ================= -->
       <div id="view-dash" class="tab-view-pane">
         <!-- Prominent AI Scanner / Image Picker CTA Card (Adaptive: Desktop vs Mobile) -->
@@ -287,6 +271,76 @@
           </div>
         </section>
       </div>
+
+      <!-- ================= TAB 4: /profile (HỒ SƠ CÁ NHÂN & THIẾT BỊ) ================= -->
+      <div id="view-profile" class="tab-view-pane hidden">
+        <!-- Profile Hero Card -->
+        <section class="profile-hero-card">
+          <div id="profile-avatar-large" class="profile-avatar-large">TT</div>
+          <div class="profile-hero-info">
+            <div class="profile-badge-row">
+              <span class="badge-accent">SINH VIÊN VKU CHÍNH QUY</span>
+              <span id="profile-battery-badge" class="battery-pill">🔋 Pin: 96%</span>
+            </div>
+            <h2 id="profile-hero-name">Nguyễn Thị Thương</h2>
+            <p id="profile-hero-meta">23IT.B219 • Lớp 23SE4 • Ngành Kỹ thuật Phần mềm</p>
+            <p id="profile-hero-school">Trường Đại học Công nghệ Thông tin & Truyền thông Việt - Hàn (VKU)</p>
+            <p id="profile-hero-advisor">GVHD: TS. Nguyễn Thanh Tuấn • Email: thuongnt.23itb@vku.udn.vn</p>
+          </div>
+        </section>
+
+        <!-- Profile Quick Action Cards -->
+        <section class="profile-actions-grid">
+          <div class="profile-action-card" id="btn-profile-switch-acc">
+            <span class="action-icon">🔄</span>
+            <div class="action-text">
+              <strong>Đổi Tài Khoản Sinh Viên</strong>
+              <small>Chuyển đổi nhanh các tài khoản đã lưu trên thiết bị</small>
+            </div>
+            <span class="action-arrow">➔</span>
+          </div>
+
+          <div class="profile-action-card" id="btn-profile-install-app">
+            <span class="action-icon">📲</span>
+            <div class="action-text">
+              <strong>Cài Đặt App & Tải APK</strong>
+              <small>Tải app-release.apk Native Android hoặc cài PWA Standalone</small>
+            </div>
+            <span class="action-arrow">➔</span>
+          </div>
+
+          <div class="profile-action-card" id="btn-profile-export-csv">
+            <span class="action-icon">📥</span>
+            <div class="action-text">
+              <strong>Xuất Dữ Liệu Chi Tiêu</strong>
+              <small>Tải báo cáo định dạng bảng tính Excel / CSV</small>
+            </div>
+            <span class="action-arrow">➔</span>
+          </div>
+
+          <div class="profile-action-card danger" id="btn-profile-logout">
+            <span class="action-icon">↪️</span>
+            <div class="action-text">
+              <strong>Đăng Xuất Khỏi Thiết Bị</strong>
+              <small>Xóa phiên đăng nhập an toàn khỏi trình duyệt</small>
+            </div>
+            <span class="action-arrow">➔</span>
+          </div>
+        </section>
+
+        <!-- System & MethodChannel Info -->
+        <section class="system-info-card">
+          <h4>📱 Thông Tin Nền Tảng & Thiết Bị (Platform Channel)</h4>
+          <ul class="system-info-list">
+            <li><span>MethodChannel:</span> <code>vn.edu.vku/device_info</code></li>
+            <li><span>Mức pin thiết bị:</span> <strong id="profile-battery-text">96% (Đang hoạt động tốt)</strong></li>
+            <li><span>Framework:</span> <strong>Flutter 3.x & Dart 3 (Impeller 120Hz) / PWA</strong></li>
+            <li><span>Cơ sở dữ liệu:</span> <strong>SQLite (sqflite CRUD On-Device)</strong></li>
+            <li><span>Nhận dạng văn bản:</span> <strong>Google ML Kit Text Recognition On-Device</strong></li>
+            <li><span>Quản lý trạng thái:</span> <strong>Flutter Riverpod 2 (NotifierProvider)</strong></li>
+          </ul>
+        </section>
+      </div>
     </main>
 
     <!-- FloatingActionButton.extended (Week 7 Slide 28) -->
@@ -295,7 +349,7 @@
       <span id="fab-label">Chọn Ảnh Hóa Đơn</span>
     </button>
 
-    <!-- Persistent Bottom NavigationBar (ShellRoute: /dash, /scanner, /reports - Week 8 Slide 23) -->
+    <!-- Persistent Bottom NavigationBar (ShellRoute: /dash, /scanner, /reports, /profile - Week 8 Slide 23) -->
     <nav id="bottom-nav-bar" class="bottom-nav">
       <button class="nav-dest active" data-route="/dash">
         <span class="nav-icon">🧾</span>
@@ -308,6 +362,10 @@
       <button class="nav-dest" data-route="/reports">
         <span class="nav-icon">📊</span>
         <span class="nav-label">Báo Cáo</span>
+      </button>
+      <button class="nav-dest" data-route="/profile">
+        <span class="nav-icon">👤</span>
+        <span class="nav-label">Cá Nhân</span>
       </button>
     </nav>
 
@@ -662,6 +720,6 @@ flutter build apk --release</code></pre>
     </div>
   </div>
 
-  <script src="app.js?v=8.0"></script>
+  <script src="app.js?v=9.0"></script>
 </body>
 </html>

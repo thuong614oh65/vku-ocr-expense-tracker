@@ -536,18 +536,29 @@ class AppController {
     logoutBtn.classList.remove('hidden');
     if (switchBtn) switchBtn.classList.remove('hidden');
 
-    // Populate UserProfile Banner
+    // Populate UserProfile in /profile Pane and AppBar
     const initials = (this.currentUser.fullName || 'VKU')
       .split(' ')
       .filter(Boolean)
       .slice(-2)
       .map(w => w[0].toUpperCase())
       .join('');
-    document.getElementById('user-avatar-badge').textContent = initials || 'VKU';
-    document.getElementById('user-profile-title').textContent =
-      `${this.currentUser.fullName} • ${this.currentUser.studentId} • Lớp ${this.currentUser.className}`;
-    document.getElementById('user-profile-sub').textContent =
-      `Email: ${this.currentUser.email} • GVHD: TS. Nguyễn Thanh Tuấn`;
+
+    const profAvatar = document.getElementById('profile-avatar-large');
+    if (profAvatar) profAvatar.textContent = initials || 'VKU';
+    const profName = document.getElementById('profile-hero-name');
+    if (profName) profName.textContent = this.currentUser.fullName || 'Sinh viên VKU';
+    const profMeta = document.getElementById('profile-hero-meta');
+    if (profMeta) profMeta.textContent = `${this.currentUser.studentId} • Lớp ${this.currentUser.className} • Ngành Kỹ thuật Phần mềm`;
+    const profAdvisor = document.getElementById('profile-hero-advisor');
+    if (profAdvisor) profAdvisor.textContent = `GVHD: TS. Nguyễn Thanh Tuấn • Email: ${this.currentUser.email}`;
+
+    const topAvatar = document.getElementById('user-avatar-badge');
+    if (topAvatar) topAvatar.textContent = initials || 'VKU';
+    const topTitle = document.getElementById('user-profile-title');
+    if (topTitle) topTitle.textContent = `${this.currentUser.fullName} • ${this.currentUser.studentId} • Lớp ${this.currentUser.className}`;
+    const topSub = document.getElementById('user-profile-sub');
+    if (topSub) topSub.textContent = `Email: ${this.currentUser.email} • GVHD: TS. Nguyễn Thanh Tuấn`;
 
     if (this.currentRoute === '/login') {
       this.currentRoute = '/dash';
@@ -563,14 +574,25 @@ class AppController {
     this.currentRoute = route;
     const viewDash = document.getElementById('view-dash');
     const viewReports = document.getElementById('view-reports');
+    const viewProfile = document.getElementById('view-profile');
+    const fab = document.getElementById('fab-scan-receipt');
 
-    if (route === '/reports') {
-      viewDash.classList.add('hidden');
-      viewReports.classList.remove('hidden');
+    if (route === '/profile') {
+      if (viewDash) viewDash.classList.add('hidden');
+      if (viewReports) viewReports.classList.add('hidden');
+      if (viewProfile) viewProfile.classList.remove('hidden');
+      if (fab) fab.classList.add('hidden');
+    } else if (route === '/reports') {
+      if (viewDash) viewDash.classList.add('hidden');
+      if (viewReports) viewReports.classList.remove('hidden');
+      if (viewProfile) viewProfile.classList.add('hidden');
+      if (fab) fab.classList.remove('hidden');
     } else {
-      // On /dash, show both Dashboard & Reports so charts are immediately visible too
-      viewDash.classList.remove('hidden');
-      viewReports.classList.remove('hidden');
+      // /dash
+      if (viewDash) viewDash.classList.remove('hidden');
+      if (viewReports) viewReports.classList.remove('hidden');
+      if (viewProfile) viewProfile.classList.add('hidden');
+      if (fab) fab.classList.remove('hidden');
     }
 
     document.querySelectorAll('.nav-dest').forEach(btn => {
@@ -989,6 +1011,30 @@ class AppController {
         AuthService.logout();
         this.syncRouteGuard();
       };
+    }
+
+    // Profile Pane Action Buttons
+    const btnProfSwitch = document.getElementById('btn-profile-switch-acc');
+    if (btnProfSwitch) btnProfSwitch.onclick = openAccModal;
+
+    const btnProfLogout = document.getElementById('btn-profile-logout');
+    if (btnProfLogout) {
+      btnProfLogout.onclick = () => {
+        AuthService.logout();
+        this.syncRouteGuard();
+      };
+    }
+
+    const btnProfInstall = document.getElementById('btn-profile-install-app');
+    if (btnProfInstall) {
+      btnProfInstall.onclick = () => {
+        document.getElementById('install-modal').classList.remove('hidden');
+      };
+    }
+
+    const btnProfExport = document.getElementById('btn-profile-export-csv');
+    if (btnProfExport) {
+      btnProfExport.onclick = () => this.exportCsv();
     }
 
     const btnCloseAccModal = document.getElementById('btn-close-account-modal');
