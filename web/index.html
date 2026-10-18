@@ -2,9 +2,9 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>VKU OCR Expense Tracker & Receipt Parser | Mini-Project 3 (Flutter & Dart)</title>
-  <meta name="description" content="Ứng dụng quản lý chi tiêu cá nhân bằng trí tuệ nhân tạo nhận dạng hóa đơn (On-device OCR) viết bằng Flutter 3.x & Dart 3. Sinh viên: Nguyễn Thị Thương - 23IT.B219 - 23SE4.">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VKU OCR Expense Tracker | Quản Lý Chi Tiêu & Nhận Dạng Hóa Đơn</title>
+  <meta name="description" content="Ứng dụng quản lý chi tiêu cá nhân và nhận dạng hóa đơn thông minh PWA với công nghệ OCR trong trình duyệt.">
   <meta name="theme-color" content="#0284c7">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -36,15 +36,15 @@
     <!-- Top App Bar (Material 3 AppBar) -->
     <header class="app-bar">
       <div class="brand-wrap">
-        <span class="vku-badge">VKU MINI-PROJECT 3 • FLUTTER 3.x & DART 3</span>
+        <span class="vku-badge">VKU EXPENSE OCR • PWA & WEB APP</span>
         <h1>Quản Lý Chi Tiêu & OCR Hóa Đơn AI</h1>
       </div>
       <div class="header-actions">
-        <button id="btn-theme-toggle" class="icon-btn" title="Chuyển đổi Giao diện Sáng / Tối (Material 3 Dark Mode)">🌙</button>
-        <button id="btn-export-csv" class="icon-btn" title="Xuất báo cáo Excel / CSV">📥</button>
-        <button id="btn-install-app" class="install-btn" title="Tải APK Android hoặc cài PWA">📲 Cài App</button>
-        <button id="btn-switch-account" class="switch-account-btn hidden" title="Chuyển đổi tài khoản sinh viên">🔄 Đổi TK</button>
-        <button id="btn-logout-user" class="logout-btn hidden" title="Đăng xuất khỏi thiết bị">↪️ Đăng xuất</button>
+        <button id="btn-theme-toggle" class="icon-btn" title="Chuyển đổi Giao diện Sáng / Tối" aria-label="Chuyển đổi giao diện sáng tối">🌙</button>
+        <button id="btn-export-csv" class="icon-btn" title="Xuất báo cáo CSV" aria-label="Xuất báo cáo CSV">📥</button>
+        <button id="btn-install-app" class="install-btn" title="Tải APK Android hoặc cài PWA" aria-label="Cài đặt ứng dụng">📲 Cài App</button>
+        <button id="btn-switch-account" class="switch-account-btn hidden" title="Chuyển đổi tài khoản" aria-label="Chuyển đổi tài khoản">🔄 Đổi tài khoản</button>
+        <button id="btn-logout-user" class="logout-btn hidden" title="Đăng xuất khỏi thiết bị" aria-label="Đăng xuất khỏi thiết bị">↪️ Đăng xuất</button>
       </div>
     </header>
 
@@ -63,9 +63,9 @@
     <main id="auth-screen" class="auth-screen hidden">
       <div class="auth-hero-card">
         <div class="auth-logo-circle">🤖</div>
-        <span class="route-pill">GoRouter Guard • /login</span>
+        <span class="route-pill">Cổng Đăng Nhập An Toàn</span>
         <h2>Hệ Thống Sổ Chi Tiêu AI VKU</h2>
-        <p>Xác thực Sinh viên & Thủ quỹ CLB • Google ML Kit On-Device OCR</p>
+        <p>Hệ thống quản lý chi tiêu và nhận dạng hóa đơn thông minh</p>
       </div>
 
       <div class="auth-form-card">
@@ -80,18 +80,18 @@
           <div id="register-extra-fields" class="hidden">
             <div class="form-group">
               <label>HỌ VÀ TÊN SINH VIÊN *</label>
-              <input type="text" id="auth-fullname" class="text-input" placeholder="VD: Nguyễn Thị Thương">
+              <input type="text" id="auth-fullname" class="text-input" placeholder="VD: Nguyễn Văn A">
               <small id="err-fullname" class="field-error hidden"></small>
             </div>
             <div class="form-row-2">
               <div class="form-group">
                 <label>MÃ SINH VIÊN (MSSV) *</label>
-                <input type="text" id="auth-student-id" class="text-input" placeholder="VD: 23IT.B219">
+                <input type="text" id="auth-student-id" class="text-input" placeholder="VD: 23IT.B001">
                 <small id="err-student-id" class="field-error hidden"></small>
               </div>
               <div class="form-group">
                 <label>LỚP / ĐƠN VỊ CLB *</label>
-                <input type="text" id="auth-class" class="text-input" value="23SE4" placeholder="VD: 23SE4">
+                <input type="text" id="auth-class" class="text-input" placeholder="VD: 23SE1">
                 <small id="err-class" class="field-error hidden"></small>
               </div>
             </div>
@@ -99,15 +99,15 @@
 
           <div class="form-group">
             <label>EMAIL SINH VIÊN VKU (@vku.udn.vn) *</label>
-            <input type="email" id="auth-email" class="text-input" value="thuongnt.23itb@vku.udn.vn" placeholder="ten.mssv@vku.udn.vn">
+            <input type="email" id="auth-email" class="text-input" placeholder="sinhvien@vku.udn.vn">
             <small id="err-email" class="field-error hidden"></small>
           </div>
 
           <div class="form-group">
-            <label>MẬT KHẨU (Ephemeral State: _obscurePassword) *</label>
+            <label>MẬT KHẨU *</label>
             <div class="pwd-input-wrap">
-              <input type="password" id="auth-password" class="text-input" value="vku2026" placeholder="Nhập mật khẩu (tối thiểu 4 ký tự)">
-              <button type="button" id="btn-toggle-pwd" class="pwd-eye-btn" title="Hiện/Ẩn mật khẩu">👁️</button>
+              <input type="password" id="auth-password" class="text-input" placeholder="Nhập mật khẩu (tối thiểu 8 ký tự)">
+              <button type="button" id="btn-toggle-pwd" class="pwd-eye-btn" title="Hiện/Ẩn mật khẩu" aria-label="Hiện hoặc ẩn mật khẩu">👁️</button>
             </div>
             <small id="err-password" class="field-error hidden"></small>
           </div>
@@ -115,23 +115,23 @@
           <div id="auth-feedback-msg" class="auth-feedback hidden"></div>
 
           <button type="submit" id="btn-submit-auth" class="btn-auth-primary">
-            🚀 Đăng Nhập Vào Sổ Chi Tiêu (/dash)
+            🚀 Đăng Nhập Vào Sổ Chi Tiêu
           </button>
         </form>
 
-        <div class="auth-divider"><span>HOẶC XÁC THỰC ĐỒNG BỘ VKU</span></div>
+        <div class="auth-divider"><span>HOẶC XÁC THỰC GOOGLE</span></div>
 
         <!-- Direct Google OAuth 2.0 Sign-In Button (Zero Origin-Mismatch) -->
-        <button type="button" id="btn-open-google-login" class="btn-google-sso">
+        <button type="button" id="btn-open-google-login" class="btn-google-sso" aria-label="Đăng nhập bằng tài khoản Google trường VKU">
           <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
           <span id="btn-google-text">Tiếp tục với Google (@vku.udn.vn)</span>
         </button>
 
-        <!-- Zalo / In-app WebView Security Notice (Identical to Project 2 RFC 8252) -->
+        <!-- Zalo / In-app WebView Security Notice -->
         <div id="zalo-security-box" class="zalo-security-box hidden">
-          <div class="zalo-security-title">🔒 Bảo mật Google OAuth 2.0 (accounts.google.com)</div>
+          <div class="zalo-security-title">🔒 Bảo mật đăng nhập tài khoản Google (@vku.udn.vn)</div>
           <p class="zalo-security-desc">
-            Theo tiêu chuẩn bảo mật của Google (RFC 8252), đăng nhập Google thật chỉ thực hiện trên trình duyệt chuẩn (<strong>Safari / Chrome</strong>) và chặn trình duyệt nhúng của Zalo để bảo vệ tài khoản <strong>@vku.udn.vn</strong> không bị ứng dụng thứ ba theo dõi.
+            Theo tiêu chuẩn bảo mật của Google (RFC 8252), đăng nhập Google yêu cầu thực hiện trên trình duyệt chuẩn (<strong>Safari / Chrome</strong>) và hạn chế trình duyệt nhúng của Zalo để bảo vệ tài khoản <strong>@vku.udn.vn</strong>.
           </p>
           <div class="zalo-action-row">
             <button type="button" id="btn-zalo-open-browser" class="zalo-open-browser-btn">🧭 Mở ngay bằng Safari / Chrome</button>
@@ -139,11 +139,6 @@
           </div>
           <small class="zalo-step-hint">💡 Hoặc bấm biểu tượng <strong>•••</strong> ở góc trên bên phải Zalo ➔ chọn <strong>"Mở bằng trình duyệt / Safari"</strong>.</small>
         </div>
-
-        <!-- Quick VKU Student SSO Button -->
-        <button type="button" id="btn-quick-vku-sso" class="btn-vku-sso">
-          🎓 Đăng nhập nhanh SV: Nguyễn Thị Thương (23IT.B219 • 23SE4)
-        </button>
 
       </div>
     </main>
@@ -159,18 +154,18 @@
           <div id="scanner-cta-icon" class="scanner-icon-wrap">📁</div>
           <div class="scanner-text-wrap">
             <h2 id="scanner-cta-title">Chọn Ảnh Hóa Đơn & Nhận Dạng AI</h2>
-            <p id="scanner-cta-desc">Tải file ảnh hóa đơn từ máy (.JPG, .PNG) hoặc kéo thả vào đây • OCR &lt;100ms</p>
+            <p id="scanner-cta-desc">Tải file ảnh hóa đơn từ máy (.JPG, .PNG) hoặc kéo thả vào đây • Nhận dạng tự động</p>
           </div>
-          <button id="btn-open-scanner" class="btn-primary-scan">
-            📁 Chọn Ảnh
+          <button id="btn-open-scanner" class="btn-primary-scan" aria-label="Chọn ảnh hóa đơn">
+            📁 Chọn Ảnh Hóa Đơn
           </button>
         </section>
 
-        <!-- Quick Sample Receipts Tester (For instant grading/demo) -->
+        <!-- Quick Sample Receipts Tester -->
         <section class="sample-tester-section">
           <div class="section-title-row">
-            <span class="badge-accent">HÓA ĐƠN THỰC TẾ TẠI VKU</span>
-            <span class="section-sub">Bấm chọn để chạy thuật toán Regex OCR:</span>
+            <span class="badge-accent">DỮ LIỆU MẪU THỬ NGHIỆM</span>
+            <span class="section-sub">Bấm chọn để nạp dữ liệu mẫu thử nghiệm:</span>
           </div>
           <div class="sample-chips-row">
             <button class="sample-chip" data-index="0">🏪 WinMart+ VKU (87.500₫)</button>
@@ -193,11 +188,14 @@
           </div>
 
           <div class="kpi-card">
-            <div class="kpi-header">
-              <span class="kpi-dot green"></span>
-              <span class="kpi-title">NGÂN SÁCH THÁNG</span>
+            <div class="kpi-header" style="display:flex;justify-content:space-between;align-items:center;">
+              <div style="display:flex;align-items:center;gap:6px;">
+                <span class="kpi-dot green"></span>
+                <span class="kpi-title">NGÂN SÁCH THÁNG</span>
+              </div>
+              <button id="btn-edit-budget" class="icon-btn-budget" title="Chỉnh sửa ngân sách tháng" aria-label="Chỉnh sửa ngân sách tháng" style="background:transparent;border:none;cursor:pointer;font-size:13px;padding:2px 4px;">✏️</button>
             </div>
-            <div class="kpi-value">3.500.000 ₫</div>
+            <div id="kpi-budget-amount" class="kpi-value">3.500.000 ₫</div>
             <div id="kpi-budget-progress" class="kpi-sub">Đã dùng: 0%</div>
           </div>
         </section>
@@ -210,10 +208,10 @@
           <div id="filter-category-chips" class="sample-chips-row" style="margin-top:8px;"></div>
         </section>
 
-        <!-- Recent Transactions Section (ListView.builder + ExpenseSummaryCard) -->
+        <!-- Recent Transactions Section -->
         <section class="transactions-section">
           <div class="section-title-row">
-            <h3>Danh Sách Hóa Đơn (ExpenseSummaryCard)</h3>
+            <h3>Danh Sách Hóa Đơn</h3>
             <span id="txn-count-badge" class="count-badge">0 bản ghi</span>
           </div>
           <div id="transactions-list" class="transactions-list"></div>
@@ -222,11 +220,11 @@
 
       <!-- ================= TAB 3: /reports (BÁO CÁO & BIỂU ĐỒ CANVAS) ================= -->
       <div id="view-reports" class="tab-view-pane">
-        <!-- Canvas Chart 1: Donut Pie Chart (CustomPainter) -->
+        <!-- Canvas Chart 1: Donut Pie Chart -->
         <section class="chart-card">
           <div class="chart-header">
-            <h3>📊 Cơ Cấu Chi Tiêu (DonutChartPainter)</h3>
-            <span class="custom-painter-badge">CustomPainter • Animated</span>
+            <h3>📊 Cơ Cấu Chi Tiêu</h3>
+            <span class="custom-painter-badge">Biểu đồ cơ cấu</span>
           </div>
           <div class="canvas-wrap">
             <canvas id="donutChartCanvas" width="240" height="240"></canvas>
@@ -234,39 +232,39 @@
           <div id="pie-legend" class="pie-legend"></div>
         </section>
 
-        <!-- Canvas Chart 2: Weekly Spending Bar Chart (CustomPainter) -->
+        <!-- Canvas Chart 2: Weekly Spending Bar Chart -->
         <section class="chart-card">
           <div class="chart-header">
-            <h3>📈 Chi Tiêu 7 Ngày Qua (WeeklyBarChartPainter)</h3>
-            <span class="custom-painter-badge">CustomPainter • T2 → CN</span>
+            <h3>📈 Chi Tiêu 7 Ngày Gần Nhất</h3>
+            <span class="custom-painter-badge">Theo ngày thực tế</span>
           </div>
           <div class="canvas-wrap">
             <canvas id="barChartCanvas" width="340" height="190"></canvas>
           </div>
         </section>
 
-        <!-- Platform Channel & Architecture Diagnostic Card (Week 7 Slide 9 & Week 8 Slide 39) -->
+        <!-- Platform Channel & Architecture Diagnostic Card -->
         <section class="chart-card">
           <div class="chart-header">
-            <h3>⚡ Native Platform Channel & SQLite Status</h3>
-            <span class="custom-painter-badge">vn.edu.vku/device_info</span>
+            <h3>⚡ Về App Flutter (Bản Native Android)</h3>
+            <span class="custom-painter-badge">Kiến trúc hệ thống</span>
           </div>
           <div class="diag-grid">
-            <div class="diag-item">
-              <span class="diag-label">MethodChannel Battery</span>
-              <strong id="diag-battery-val">96% (Charging)</strong>
+            <div id="diag-battery-box" class="diag-item">
+              <span class="diag-label">Mức pin thiết bị</span>
+              <strong id="diag-battery-val">Đang kiểm tra...</strong>
             </div>
             <div class="diag-item">
-              <span class="diag-label">OCR Engine Latency</span>
-              <strong>38 ms (On-Device ML Kit)</strong>
+              <span class="diag-label">Độ trễ OCR</span>
+              <strong id="diag-ocr-latency">Đo thực tế (Tesseract.js)</strong>
             </div>
             <div class="diag-item">
-              <span class="diag-label">State Management</span>
-              <strong>Riverpod 2 (NotifierProvider)</strong>
+              <span class="diag-label">Kiến trúc App</span>
+              <strong>Riverpod 2 (Native) / PWA (Web)</strong>
             </div>
             <div class="diag-item">
-              <span class="diag-label">Local Persistence</span>
-              <strong>SQLite (sqflite CRUD)</strong>
+              <span class="diag-label">Lưu trữ dữ liệu</span>
+              <strong>IndexedDB / LocalStorage (Web)</strong>
             </div>
           </div>
         </section>
@@ -276,16 +274,16 @@
       <div id="view-profile" class="tab-view-pane hidden">
         <!-- Profile Hero Card -->
         <section class="profile-hero-card">
-          <div id="profile-avatar-large" class="profile-avatar-large">TT</div>
+          <div id="profile-avatar-large" class="profile-avatar-large">U</div>
           <div class="profile-hero-info">
             <div class="profile-badge-row">
-              <span class="badge-accent">SINH VIÊN VKU CHÍNH QUY</span>
-              <span id="profile-battery-badge" class="battery-pill">🔋 Pin: 96%</span>
+              <span class="badge-accent">TÀI KHOẢN NGƯỜI DÙNG</span>
+              <span id="profile-battery-badge" class="battery-pill hidden">🔋 Pin: --</span>
             </div>
-            <h2 id="profile-hero-name">Nguyễn Thị Thương</h2>
-            <p id="profile-hero-meta">23IT.B219 • Lớp 23SE4 • Ngành Kỹ thuật Phần mềm</p>
+            <h2 id="profile-hero-name">Người dùng</h2>
+            <p id="profile-hero-meta">Tài khoản sinh viên</p>
             <p id="profile-hero-school">Trường Đại học Công nghệ Thông tin & Truyền thông Việt - Hàn (VKU)</p>
-            <p id="profile-hero-advisor">GVHD: TS. Nguyễn Thanh Tuấn • Email: thuongnt.23itb@vku.udn.vn</p>
+            <p id="profile-hero-advisor">Email: --</p>
           </div>
         </section>
 
@@ -294,8 +292,8 @@
           <div class="profile-action-card" id="btn-profile-switch-acc">
             <span class="action-icon">🔄</span>
             <div class="action-text">
-              <strong>Đổi Tài Khoản Sinh Viên</strong>
-              <small>Chuyển đổi nhanh các tài khoản đã lưu trên thiết bị</small>
+              <strong>Đổi Tài Khoản</strong>
+              <small>Chuyển đổi tài khoản trên thiết bị này</small>
             </div>
             <span class="action-arrow">➔</span>
           </div>
@@ -312,8 +310,8 @@
           <div class="profile-action-card" id="btn-profile-export-csv">
             <span class="action-icon">📥</span>
             <div class="action-text">
-              <strong>Xuất Dữ Liệu Chi Tiêu</strong>
-              <small>Tải báo cáo định dạng bảng tính Excel / CSV</small>
+              <strong>Xuất Dữ Liệu CSV</strong>
+              <small>Tải báo cáo chi tiêu dạng tệp CSV (UTF-8 có BOM)</small>
             </div>
             <span class="action-arrow">➔</span>
           </div>
@@ -330,21 +328,20 @@
 
         <!-- System & MethodChannel Info -->
         <section class="system-info-card">
-          <h4>📱 Thông Tin Nền Tảng & Thiết Bị (Platform Channel)</h4>
+          <h4>📱 Thông Tin Nền Tảng & Thiết Bị</h4>
           <ul class="system-info-list">
-            <li><span>MethodChannel:</span> <code>vn.edu.vku/device_info</code></li>
-            <li><span>Mức pin thiết bị:</span> <strong id="profile-battery-text">96% (Đang hoạt động tốt)</strong></li>
-            <li><span>Framework:</span> <strong>Flutter 3.x & Dart 3 (Impeller 120Hz) / PWA</strong></li>
-            <li><span>Cơ sở dữ liệu:</span> <strong>SQLite (sqflite CRUD On-Device)</strong></li>
-            <li><span>Nhận dạng văn bản:</span> <strong>Google ML Kit Text Recognition On-Device</strong></li>
-            <li><span>Quản lý trạng thái:</span> <strong>Flutter Riverpod 2 (NotifierProvider)</strong></li>
+            <li><span>Môi trường:</span> <strong>Trình duyệt Web (PWA) / Native Android APK</strong></li>
+            <li id="profile-battery-row"><span>Mức pin thiết bị:</span> <strong id="profile-battery-text">Đang kiểm tra...</strong></li>
+            <li><span>Lưu trữ:</span> <strong>LocalStorage / IndexedDB (Bản Web) • SQLite (Bản Native)</strong></li>
+            <li><span>Nhận dạng văn bản:</span> <strong>Tesseract.js WASM (Bản Web) • ML Kit (Bản Native)</strong></li>
+            <li><span>Quản lý trạng thái:</span> <strong>Flutter Riverpod 2 (Bản Native)</strong></li>
           </ul>
         </section>
       </div>
     </main>
 
-    <!-- FloatingActionButton.extended (Week 7 Slide 28) -->
-    <button id="fab-scan-receipt" class="fab-extended" title="Chọn Ảnh / Quét Hóa Đơn (FloatingActionButton.extended)">
+    <!-- FloatingActionButton.extended -->
+    <button id="fab-scan-receipt" class="fab-extended" title="Chọn Ảnh Hóa Đơn" aria-label="Chọn ảnh hóa đơn để nhận dạng">
       <span id="fab-icon">📁</span>
       <span id="fab-label">Chọn Ảnh Hóa Đơn</span>
     </button>
@@ -357,7 +354,7 @@
       </button>
       <button class="nav-dest" data-route="/scanner">
         <span id="nav-scanner-icon" class="nav-icon">📁</span>
-        <span id="nav-scanner-label" class="nav-label">Chọn Ảnh OCR</span>
+        <span id="nav-scanner-label" class="nav-label">Chọn Ảnh Hóa Đơn</span>
       </button>
       <button class="nav-dest" data-route="/reports">
         <span class="nav-icon">📊</span>
@@ -370,7 +367,7 @@
     </nav>
 
     <!-- ====================================================================
-         DYNAMIC ROUTE: /expense/:id — EXPENSE DETAIL MODAL (Week 8 Slide 21-22)
+         DYNAMIC ROUTE: /expense/:id — EXPENSE DETAIL MODAL
          ==================================================================== -->
     <div id="detail-modal" class="modal-overlay hidden">
       <div class="review-modal-card">
@@ -379,31 +376,31 @@
             <span id="detail-cat-icon" class="modal-icon">🧾</span>
             <div>
               <h3>Chi Tiết Hóa Đơn OCR</h3>
-              <p id="detail-route-badge" class="mono-route">GoRouter Path: /expense/TXN-001</p>
+              <p id="detail-route-badge" class="mono-route">Mã giao dịch: --</p>
             </div>
           </div>
-          <button id="btn-close-detail" class="icon-btn-close">✕</button>
+          <button id="btn-close-detail" class="icon-btn-close" aria-label="Đóng chi tiết hóa đơn">✕</button>
         </div>
 
         <div class="modal-body-scroll">
           <div class="detail-amount-hero">
-            <span id="detail-merchant-title" class="detail-merchant">WinMart+ Cổng Trường VKU</span>
-            <strong id="detail-amount-value" class="detail-amount">87.500 ₫</strong>
-            <span id="detail-cat-chip" class="detail-chip">🍲 Ăn Uống • Độ tin cậy OCR 96%</span>
+            <span id="detail-merchant-title" class="detail-merchant">--</span>
+            <strong id="detail-amount-value" class="detail-amount">0 ₫</strong>
+            <span id="detail-cat-chip" class="detail-chip">--</span>
           </div>
 
           <div class="receipt-thumb-wrap">
-            <img id="detail-thumb-img" src="" alt="Receipt Thumbnail">
+            <img id="detail-thumb-img" src="" alt="Ảnh hóa đơn">
             <div class="receipt-thumb-meta">
-              <strong>🖼️ Ảnh Hóa Đơn Lưu Trữ Cục Bộ (Cached Thumbnail)</strong>
-              <span id="detail-date-text">Ngày giao dịch: 12/10/2026</span>
+              <strong>🖼️ Ảnh Hóa Đơn Lưu Trữ Cục Bộ</strong>
+              <span id="detail-date-text">Ngày giao dịch: --</span>
               <span id="detail-notes-text">Ghi chú: —</span>
             </div>
           </div>
 
           <div class="raw-ocr-details" style="padding:10px;">
             <strong style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:6px;">
-              📄 VĂN BẢN THÔ BÓC TÁCH BỞI GOOGLE ML KIT OCR:
+              📄 VĂN BẢN THÔ BÓC TÁCH BỞI OCR:
             </strong>
             <pre id="detail-raw-ocr" class="raw-ocr-box"></pre>
           </div>
@@ -426,9 +423,9 @@
     <div id="scanner-modal" class="modal-overlay hidden">
       <div class="scanner-viewfinder-card">
         <div class="scanner-top-bar">
-          <button id="btn-close-scanner" class="icon-circle-btn" title="Đóng">✕</button>
-          <div class="ai-badge-pill">⚡ On-Device OCR • Sub-100ms</div>
-          <button id="btn-toggle-flash" class="icon-circle-btn" title="Bật/Tắt Đèn Flash">⚡</button>
+          <button id="btn-close-scanner" class="icon-circle-btn" title="Đóng" aria-label="Đóng khung quét">✕</button>
+          <div class="ai-badge-pill">⚡ Nhận Dạng OCR Tự Động</div>
+          <button id="btn-toggle-flash" class="icon-circle-btn" title="Bật/Tắt Đèn Flash" aria-label="Bật tắt đèn flash">⚡</button>
         </div>
 
         <div id="camera-frame-area" class="camera-frame-area">
@@ -440,17 +437,17 @@
           <div class="laser-scanner-line"></div>
           <div id="focus-reticle" class="focus-reticle hidden"></div>
           <div id="camera-hint-text" class="camera-hint-text">
-            Đặt hóa đơn vào khung cắt • Chạm màn hình để lấy nét (AF)
+            Đặt hóa đơn vào khung cắt • Chạm màn hình để lấy nét
           </div>
           <div id="ocr-loading-overlay" class="ocr-loading-overlay hidden">
             <div class="spinner"></div>
-            <div id="ocr-status-msg">Đang bóc tách hóa đơn bằng AI OCR...</div>
+            <div id="ocr-status-msg">Đang bóc tách hóa đơn bằng OCR...</div>
           </div>
         </div>
 
         <!-- Quick sample strip inside camera modal -->
         <div class="scanner-sample-bar">
-          <span class="scanner-sample-label">Thử mẫu nhanh:</span>
+          <span class="scanner-sample-label">Dữ liệu mẫu demo:</span>
           <button class="mini-sample-btn" data-index="0">WinMart+</button>
           <button class="mini-sample-btn" data-index="1">Highlands</button>
           <button class="mini-sample-btn" data-index="2">Fahasa</button>
@@ -460,21 +457,21 @@
 
         <div class="scanner-bottom-bar">
           <label class="gallery-btn-label">
-            📁 Tải Ảnh Hóa Đơn
+            📁 Chọn Ảnh Hóa Đơn
             <input type="file" id="file-input-receipt" accept="image/*" style="display:none;">
           </label>
-          <button id="btn-shutter-capture" class="shutter-btn" title="Chụp & Cắt khung hóa đơn">
+          <button id="btn-shutter-capture" class="shutter-btn" title="Chụp ảnh hóa đơn" aria-label="Chụp ảnh hóa đơn">
             <div class="shutter-btn-inner"></div>
           </button>
-          <button id="btn-sample-fast" class="sample-fast-btn" title="Quét nhanh hóa đơn mẫu">
-            ⚡ Quét Mẫu AI
+          <button id="btn-sample-fast" class="sample-fast-btn" title="Thử hóa đơn mẫu" aria-label="Thử hóa đơn mẫu">
+            ⚡ Thử Mẫu Demo
           </button>
         </div>
       </div>
     </div>
 
     <!-- ====================================================================
-         REVIEW & EDIT FORM MODAL (Form + GlobalKey<FormState> + Validators)
+         REVIEW & EDIT FORM MODAL
          ==================================================================== -->
     <div id="review-modal" class="modal-overlay hidden">
       <div class="review-modal-card">
@@ -483,10 +480,10 @@
             <span class="modal-icon">🤖</span>
             <div>
               <h3 id="review-modal-title">Kiểm Tra & Lưu Hóa Đơn AI</h3>
-              <p>Form Validation • AutovalidateMode.onUserInteraction</p>
+              <p>Kiểm tra và xác nhận thông tin</p>
             </div>
           </div>
-          <button id="btn-close-review" class="icon-btn-close">✕</button>
+          <button id="btn-close-review" class="icon-btn-close" aria-label="Đóng cửa sổ">✕</button>
         </div>
 
         <div class="modal-body-scroll">
@@ -494,16 +491,16 @@
           <div id="review-confidence-banner" class="confidence-banner">
             <span class="conf-icon">✨</span>
             <div class="conf-text">
-              <strong id="conf-score-text">Độ chính xác AI: 95%</strong>
-              <small id="conf-latency-text">Đã bóc tách Tên quán, Tổng tiền, Ngày & Danh mục (42ms).</small>
+              <strong id="conf-score-text">Độ tin cậy OCR: --%</strong>
+              <small id="conf-latency-text">Đang phân tích hóa đơn...</small>
             </div>
           </div>
 
           <!-- Cropped Receipt Thumbnail Preview -->
           <div id="receipt-thumb-wrap" class="receipt-thumb-wrap">
-            <img id="receipt-thumb-img" src="" alt="Receipt Thumbnail">
+            <img id="receipt-thumb-img" src="" alt="Ảnh hóa đơn">
             <div class="receipt-thumb-meta">
-              <strong>🖼️ Ảnh Hóa Đơn Đã Cắt Khung (Thumbnail Cached)</strong>
+              <strong>🖼️ Ảnh Hóa Đơn Đã Cắt Khung</strong>
               <span id="detected-items-summary">Đã lưu bộ nhớ đệm cục bộ</span>
             </div>
           </div>
@@ -548,7 +545,7 @@
 
         <div class="modal-footer">
           <button id="btn-confirm-save" class="btn-save-primary">
-            ✓ Xác Nhận & Lưu Vào Sổ Chi Tiêu (SQLite / Local DB)
+            ✓ Xác Nhận & Lưu Vào Sổ Chi Tiêu
           </button>
         </div>
       </div>
@@ -562,10 +559,10 @@
             <span class="modal-icon">📲</span>
             <div>
               <h3>Cài Đặt & Đóng Gói Ứng Dụng</h3>
-              <p>VKU OCR Expense Tracker • Flutter 3.x & Dart 3</p>
+              <p>VKU OCR Expense Tracker • PWA & Native Android APK</p>
             </div>
           </div>
-          <button id="btn-close-install" class="icon-btn-close">✕</button>
+          <button id="btn-close-install" class="icon-btn-close" aria-label="Đóng">✕</button>
         </div>
 
         <div class="install-tabs-nav">
@@ -580,11 +577,11 @@
             <div class="install-option-card highlight">
               <span class="recommend-badge">KHUYÊN DÙNG</span>
               <h4>Cách 1: Tải File APK Gốc Về Cài Đặt</h4>
-              <p>Tải trực tiếp tệp tin cài đặt Native Android APK (Flutter 3.x + Google ML Kit On-Device) về điện thoại của bạn:</p>
+              <p>Tải trực tiếp tệp tin cài đặt Native Android APK về điện thoại của bạn:</p>
               <a href="https://github.com/thuong614oh65/vku-ocr-expense-tracker/releases/download/v1.0.0/app-release.apk" class="btn-download-apk" target="_blank">
                 ⬇️ Tải File app-release.apk (GitHub Releases v1.0.0)
               </a>
-              <small class="hint">💡 Mẹo: Khi cài đặt, chọn "Vẫn cài đặt" nếu Play Protect cảnh báo ứng dụng nội bộ trường VKU.</small>
+              <small class="hint">💡 Ứng dụng cài ngoài Google Play Store. Bạn có thể kiểm tra tính toàn vẹn của tệp bằng mã băm SHA-256: <code>cb0c09fe6ed4bbec998d4637c2ece8b037d5b813fa1b4f0d2ea94dc0f77058de</code></small>
             </div>
 
             <div class="install-option-card">
@@ -629,8 +626,10 @@ flutter build apk --release</code></pre>
           </div>
         </div>
       </div>
+    </div>
+
     <!-- ====================================================================
-         ACCOUNT SWITCHER MODAL (Đổi Tài Khoản & Quản Lý Hồ Sơ)
+         ACCOUNT SWITCHER MODAL
          ==================================================================== -->
     <div id="account-modal" class="modal-overlay hidden">
       <div class="review-modal-card">
@@ -638,18 +637,18 @@ flutter build apk --release</code></pre>
           <div class="header-title-wrap">
             <span class="modal-icon">👤</span>
             <div>
-              <h3>Quản Lý & Đổi Tài Khoản Sinh Viên</h3>
-              <p>Chuyển đổi nhanh giữa các tài khoản lưu trên thiết bị</p>
+              <h3>Quản Lý & Đổi Tài Khoản</h3>
+              <p>Chuyển đổi tài khoản lưu trên thiết bị</p>
             </div>
           </div>
-          <button id="btn-close-account-modal" class="icon-btn-close">✕</button>
+          <button id="btn-close-account-modal" class="icon-btn-close" aria-label="Đóng">✕</button>
         </div>
 
         <div class="modal-body-scroll">
           <div class="active-user-badge-box">
             <div class="active-tag">🟢 ĐANG ĐĂNG NHẬP</div>
-            <h4 id="acc-modal-active-name">Nguyễn Thị Thương</h4>
-            <p id="acc-modal-active-meta">23IT.B219 • Lớp 23SE4 • thuongnt.23itb@vku.udn.vn</p>
+            <h4 id="acc-modal-active-name">--</h4>
+            <p id="acc-modal-active-meta">--</p>
           </div>
 
           <div style="font-size:11px;font-weight:800;color:var(--text-muted);margin-top:6px;">
@@ -664,56 +663,6 @@ flutter build apk --release</code></pre>
             <button id="btn-modal-logout-confirm" class="btn-delete-danger" style="width:100%;text-align:center;">
               ↪️ Đăng Xuất Khỏi Thiết Bị
             </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ====================================================================
-         GOOGLE ACCOUNT PICKER MODAL (Khắc phục lỗi origin_mismatch 400)
-         ==================================================================== -->
-    <div id="google-picker-modal" class="modal-overlay hidden">
-      <div class="review-modal-card" style="max-width:440px;">
-        <div class="modal-header">
-          <div class="header-title-wrap">
-            <svg width="24" height="24" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-            <div>
-              <h3>Đăng Nhập Bằng Google VKU</h3>
-              <p>Chọn tài khoản của bạn để vào Sổ chi tiêu AI</p>
-            </div>
-          </div>
-          <button id="btn-close-google-picker" class="icon-btn-close">✕</button>
-        </div>
-
-        <div class="modal-body-scroll">
-          <div class="google-acc-card" data-email="thuongnt.23itb@vku.udn.vn" data-name="Nguyễn Thị Thương" data-id="23IT.B219" data-class="23SE4">
-            <div class="g-avatar">TT</div>
-            <div class="g-meta">
-              <strong>Nguyễn Thị Thương</strong>
-              <span>thuongnt.23itb@vku.udn.vn</span>
-              <small>Sinh viên VKU • Mã SV: 23IT.B219 • 23SE4</small>
-            </div>
-            <span class="g-arrow">➔</span>
-          </div>
-
-          <div class="google-acc-card" data-email="thanhnga01012011@gmail.com" data-name="Thanh Nga" data-id="SV.VKU" data-class="23SE4">
-            <div class="g-avatar" style="background:#dc2626;">TN</div>
-            <div class="g-meta">
-              <strong>Thanh Nga</strong>
-              <span>thanhnga01012011@gmail.com</span>
-              <small>Tài khoản Google đang đăng nhập trên trình duyệt</small>
-            </div>
-            <span class="g-arrow">➔</span>
-          </div>
-
-          <div class="custom-google-box">
-            <label style="font-size:10.5px;font-weight:800;color:var(--text-muted);display:block;margin-bottom:4px;">
-              HOẶC NHẬP TÀI KHOẢN GOOGLE / VKU KHÁC:
-            </label>
-            <div style="display:flex;gap:8px;">
-              <input type="email" id="custom-google-email" class="text-input" placeholder="ten.mssv@vku.udn.vn">
-              <button id="btn-custom-google-submit" class="btn-primary-scan" style="padding:8px 12px;">Đăng Nhập</button>
-            </div>
           </div>
         </div>
       </div>

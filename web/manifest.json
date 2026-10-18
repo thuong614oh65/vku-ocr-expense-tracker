@@ -1,8 +1,8 @@
 {
   "id": "/",
-  "name": "VKU OCR Expense Tracker & Receipt Parser",
+  "name": "VKU Expense OCR - Quản Lý Chi Tiêu",
   "short_name": "VKU Expense OCR",
-  "description": "Ứng dụng quản lý chi tiêu cá nhân & nhận dạng hóa đơn AI On-Device (Mini-Project 3 - Nguyễn Thị Thương 23IT.B219)",
+  "description": "Ứng dụng quản lý chi tiêu cá nhân và nhận dạng hóa đơn thông minh PWA",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

@@ -1,7 +1,6 @@
 /**
- * VKU OCR Expense Tracker & Receipt Parser (Mini-Project 3)
- * Flutter 3.x & Dart 3 Architecture Mirror (Riverpod 2 + GoRouter + Form Validation + CustomPainter)
- * Student: Nguyễn Thị Thương - 23IT.B219 - Lớp 23SE4
+ * VKU OCR Expense Tracker & Receipt Parser
+ * Progressive Web Application (PWA) with Client-Side Tesseract.js OCR
  */
 
 const GOOGLE_CLIENT_ID = '1003178768971-qn13952kqgsbbkqcdkebet5jblf748je.apps.googleusercontent.com';
@@ -168,14 +167,14 @@ class AuthService {
 
   static getUsers() {
     const defaultUsers = {
-      'thuongnt.23itb@vku.udn.vn': {
-        id: 'USR-23ITB219',
-        fullName: 'Nguyễn Thị Thương',
-        studentId: '23IT.B219',
-        className: '23SE4',
-        email: 'thuongnt.23itb@vku.udn.vn',
-        role: 'Sinh viên VKU / Thủ quỹ CLB',
-        passwordHash: this.hashPassword('vku2026')
+      'demo@vku.udn.vn': {
+        id: 'USR-DEMO',
+        fullName: 'Sinh Viên Demo',
+        studentId: '23IT.B001',
+        className: '23SE1',
+        email: 'demo@vku.udn.vn',
+        role: 'Sinh viên VKU',
+        passwordHash: this.hashPassword('Demo@2026')
       }
     };
     try {
@@ -254,20 +253,20 @@ class AuthService {
 class StorageManager {
   static KEY = 'vku_ocr_expenses_web_v2';
   static THEME_KEY = 'vku_ocr_theme_mode';
+  static BUDGET_KEY = 'vku_monthly_budget';
 
   static getTransactions() {
     try {
       const data = localStorage.getItem(this.KEY);
-      const list = data ? JSON.parse(data) : [...SEED_TRANSACTIONS];
+      if (!data) return [];
+      const list = JSON.parse(data);
+      if (!Array.isArray(list)) return [];
       return list.map(t => ({
         ...t,
         thumbnail: t.thumbnail || generateReceiptImageBase64(t.merchant, t.amount, t.date, t.rawText)
       }));
     } catch {
-      return SEED_TRANSACTIONS.map(t => ({
-        ...t,
-        thumbnail: generateReceiptImageBase64(t.merchant, t.amount, t.date, t.rawText)
-      }));
+      return [];
     }
   }
 
@@ -277,6 +276,21 @@ class StorageManager {
     } catch (e) {
       console.warn('Lỗi lưu localStorage:', e);
     }
+  }
+
+  static getMonthlyBudget() {
+    try {
+      const val = localStorage.getItem(this.BUDGET_KEY);
+      return val ? parseInt(val, 10) : 3500000;
+    } catch {
+      return 3500000;
+    }
+  }
+
+  static setMonthlyBudget(val) {
+    try {
+      localStorage.setItem(this.BUDGET_KEY, String(val));
+    } catch (_) {}
   }
 }
 
@@ -423,13 +437,13 @@ class AppController {
       const navLabel = document.getElementById('nav-scanner-label');
 
       if (ctaIcon) ctaIcon.textContent = '📁';
-      if (ctaTitle) ctaTitle.textContent = 'Chọn Ảnh Hóa Đơn Từ Máy Tính';
-      if (ctaDesc) ctaDesc.textContent = 'Tải file ảnh hóa đơn (.JPG, .PNG) hoặc kéo thả vào đây • Bóc tách AI <100ms';
-      if (ctaBtn) ctaBtn.textContent = '📁 Chọn Ảnh';
+      if (ctaTitle) ctaTitle.textContent = 'Chọn Ảnh Hóa Đơn';
+      if (ctaDesc) ctaDesc.textContent = 'Tải file ảnh hóa đơn (.JPG, .PNG) hoặc kéo thả vào đây • Nhận dạng tự động';
+      if (ctaBtn) ctaBtn.textContent = '📁 Chọn Ảnh Hóa Đơn';
       if (fabIcon) fabIcon.textContent = '📁';
       if (fabLabel) fabLabel.textContent = 'Chọn Ảnh Hóa Đơn';
       if (navIcon) navIcon.textContent = '📁';
-      if (navLabel) navLabel.textContent = 'Chọn Ảnh OCR';
+      if (navLabel) navLabel.textContent = 'Chọn Ảnh Hóa Đơn';
     }
 
     // Drag and Drop for Desktop
@@ -452,13 +466,16 @@ class AppController {
     }
   }
 
-  triggerScanOrFilePicker() {
-    if (this.isDesktop) {
-      const fileInput = document.getElementById('file-input-receipt');
-      if (fileInput) fileInput.click();
-    } else {
-      this.openScannerModal();
+  triggerImagePicker() {
+    const fileInput = document.getElementById('file-input-receipt');
+    if (fileInput) {
+      fileInput.value = '';
+      fileInput.click();
     }
+  }
+
+  triggerScanOrFilePicker() {
+    this.triggerImagePicker();
   }
 
   applyTheme() {
@@ -471,37 +488,57 @@ class AppController {
     const ua = navigator.userAgent || '';
     const isZaloOrInApp = /Zalo|FBAN|FBAV|Instagram|Line/i.test(ua);
     const banner = document.getElementById('zalo-webview-banner');
-    if (isZaloOrInApp && banner) {
-      banner.classList.remove('hidden');
-      document.getElementById('btn-open-external-browser').onclick = () => {
-        const targetUrl = window.location.href;
-        if (/iPhone|iPad|iPod/i.test(ua)) {
-          window.location.href = 'x-safari-' + targetUrl;
-          setTimeout(() => {
-            navigator.clipboard?.writeText(targetUrl);
-          }, 400);
-        } else {
-          window.location.href = `intent://${targetUrl.replace(/^https?:\/\//, '')}#Intent;scheme=https;package=com.android.chrome;end`;
-        }
-      };
+    if (banner) {
+      if (isZaloOrInApp) {
+        banner.classList.remove('hidden');
+        document.getElementById('btn-open-external-browser').onclick = () => {
+          const targetUrl = window.location.href;
+          if (/iPhone|iPad|iPod/i.test(ua)) {
+            window.location.href = 'x-safari-' + targetUrl;
+            setTimeout(() => {
+              navigator.clipboard?.writeText(targetUrl);
+            }, 400);
+          } else {
+            window.location.href = `intent://${targetUrl.replace(/^https?:\/\//, '')}#Intent;scheme=https;package=com.android.chrome;end`;
+          }
+        };
+      } else {
+        banner.classList.add('hidden');
+      }
     }
   }
 
   async initBatteryPlatformChannel() {
-    try {
-      if (navigator.getBattery) {
+    const pill = document.getElementById('profile-battery-badge');
+    const diag = document.getElementById('diag-battery-val');
+    const profileText = document.getElementById('profile-battery-text');
+    const profileRow = document.getElementById('profile-battery-row');
+
+    if ('getBattery' in navigator) {
+      try {
         const bat = await navigator.getBattery();
         const updateBat = () => {
-          const lvl = Math.round((bat.level || 0.96) * 100);
-          const pill = document.getElementById('battery-pill-badge');
-          const diag = document.getElementById('diag-battery-val');
-          if (pill) pill.textContent = `🔋 Pin: ${lvl}%`;
-          if (diag) diag.textContent = `${lvl}% (${bat.charging ? 'Đang sạc' : 'Pin thiết bị'})`;
+          const lvl = Math.round(bat.level * 100);
+          const stateStr = `${lvl}%${bat.charging ? ' (Đang sạc)' : ''}`;
+          if (pill) {
+            pill.textContent = `🔋 Pin: ${stateStr}`;
+            pill.classList.remove('hidden');
+          }
+          if (diag) diag.textContent = stateStr;
+          if (profileText) profileText.textContent = stateStr;
         };
         updateBat();
         bat.addEventListener('levelchange', updateBat);
-      }
-    } catch (_) {}
+        bat.addEventListener('chargingchange', updateBat);
+        return;
+      } catch (_) {}
+    }
+
+    // If getBattery not supported, hide battery badge and show neutral status
+    if (pill) pill.classList.add('hidden');
+    if (diag) diag.textContent = 'Không hỗ trợ trên trình duyệt này';
+    if (profileText) profileText.textContent = 'Không hỗ trợ';
+    if (profileRow) profileRow.style.display = 'none';
   }
 
   /**
@@ -549,16 +586,16 @@ class AppController {
     const profName = document.getElementById('profile-hero-name');
     if (profName) profName.textContent = this.currentUser.fullName || 'Sinh viên VKU';
     const profMeta = document.getElementById('profile-hero-meta');
-    if (profMeta) profMeta.textContent = `${this.currentUser.studentId} • Lớp ${this.currentUser.className} • Ngành Kỹ thuật Phần mềm`;
+    if (profMeta) profMeta.textContent = `${this.currentUser.studentId || ''} • Lớp ${this.currentUser.className || ''}`;
     const profAdvisor = document.getElementById('profile-hero-advisor');
-    if (profAdvisor) profAdvisor.textContent = `GVHD: TS. Nguyễn Thanh Tuấn • Email: ${this.currentUser.email}`;
+    if (profAdvisor) profAdvisor.textContent = `Email: ${this.currentUser.email}`;
 
     const topAvatar = document.getElementById('user-avatar-badge');
     if (topAvatar) topAvatar.textContent = initials || 'VKU';
     const topTitle = document.getElementById('user-profile-title');
-    if (topTitle) topTitle.textContent = `${this.currentUser.fullName} • ${this.currentUser.studentId} • Lớp ${this.currentUser.className}`;
+    if (topTitle) topTitle.textContent = `${this.currentUser.fullName}`;
     const topSub = document.getElementById('user-profile-sub');
-    if (topSub) topSub.textContent = `Email: ${this.currentUser.email} • GVHD: TS. Nguyễn Thanh Tuấn`;
+    if (topSub) topSub.textContent = `Email: ${this.currentUser.email}`;
 
     if (this.currentRoute === '/login') {
       this.currentRoute = '/dash';
@@ -616,23 +653,25 @@ class AppController {
       extraFields.classList.toggle('hidden', loginMode);
       feedback.classList.add('hidden');
       submitBtn.textContent = loginMode
-        ? '🚀 Đăng Nhập Vào Sổ Chi Tiêu (/dash)'
-        : '✨ Đăng Ký Tài Khoản Sinh Viên Mới';
+        ? '🚀 Đăng Nhập Vào Sổ Chi Tiêu'
+        : '📝 Đăng Ký Tài Khoản';
     };
 
     tabLogin.onclick = () => switchMode(true);
     tabRegister.onclick = () => switchMode(false);
 
-    // Ephemeral State: _obscurePassword toggle (Week 8 Slide 4)
+    // Toggle password visibility
     const pwdInput = document.getElementById('auth-password');
     const pwdBtn = document.getElementById('btn-toggle-pwd');
-    pwdBtn.onclick = () => {
-      this.obscurePassword = !this.obscurePassword;
-      pwdInput.type = this.obscurePassword ? 'password' : 'text';
-      pwdBtn.textContent = this.obscurePassword ? '👁️' : '🙈';
-    };
+    if (pwdBtn && pwdInput) {
+      pwdBtn.onclick = () => {
+        this.obscurePassword = !this.obscurePassword;
+        pwdInput.type = this.obscurePassword ? 'password' : 'text';
+        pwdBtn.textContent = this.obscurePassword ? '👁️' : '🙈';
+      };
+    }
 
-    // Real-time AutovalidateMode.onUserInteraction (Week 8 Slide 28)
+    // Real-time validation
     const validateField = (inputId, errId, validatorFn) => {
       const el = document.getElementById(inputId);
       const errEl = document.getElementById(errId);
@@ -652,11 +691,11 @@ class AppController {
       const el = document.getElementById(id);
       if (el) {
         el.addEventListener('input', () => {
-          if (id === 'auth-email') validateField('auth-email', 'err-email', v => !v.includes('@') ? 'Vui lòng nhập email hợp lệ (@vku.udn.vn)' : '');
-          if (id === 'auth-password') validateField('auth-password', 'err-password', v => v.length < 4 ? 'Mật khẩu tối thiểu 4 ký tự' : '');
-          if (id === 'auth-fullname') validateField('auth-fullname', 'err-fullname', v => v.length < 3 ? 'Nhập họ và tên sinh viên' : '');
-          if (id === 'auth-student-id') validateField('auth-student-id', 'err-student-id', v => !v ? 'Nhập mã sinh viên' : '');
-          if (id === 'auth-class') validateField('auth-class', 'err-class', v => !v ? 'Nhập lớp sinh hoạt' : '');
+          if (id === 'auth-email') validateField('auth-email', 'err-email', v => !v.toLowerCase().endsWith('@vku.udn.vn') ? 'Email sinh viên phải có đuôi @vku.udn.vn' : '');
+          if (id === 'auth-password') validateField('auth-password', 'err-password', v => v.length < 8 ? 'Mật khẩu phải có tối thiểu 8 ký tự' : '');
+          if (id === 'auth-fullname') validateField('auth-fullname', 'err-fullname', v => v.length < 3 ? 'Vui lòng nhập họ và tên' : '');
+          if (id === 'auth-student-id') validateField('auth-student-id', 'err-student-id', v => !/^[0-9]{2}[A-Z]{2}(\.[A-Z0-9]+)?$/i.test(v) ? 'MSSV không đúng định dạng (Ví dụ: 23IT.B001 hoặc 23IT123)' : '');
+          if (id === 'auth-class') validateField('auth-class', 'err-class', v => v.length < 2 ? 'Vui lòng nhập tên Lớp/Đơn vị' : '');
         });
       }
     });
@@ -664,26 +703,26 @@ class AppController {
     // Submit Form (Login / Register)
     document.getElementById('auth-form').onsubmit = (e) => {
       e.preventDefault();
-      const okEmail = validateField('auth-email', 'err-email', v => !v.includes('@') ? 'Vui lòng nhập email hợp lệ' : '');
-      const okPwd = validateField('auth-password', 'err-password', v => v.length < 4 ? 'Mật khẩu tối thiểu 4 ký tự' : '');
+      const okEmail = validateField('auth-email', 'err-email', v => !v.toLowerCase().endsWith('@vku.udn.vn') ? 'Email sinh viên phải có đuôi @vku.udn.vn' : '');
+      const okPwd = validateField('auth-password', 'err-password', v => v.length < 8 ? 'Mật khẩu phải có tối thiểu 8 ký tự' : '');
       let okExtra = true;
       if (!this.isLoginMode) {
         const okName = validateField('auth-fullname', 'err-fullname', v => v.length < 3 ? 'Vui lòng nhập họ và tên' : '');
-        const okSid = validateField('auth-student-id', 'err-student-id', v => !v ? 'Nhập MSSV' : '');
-        const okCls = validateField('auth-class', 'err-class', v => !v ? 'Nhập Lớp' : '');
+        const okSid = validateField('auth-student-id', 'err-student-id', v => !/^[0-9]{2}[A-Z]{2}(\.[A-Z0-9]+)?$/i.test(v) ? 'MSSV không đúng định dạng (Ví dụ: 23IT.B001 hoặc 23IT123)' : '');
+        const okCls = validateField('auth-class', 'err-class', v => v.length < 2 ? 'Vui lòng nhập tên Lớp/Đơn vị' : '');
         okExtra = okName && okSid && okCls;
       }
       if (!okEmail || !okPwd || !okExtra) return;
 
-      const email = document.getElementById('auth-email').value;
+      const email = document.getElementById('auth-email').value.trim();
       const password = document.getElementById('auth-password').value;
 
       const res = this.isLoginMode
         ? AuthService.login(email, password)
         : AuthService.register({
-            fullName: document.getElementById('auth-fullname').value,
-            studentId: document.getElementById('auth-student-id').value,
-            className: document.getElementById('auth-class').value,
+            fullName: document.getElementById('auth-fullname').value.trim(),
+            studentId: document.getElementById('auth-student-id').value.trim().toUpperCase(),
+            className: document.getElementById('auth-class').value.trim().toUpperCase(),
             email,
             password
           });
@@ -698,33 +737,26 @@ class AppController {
       }
     };
 
-    // Quick VKU Student SSO Button
-    document.getElementById('btn-quick-vku-sso').onclick = () => {
-      const res = AuthService.login('thuongnt.23itb@vku.udn.vn', 'vku2026');
-      if (res.success) {
-        this.currentRoute = '/dash';
-        this.syncRouteGuard();
-      }
-    };
-
     // Logout Button in AppBar
-    document.getElementById('btn-logout-user').onclick = () => {
-      AuthService.logout();
-      this.syncRouteGuard();
-    };
+    const appLogoutBtn = document.getElementById('btn-logout-user');
+    if (appLogoutBtn) {
+      appLogoutBtn.onclick = () => {
+        AuthService.logout();
+        this.syncRouteGuard();
+      };
+    }
 
     // ========================================================================
-    // GOOGLE OAUTH 2.0 POPUP SERVICE (100% IDENTICAL TO MINI-PROJECT 2)
-    // Google Identity Services (accounts.google.com) - Client ID VKU
+    // GOOGLE IDENTITY SERVICES OAUTH (A4)
+    // Server & Client domain check (@vku.udn.vn)
     // ========================================================================
-    const googleModal = document.getElementById('google-picker-modal');
     const openGoogleBtn = document.getElementById('btn-open-google-login');
     const googleBtnText = document.getElementById('btn-google-text');
     const zaloSecurityBox = document.getElementById('zalo-security-box');
     const btnZaloOpen = document.getElementById('btn-zalo-open-browser');
     const btnZaloCopy = document.getElementById('btn-zalo-copy-link');
 
-    // Detect Zalo / Facebook In-App Browser (Identical to Project 2 RFC 8252)
+    // Detect Zalo / Facebook In-App Browser (RFC 8252)
     const isEmbeddedWebView = () => {
       if (typeof window === 'undefined' || typeof navigator === 'undefined') return false;
       const ua = navigator.userAgent || navigator.vendor || window.opera || '';
@@ -739,7 +771,7 @@ class AppController {
       return false;
     };
 
-    // Open external Safari or Chrome (Identical to Project 2)
+    // Open external Safari or Chrome
     const openInExternalSystemBrowser = (targetUrl) => {
       if (typeof window === 'undefined') return;
       const fullUrl = targetUrl || window.location.href;
@@ -786,22 +818,19 @@ class AppController {
       users[googleUser.email.toLowerCase()] = googleUser;
       AuthService.saveUsers(users);
       AuthService.setCurrentUser(googleUser);
-      if (googleModal) googleModal.classList.add('hidden');
-      alert(`🎉 Xin chào, ${googleUser.fullName}!\nĐã xác thực Google OAuth 2.0 thành công (${googleUser.email}).`);
+      alert(`🎉 Xin chào, ${googleUser.fullName}!\nĐã xác thực Google thành công (${googleUser.email}).`);
       this.currentRoute = '/dash';
       this.syncRouteGuard();
     };
 
-    // Real Google OAuth Popup Launch
+    // Real Google OAuth Launch via GSI Token Flow
     const openRealGooglePopupWindow = () => {
-      // 1. In-app webview check (Zalo / FB)
       if (isEmbeddedWebView()) {
         if (zaloSecurityBox) zaloSecurityBox.classList.remove('hidden');
         openInExternalSystemBrowser();
         return;
       }
 
-      // 2. Set button loading state
       if (openGoogleBtn) {
         openGoogleBtn.disabled = true;
         openGoogleBtn.style.opacity = '0.75';
@@ -812,7 +841,7 @@ class AppController {
         const gsi = window.google?.accounts?.oauth2;
         if (!gsi) {
           resetGoogleBtnState();
-          if (googleModal) googleModal.classList.remove('hidden');
+          alert('Thư viện Google Identity Services chưa tải xong. Vui lòng kiểm tra kết nối mạng và thử lại.');
           return;
         }
 
@@ -827,7 +856,7 @@ class AppController {
                 console.warn('Google GSI callback error:', tokenResponse);
                 resetGoogleBtnState();
                 if (tokenResponse.error !== 'popup_closed_by_user') {
-                  if (googleModal) googleModal.classList.remove('hidden');
+                  alert('Lỗi đăng nhập Google: ' + tokenResponse.error);
                 }
                 return;
               }
@@ -835,7 +864,7 @@ class AppController {
               const accessToken = tokenResponse?.access_token;
               if (!accessToken) {
                 resetGoogleBtnState();
-                if (googleModal) googleModal.classList.remove('hidden');
+                alert('Không nhận được access token từ Google.');
                 return;
               }
 
@@ -845,7 +874,7 @@ class AppController {
                 });
                 if (!res.ok) {
                   resetGoogleBtnState();
-                  if (googleModal) googleModal.classList.remove('hidden');
+                  alert('Không thể tải thông tin tài khoản từ Google.');
                   return;
                 }
                 const profile = await res.json();
@@ -853,36 +882,36 @@ class AppController {
                 const fullName = profile?.name || email.split('@')[0];
                 const avatar = profile?.picture || '';
 
-                let studentId = '23IT.B219';
-                let className = '23SE4';
-                if (email.includes('23it')) {
-                  studentId = '23IT.B219';
-                } else {
-                  const match = email.match(/[0-9]{2}[a-z0-9.]+/i);
-                  if (match) studentId = match[0].toUpperCase();
+                if (!email.endsWith('@vku.udn.vn')) {
+                  resetGoogleBtnState();
+                  alert(`Tài khoản (${email}) không thuộc tổ chức VKU (@vku.udn.vn). Vui lòng đăng nhập bằng email trường.`);
+                  return;
                 }
+
+                const sIdMatch = email.match(/[0-9]{2}[a-z0-9.]+/i);
+                const studentId = sIdMatch ? sIdMatch[0].toUpperCase() : 'SV-VKU';
 
                 const googleUser = {
                   id: 'USR-G-' + (profile?.sub || Date.now()),
                   fullName: fullName,
                   studentId: studentId,
-                  className: className,
+                  className: 'VKU-SV',
                   email: email,
                   avatar: avatar,
-                  role: 'Sinh viên VKU (Google OAuth 2.0)'
+                  role: 'Sinh viên VKU (Google Verified)'
                 };
 
                 handleGoogleAuthSuccess(googleUser);
               } catch (fetchErr) {
                 console.error('Lỗi lấy userinfo Google:', fetchErr);
                 resetGoogleBtnState();
-                if (googleModal) googleModal.classList.remove('hidden');
+                alert('Lỗi khi kết nối với Google: ' + fetchErr.message);
               }
             },
             error_callback: (err) => {
               console.warn('Google popup error_callback:', err);
               resetGoogleBtnState();
-              if (googleModal) googleModal.classList.remove('hidden');
+              alert('Cửa sổ đăng nhập Google bị chặn hoặc gặp sự cố.');
             }
           });
 
@@ -890,14 +919,13 @@ class AppController {
         } catch (e) {
           console.error('Lỗi token client:', e);
           resetGoogleBtnState();
-          if (googleModal) googleModal.classList.remove('hidden');
+          alert('Không thể khởi tạo phiên đăng nhập Google: ' + e.message);
         }
       };
 
       if (window.google?.accounts?.oauth2) {
         launchGsiTokenFlow();
       } else {
-        // Poll / ensure script loaded
         let checks = 0;
         const timer = setInterval(() => {
           checks++;
@@ -907,7 +935,7 @@ class AppController {
           } else if (checks > 25) {
             clearInterval(timer);
             resetGoogleBtnState();
-            if (googleModal) googleModal.classList.remove('hidden');
+            alert('Không thể tải thư viện Google Identity Services. Vui lòng thử lại sau.');
           }
         }, 100);
       }
@@ -916,52 +944,6 @@ class AppController {
     if (openGoogleBtn) {
       openGoogleBtn.onclick = () => {
         openRealGooglePopupWindow();
-      };
-    }
-
-    const closeGoogleBtn = document.getElementById('btn-close-google-picker');
-    if (closeGoogleBtn && googleModal) {
-      closeGoogleBtn.onclick = () => {
-        googleModal.classList.add('hidden');
-      };
-    }
-
-    document.querySelectorAll('.google-acc-card').forEach(card => {
-      card.onclick = () => {
-        const email = card.dataset.email;
-        const name = card.dataset.name;
-        const id = card.dataset.id;
-        const cls = card.dataset.class;
-        const user = {
-          id: 'USR-G-' + Date.now(),
-          fullName: name,
-          studentId: id,
-          className: cls,
-          email: email,
-          role: 'Tài khoản Google VKU'
-        };
-        handleGoogleAuthSuccess(user);
-      };
-    });
-
-    const customGSubmit = document.getElementById('btn-custom-google-submit');
-    if (customGSubmit) {
-      customGSubmit.onclick = () => {
-        const email = (document.getElementById('custom-google-email').value || '').trim();
-        if (!email || !email.includes('@')) {
-          alert('Vui lòng nhập địa chỉ email hợp lệ!');
-          return;
-        }
-        const name = email.split('@')[0];
-        const user = {
-          id: 'USR-G-' + Date.now(),
-          fullName: name,
-          studentId: 'SV.VKU',
-          className: '23SE4',
-          email: email,
-          role: 'Tài khoản Google VKU'
-        };
-        handleGoogleAuthSuccess(user);
       };
     }
   }
@@ -978,24 +960,42 @@ class AppController {
     // Export CSV
     document.getElementById('btn-export-csv').onclick = () => this.exportCsv();
 
+    // Edit Monthly Budget (D3)
+    const btnEditBudget = document.getElementById('btn-edit-budget');
+    if (btnEditBudget) {
+      btnEditBudget.onclick = () => {
+        const cur = StorageManager.getMonthlyBudget();
+        const input = prompt('Nhập số tiền ngân sách tháng mới (VNĐ):', cur);
+        if (input !== null) {
+          const val = parseInt(input.replace(/[^0-9]/g, ''), 10);
+          if (!isNaN(val) && val > 0) {
+            StorageManager.setMonthlyBudget(val);
+            this.render(false);
+          } else {
+            alert('Vui lòng nhập ngân sách hợp lệ (> 0 VNĐ).');
+          }
+        }
+      };
+    }
+
     // Bottom NavigationBar (ShellRoute: /dash, /scanner, /reports)
     document.querySelectorAll('.nav-dest').forEach(btn => {
       btn.onclick = () => this.navigateShell(btn.dataset.route);
     });
 
-    // FloatingActionButton.extended (Scan / Upload Receipt)
-    document.getElementById('fab-scan-receipt').onclick = () => this.triggerScanOrFilePicker();
+    // FloatingActionButton.extended (Unified triggerImagePicker - E2)
+    document.getElementById('fab-scan-receipt').onclick = () => this.triggerImagePicker();
 
-    // Scanner CTA Card & Button (Adaptive: Desktop File Picker vs Mobile Camera)
+    // Scanner CTA Card & Button (Unified triggerImagePicker - E2)
     const ctaCard = document.getElementById('scanner-cta-card');
     if (ctaCard) {
       ctaCard.onclick = (e) => {
         if (!e.target.closest('#btn-open-scanner')) {
-          this.triggerScanOrFilePicker();
+          this.triggerImagePicker();
         }
       };
     }
-    document.getElementById('btn-open-scanner').onclick = () => this.triggerScanOrFilePicker();
+    document.getElementById('btn-open-scanner').onclick = () => this.triggerImagePicker();
 
     // Account Switcher and Logout Buttons
     const openAccModal = () => this.openAccountModal();
@@ -1262,7 +1262,7 @@ class AppController {
   }
 
   /**
-   * Opens Account Switcher Modal (Đổi Tài Khoản & Quản Lý Hồ Sơ Sinh Viên)
+   * Opens Account Switcher Modal (Đổi Tài Khoản)
    */
   openAccountModal() {
     const modal = document.getElementById('account-modal');
@@ -1270,7 +1270,7 @@ class AppController {
     const nameEl = document.getElementById('acc-modal-active-name');
     const metaEl = document.getElementById('acc-modal-active-meta');
     if (nameEl) nameEl.textContent = this.currentUser.fullName;
-    if (metaEl) metaEl.textContent = `${this.currentUser.studentId} • Lớp ${this.currentUser.className} • ${this.currentUser.email}`;
+    if (metaEl) metaEl.textContent = `${this.currentUser.studentId || ''} • Lớp ${this.currentUser.className || ''} • ${this.currentUser.email}`;
 
     const list = document.getElementById('saved-accounts-list');
     if (list) {
@@ -1294,9 +1294,15 @@ class AppController {
             <button class="btn-switch-to-acc" type="button">Chuyển sang ➔</button>
           `;
           item.onclick = () => {
-            AuthService.setCurrentUser(u);
-            modal.classList.add('hidden');
-            this.syncRouteGuard();
+            const pwd = prompt(`Nhập mật khẩu xác thực cho tài khoản ${u.email}:`);
+            if (pwd === null) return;
+            const res = AuthService.login(u.email, pwd);
+            if (res.success) {
+              modal.classList.add('hidden');
+              this.syncRouteGuard();
+            } else {
+              alert(res.message || 'Mật khẩu xác thực không chính xác.');
+            }
           };
           list.appendChild(item);
         });
@@ -1306,17 +1312,17 @@ class AppController {
   }
 
   /**
-   * Opens Dynamic Route /expense/:id Detail Modal (Week 8 Slide 21-22)
+   * Opens Dynamic Route /expense/:id Detail Modal
    */
   openExpenseDetailModal(txn) {
     this.viewingTxnId = txn.id;
     const cat = CATEGORIES[txn.category] || CATEGORIES.other;
     document.getElementById('detail-cat-icon').textContent = cat.icon;
-    document.getElementById('detail-route-badge').textContent = `GoRouter Path: /expense/${txn.id}`;
+    document.getElementById('detail-route-badge').textContent = `Mã giao dịch: ${txn.id}`;
     document.getElementById('detail-merchant-title').textContent = txn.merchant;
     document.getElementById('detail-amount-value').textContent = this.formatVND(txn.amount);
     document.getElementById('detail-cat-chip').textContent =
-      `${cat.icon} ${cat.name} • Độ tin cậy OCR ${Math.round((txn.confidence || 0.92) * 100)}%`;
+      `${cat.icon} ${cat.name} • Độ tin cậy OCR: ${Math.round((txn.confidence || 0.92) * 100)}%`;
     document.getElementById('detail-thumb-img').src = txn.thumbnail || '';
     document.getElementById('detail-date-text').textContent = `Ngày giao dịch: ${txn.date}`;
     document.getElementById('detail-notes-text').textContent = `Ghi chú: ${txn.notes || 'Không có ghi chú'}`;
@@ -1357,21 +1363,34 @@ class AppController {
     const video = document.getElementById('camera-video');
     if (this.cameraStream && video.readyState >= 2 && video.videoWidth > 0) {
       const c = document.createElement('canvas');
-      c.width = 480;
-      c.height = 600;
+      c.width = video.videoWidth || 640;
+      c.height = video.videoHeight || 480;
       const ctx = c.getContext('2d');
       ctx.drawImage(video, 0, 0, c.width, c.height);
-      const croppedBase64 = c.toDataURL('image/jpeg', 0.85);
-      await this.runRealOrFallbackOcr(croppedBase64, '');
+      const croppedBase64 = c.toDataURL('image/jpeg', 0.88);
+      await this.runRealOrFallbackOcr(croppedBase64, 'camera_capture.jpg');
     } else {
+      alert('Không nhận được luồng hình ảnh từ camera. Vui lòng bấm "Chọn Ảnh Hóa Đơn" để tải ảnh từ máy tính/điện thoại.');
       this.closeScannerModal();
-      const sample = SAMPLE_RECEIPTS[0];
-      const thumb = generateReceiptImageBase64(sample.merchant, sample.amount, sample.date, sample.rawText);
-      this.triggerOcr(sample.rawText, thumb);
     }
   }
 
   async processUploadedImageFile(file) {
+    if (!file) return;
+
+    // D5: Check file size (max 15MB)
+    if (file.size > 15 * 1024 * 1024) {
+      alert('Tệp ảnh quá lớn (>15MB). Vui lòng chọn ảnh có dung lượng nhỏ hơn để bảo đảm hiệu năng nhận dạng.');
+      return;
+    }
+
+    // D5: Check HEIC/HEIF
+    const nameLower = (file.name || '').toLowerCase();
+    if (nameLower.endsWith('.heic') || nameLower.endsWith('.heif') || file.type === 'image/heic') {
+      alert('Định dạng ảnh HEIC từ iPhone chưa được hỗ trợ trực tiếp trong trình duyệt. Vui lòng chuyển ảnh sang định dạng JPEG/PNG hoặc chụp trực tiếp.');
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = async (ev) => {
       const dataUrl = ev.target.result;
@@ -1383,30 +1402,102 @@ class AppController {
   async runRealOrFallbackOcr(imageDataUrl, fileName) {
     const loadingEl = document.getElementById('ocr-loading-overlay');
     const statusMsg = document.getElementById('ocr-status-msg');
-    loadingEl.classList.remove('hidden');
-    statusMsg.textContent = 'Đang cắt khung & trích xuất văn bản bằng AI OCR...';
+    const scannerModal = document.getElementById('scanner-modal');
 
-    let extractedText = '';
-    try {
-      if (window.Tesseract) {
-        const res = await Promise.race([
-          window.Tesseract.recognize(imageDataUrl, 'vie+eng'),
-          new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 6500))
-        ]);
-        extractedText = (res && res.data && res.data.text) ? res.data.text.trim() : '';
-      }
-    } catch (_) {}
-
-    if (!extractedText || extractedText.length < 10) {
-      const lowerName = (fileName || '').toLowerCase();
-      const matched = SAMPLE_RECEIPTS.find(s =>
-        lowerName.includes(s.category) || lowerName.includes(s.merchant.toLowerCase().split(' ')[0])
-      ) || SAMPLE_RECEIPTS[0];
-      extractedText = matched.rawText;
+    if (scannerModal && !scannerModal.classList.contains('hidden')) {
+      if (loadingEl) loadingEl.classList.remove('hidden');
+      if (statusMsg) statusMsg.textContent = 'Đang nhận dạng văn bản bằng Tesseract.js OCR...';
     }
 
+    const startTime = performance.now();
+    let extractedText = '';
+    let ocrConfidence = 0;
+
+    try {
+      if (window.Tesseract) {
+        const res = await window.Tesseract.recognize(imageDataUrl, 'vie+eng', {
+          logger: (m) => {
+            if (m && m.status === 'recognizing text' && statusMsg) {
+              const pct = Math.round((m.progress || 0) * 100);
+              statusMsg.textContent = `Đang nhận dạng văn bản (${pct}%)...`;
+            }
+          }
+        });
+        extractedText = (res && res.data && res.data.text) ? res.data.text.trim() : '';
+        ocrConfidence = (res && res.data && typeof res.data.confidence === 'number')
+          ? Math.max(0, Math.min(100, Math.round(res.data.confidence)))
+          : 0;
+      }
+    } catch (err) {
+      console.warn('Lỗi OCR Tesseract:', err);
+    }
+
+    const latencyMs = Math.round(performance.now() - startTime);
+
+    if (loadingEl) loadingEl.classList.add('hidden');
     this.closeScannerModal();
-    this.triggerOcr(extractedText, imageDataUrl);
+
+    // B2: If OCR did not detect text, report honestly to user. DO NOT replace with mock sample!
+    if (!extractedText || extractedText.replace(/\s+/g, '').length < 5) {
+      alert('Không nhận dạng được chữ rõ ràng từ ảnh này (ảnh có thể bị mờ, lóa hoặc không đủ sáng). Vui lòng thử chụp lại rõ nét hơn hoặc tự nhập thông tin hóa đơn.');
+      this.currentPendingResult = {
+        merchant: '',
+        amount: 0,
+        date: new Date().toISOString().slice(0, 10),
+        category: 'other',
+        confidence: 0,
+        latencyMs: latencyMs,
+        rawText: extractedText || '(Không phát hiện văn bản rõ ràng)',
+        thumbnail: imageDataUrl
+      };
+      this.editingTxnId = null;
+
+      document.getElementById('review-modal-title').textContent = 'Nhập Thông Tin Hóa Đơn';
+      document.getElementById('edit-merchant').value = '';
+      document.getElementById('edit-amount').value = '';
+      document.getElementById('edit-date').value = new Date().toISOString().slice(0, 10);
+      document.getElementById('edit-notes').value = '';
+      document.getElementById('raw-ocr-preview').textContent = extractedText || '(Trống)';
+      document.getElementById('conf-score-text').textContent = 'Độ tin cậy OCR: 0%';
+      document.getElementById('conf-latency-text').textContent = `Thời gian xử lý: ${latencyMs} ms`;
+      const thumbImg = document.getElementById('receipt-thumb-img');
+      if (thumbImg) thumbImg.src = imageDataUrl;
+      this.renderReviewCategoryChips('other');
+      document.getElementById('review-modal').classList.remove('hidden');
+      return;
+    }
+
+    // Parse extracted text with regex
+    const parsed = RegexReceiptParser.parse(extractedText);
+    const finalConfidence = ocrConfidence > 0 ? (ocrConfidence / 100) : parsed.confidence;
+
+    this.currentPendingResult = {
+      ...parsed,
+      confidence: finalConfidence,
+      latencyMs: latencyMs,
+      thumbnail: imageDataUrl
+    };
+    this.editingTxnId = null;
+
+    document.getElementById('review-modal-title').textContent = 'Kiểm Tra & Lưu Hóa Đơn AI';
+    document.getElementById('edit-merchant').value = parsed.merchant;
+    document.getElementById('edit-amount').value = parsed.amount || '';
+    document.getElementById('edit-date').value = parsed.date;
+    document.getElementById('edit-notes').value = '';
+    document.getElementById('raw-ocr-preview').textContent = extractedText;
+
+    const confScore = Math.round(finalConfidence * 100);
+    document.getElementById('conf-score-text').textContent = `Độ tin cậy OCR: ${confScore}%`;
+    document.getElementById('conf-latency-text').textContent = `Thời gian nhận dạng: ${latencyMs} ms`;
+
+    const diagOcr = document.getElementById('diag-ocr-latency');
+    if (diagOcr) diagOcr.textContent = `${latencyMs} ms (Tesseract.js WASM)`;
+
+    const thumbImg = document.getElementById('receipt-thumb-img');
+    if (thumbImg) thumbImg.src = imageDataUrl;
+
+    this.renderReviewCategoryChips(parsed.category);
+    document.getElementById('review-modal').classList.remove('hidden');
   }
 
   triggerOcr(rawText, thumbnailDataUrl = null, existingTxn = null) {
@@ -1416,7 +1507,7 @@ class AppController {
       date: existingTxn.date,
       category: existingTxn.category,
       confidence: existingTxn.confidence || 0.95,
-      latencyMs: 18,
+      latencyMs: 15,
       rawText: existingTxn.rawText || ''
     } : RegexReceiptParser.parse(rawText);
 
@@ -1442,10 +1533,8 @@ class AppController {
     thumbImg.src = this.currentPendingResult.thumbnail;
 
     const confScore = Math.round(result.confidence * 100);
-    document.getElementById('conf-score-text').textContent =
-      `Độ chính xác AI: ${confScore}% (${confScore >= 80 ? 'Rất cao' : 'Khá'})`;
-    document.getElementById('conf-latency-text').textContent =
-      `Trích xuất On-Device trong ${result.latencyMs || 24}ms • Zero Cloud Cost`;
+    document.getElementById('conf-score-text').textContent = `Độ tin cậy OCR: ${confScore}%`;
+    document.getElementById('conf-latency-text').textContent = `Thời gian xử lý: ${result.latencyMs || 15} ms`;
 
     this.renderReviewCategoryChips(result.category);
     document.getElementById('review-modal').classList.remove('hidden');
@@ -1521,7 +1610,7 @@ class AppController {
   }
 
   exportCsv() {
-    const headers = ['Mã GD', 'Đơn vị bán hàng', 'Số tiền (VND)', 'Ngày GD', 'Danh mục', 'Độ tin cậy AI', 'Ghi chú'];
+    const headers = ['Mã GD', 'Đơn vị bán hàng', 'Số tiền (VND)', 'Ngày GD', 'Danh mục', 'Độ tin cậy OCR', 'Ghi chú'];
     const rows = this.transactions.map(t => [
       t.id,
       `"${(t.merchant || '').replace(/"/g, '""')}"`,
@@ -1578,9 +1667,21 @@ class AppController {
     document.getElementById('kpi-total-amount').textContent = this.formatVND(totalAmount);
     document.getElementById('kpi-total-count').textContent = `${this.transactions.length} giao dịch đã lưu`;
 
-    const budget = 3500000;
-    const pct = Math.min(100, Math.round((totalAmount / budget) * 100));
-    document.getElementById('kpi-budget-progress').textContent = `Đã dùng: ${pct}% ngân sách`;
+    const budget = StorageManager.getMonthlyBudget();
+    const budgetEl = document.getElementById('kpi-budget-amount');
+    if (budgetEl) budgetEl.textContent = this.formatVND(budget);
+
+    const pct = budget > 0 ? Math.round((totalAmount / budget) * 100) : 0;
+    const progressEl = document.getElementById('kpi-budget-progress');
+    if (progressEl) {
+      if (pct >= 100) {
+        progressEl.innerHTML = `<span style="color:#ef4444;font-weight:700;">⚠️ Vượt ngân sách: ${pct}%</span>`;
+      } else if (pct >= 80) {
+        progressEl.innerHTML = `<span style="color:#f59e0b;font-weight:700;">⚠️ Cảnh báo: Đã dùng ${pct}%</span>`;
+      } else {
+        progressEl.textContent = `Đã dùng: ${pct}% ngân sách`;
+      }
+    }
 
     this.renderFilterCategoryChips();
 
@@ -1598,7 +1699,7 @@ class AppController {
     const listWrap = document.getElementById('transactions-list');
     listWrap.innerHTML = '';
     if (filtered.length === 0) {
-      listWrap.innerHTML = '<div style="padding:20px;text-align:center;color:#64748b;">Không có khoản chi nào khớp bộ lọc.</div>';
+      listWrap.innerHTML = '<div style="padding:20px;text-align:center;color:#64748b;">Chưa có giao dịch nào. Bấm "Chọn Ảnh Hóa Đơn" hoặc thử mẫu để bắt đầu.</div>';
     } else {
       filtered.forEach(t => {
         const cat = CATEGORIES[t.category] || CATEGORIES.other;
@@ -1615,7 +1716,7 @@ class AppController {
           </div>
           <div class="txn-amount-wrap">
             <div class="txn-amount">${this.formatVND(t.amount)}</div>
-            <span class="txn-confidence">OCR ${Math.round((t.confidence || 0.92) * 100)}%</span>
+            <span class="txn-confidence">Độ tin cậy OCR: ${Math.round((t.confidence || 0.92) * 100)}%</span>
           </div>
           <button class="txn-del-btn" title="Xóa" onclick="app.deleteTransaction('${t.id}', event)">✕</button>
         `;
@@ -1748,14 +1849,25 @@ class AppController {
 
     ctx.clearRect(0, 0, w, h);
 
-    const dayLabels = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+    const dayLabels = [];
+    const dateStrings = [];
     const weeklyData = [0, 0, 0, 0, 0, 0, 0];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today.getTime() - i * 86400000);
+      const dd = String(d.getDate()).padStart(2, '0');
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const yyyy = d.getFullYear();
+      dayLabels.push(`${dd}/${mm}`);
+      dateStrings.push(`${yyyy}-${mm}-${dd}`);
+    }
 
     this.transactions.forEach(t => {
-      const d = new Date(t.date);
-      if (!isNaN(d.getTime())) {
-        const dayIndex = (d.getDay() + 6) % 7;
-        weeklyData[dayIndex] += t.amount;
+      const idx = dateStrings.indexOf(t.date);
+      if (idx !== -1) {
+        weeklyData[idx] += t.amount;
       }
     });
 
