@@ -534,10 +534,51 @@ class AppController {
     this.initDesktopAdaptation();
     this.initZaloDetector();
     this.initBatteryPlatformChannel();
+    this.checkUrlForOAuthCallback();
     this.initAuthUI();
     this.initUI();
     this.syncRouteGuard();
     this.prewarmOcrWorker();
+  }
+
+  checkUrlForOAuthCallback() {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const rawAuth = params.get('vku_auth');
+      if (rawAuth) {
+        const profile = JSON.parse(decodeURIComponent(rawAuth));
+        const email = (profile.email || '').trim().toLowerCase();
+        const fullName = profile.name || email.split('@')[0];
+        const avatar = profile.picture || '';
+
+        const sIdMatch = email.match(/[0-9]{2}[a-z0-9.]+/i);
+        const studentId = sIdMatch ? sIdMatch[0].toUpperCase() : 'SV-VKU';
+
+        const googleUser = {
+          id: 'USR-G-' + (profile.sub || Date.now()),
+          fullName: fullName,
+          studentId: studentId,
+          className: 'VKU-23ITB',
+          email: email,
+          avatar: avatar,
+          role: 'Sinh viên VKU (Google Verified)'
+        };
+
+        const users = AuthService.getUsers();
+        users[email] = googleUser;
+        AuthService.saveUsers(users);
+        AuthService.setCurrentUser(googleUser);
+
+        // Remove OAuth param from URL without reloading
+        const cleanUrl = window.location.pathname + window.location.hash;
+        window.history.replaceState({}, document.title, cleanUrl);
+
+        this.currentUser = googleUser;
+        this.currentRoute = '/dash';
+      }
+    } catch (err) {
+      console.warn('OAuth URL callback parse error:', err);
+    }
   }
 
   initDesktopAdaptation() {
@@ -852,6 +893,29 @@ class AppController {
       }
     };
 
+    // Quick VKU Student 1-Tap Login
+    const btnQuickThuong = document.getElementById('btn-quick-fill-thuong');
+    if (btnQuickThuong) {
+      btnQuickThuong.onclick = () => {
+        const u = {
+          id: 'USR-VKU-23ITB-THUONG',
+          fullName: 'Nguyễn Thị Thương',
+          studentId: '23ITB',
+          className: '23ITB',
+          email: 'thuongnt.23itb@vku.udn.vn',
+          role: 'Sinh viên VKU (Google Verified)',
+          passwordHash: AuthService.hashPassword('Vku@2026')
+        };
+        const users = AuthService.getUsers();
+        users[u.email] = u;
+        AuthService.saveUsers(users);
+        AuthService.setCurrentUser(u);
+        this.currentUser = u;
+        this.currentRoute = '/dash';
+        this.syncRouteGuard();
+      };
+    }
+
     // Quick Guest / Demo Experience button
     const btnQuickDemo = document.getElementById('btn-quick-fill-demo');
     if (btnQuickDemo) {
@@ -951,11 +1015,27 @@ class AppController {
       this.syncRouteGuard();
     };
 
-    // Real Google OAuth Launch via Authorized Origin Popup Bridge (Project 2 Integration)
+    // Real Google OAuth Launch via Authorized Origin Bridge (Project 2 Integration)
     const openRealGooglePopupWindow = () => {
       if (isEmbeddedWebView()) {
         if (zaloSecurityBox) zaloSecurityBox.classList.remove('hidden');
         openInExternalSystemBrowser();
+        return;
+      }
+
+      const returnUrl = encodeURIComponent(window.location.origin + window.location.pathname);
+      const bridgeUrl = `https://vku-room-booking-17t.pages.dev/oauth-bridge?return_to=${returnUrl}`;
+      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+      // On Mobile (iOS Safari / Chrome), popups get blocked or opened as orphaned tabs.
+      // Redirect directly to the bridge; it finishes OAuth and auto-redirects back with ?vku_auth=...
+      if (isMobile) {
+        if (openGoogleBtn) {
+          openGoogleBtn.disabled = true;
+          openGoogleBtn.style.opacity = '0.75';
+          if (googleBtnText) googleBtnText.textContent = 'Đang chuyển tới Cổng Google VKU...';
+        }
+        window.location.href = bridgeUrl;
         return;
       }
 
@@ -965,7 +1045,6 @@ class AppController {
         if (googleBtnText) googleBtnText.textContent = 'Đang mở cửa sổ Google OAuth...';
       }
 
-      const bridgeUrl = 'https://vku-room-booking-17t.pages.dev/oauth-bridge';
       const width = 480;
       const height = 620;
       const left = window.screenX + (window.outerWidth - width) / 2;
@@ -978,8 +1057,7 @@ class AppController {
       );
 
       if (!popup || popup.closed || typeof popup.closed === 'undefined') {
-        resetGoogleBtnState();
-        alert('Trình duyệt đã chặn cửa sổ Popup Google. Vui lòng cho phép popup để tiếp tục đăng nhập.');
+        window.location.href = bridgeUrl;
         return;
       }
 
