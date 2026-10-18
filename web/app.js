@@ -871,7 +871,7 @@ class AppController {
       this.syncRouteGuard();
     };
 
-    // Real Google OAuth Launch via GSI Token Flow
+    // Real Google OAuth Launch via Authorized Origin Popup Bridge (Project 2 Integration)
     const openRealGooglePopupWindow = () => {
       if (isEmbeddedWebView()) {
         if (zaloSecurityBox) zaloSecurityBox.classList.remove('hidden');
@@ -885,108 +885,59 @@ class AppController {
         if (googleBtnText) googleBtnText.textContent = 'Đang mở cửa sổ Google OAuth...';
       }
 
-      const launchGsiTokenFlow = () => {
-        const gsi = window.google?.accounts?.oauth2;
-        if (!gsi) {
+      const bridgeUrl = 'https://vku-room-booking-17t.pages.dev/oauth-bridge';
+      const width = 480;
+      const height = 620;
+      const left = window.screenX + (window.outerWidth - width) / 2;
+      const top = window.screenY + (window.outerHeight - height) / 2;
+
+      const popup = window.open(
+        bridgeUrl,
+        'VKUGoogleAuthBridge',
+        `width=${width},height=${height},left=${left},top=${top},status=no,menubar=no,toolbar=no`
+      );
+
+      if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+        resetGoogleBtnState();
+        alert('Trình duyệt đã chặn cửa sổ Popup Google. Vui lòng cho phép popup để tiếp tục đăng nhập.');
+        return;
+      }
+
+      const checkClosedTimer = setInterval(() => {
+        if (popup.closed) {
+          clearInterval(checkClosedTimer);
           resetGoogleBtnState();
-          alert('Thư viện Google Identity Services chưa tải xong. Vui lòng kiểm tra kết nối mạng và thử lại.');
-          return;
         }
+      }, 600);
 
-        try {
-          const tokenClient = gsi.initTokenClient({
-            client_id: GOOGLE_CLIENT_ID,
-            scope: 'openid email profile',
-            hosted_domain: 'vku.udn.vn',
-            prompt: 'select_account',
-            callback: async (tokenResponse) => {
-              if (tokenResponse?.error) {
-                console.warn('Google GSI callback error:', tokenResponse);
-                resetGoogleBtnState();
-                if (tokenResponse.error !== 'popup_closed_by_user') {
-                  alert('Lỗi đăng nhập Google: ' + tokenResponse.error + '\n\n💡 Bạn có thể bấm trực tiếp vào tài khoản sinh viên VKU bên dưới để vào ngay mà không lo lỗi ủy quyền domain!');
-                }
-                return;
-              }
+      const handleMessage = (event) => {
+        if (event.data?.type === 'VKU_GOOGLE_AUTH_SUCCESS' && event.data?.profile) {
+          window.removeEventListener('message', handleMessage);
+          clearInterval(checkClosedTimer);
 
-              const accessToken = tokenResponse?.access_token;
-              if (!accessToken) {
-                resetGoogleBtnState();
-                alert('Không nhận được access token từ Google.\n\n💡 Bạn có thể bấm trực tiếp vào tài khoản sinh viên VKU bên dưới để vào ngay!');
-                return;
-              }
+          const profile = event.data.profile;
+          const email = (profile.email || '').trim().toLowerCase();
+          const fullName = profile.name || email.split('@')[0];
+          const avatar = profile.picture || '';
 
-              try {
-                const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-                  headers: { Authorization: `Bearer ${accessToken}` }
-                });
-                if (!res.ok) {
-                  resetGoogleBtnState();
-                  alert('Không thể tải thông tin tài khoản từ Google.');
-                  return;
-                }
-                const profile = await res.json();
-                const email = (profile?.email || '').trim().toLowerCase();
-                const fullName = profile?.name || email.split('@')[0];
-                const avatar = profile?.picture || '';
+          const sIdMatch = email.match(/[0-9]{2}[a-z0-9.]+/i);
+          const studentId = sIdMatch ? sIdMatch[0].toUpperCase() : 'SV-VKU';
 
-                if (!email.endsWith('@vku.udn.vn')) {
-                  resetGoogleBtnState();
-                  alert(`Tài khoản (${email}) không thuộc tổ chức VKU (@vku.udn.vn). Vui lòng đăng nhập bằng email trường.`);
-                  return;
-                }
+          const googleUser = {
+            id: 'USR-G-' + (profile.sub || Date.now()),
+            fullName: fullName,
+            studentId: studentId,
+            className: 'VKU-SV',
+            email: email,
+            avatar: avatar,
+            role: 'Sinh viên VKU (Google Verified)'
+          };
 
-                const sIdMatch = email.match(/[0-9]{2}[a-z0-9.]+/i);
-                const studentId = sIdMatch ? sIdMatch[0].toUpperCase() : 'SV-VKU';
-
-                const googleUser = {
-                  id: 'USR-G-' + (profile?.sub || Date.now()),
-                  fullName: fullName,
-                  studentId: studentId,
-                  className: 'VKU-SV',
-                  email: email,
-                  avatar: avatar,
-                  role: 'Sinh viên VKU (Google Verified)'
-                };
-
-                handleGoogleAuthSuccess(googleUser);
-              } catch (fetchErr) {
-                console.error('Lỗi lấy userinfo Google:', fetchErr);
-                resetGoogleBtnState();
-                alert('Lỗi khi kết nối với Google: ' + fetchErr.message);
-              }
-            },
-            error_callback: (err) => {
-              console.warn('Google popup error_callback:', err);
-              resetGoogleBtnState();
-              alert('Cửa sổ đăng nhập Google bị chặn hoặc gặp lỗi ủy quyền (origin_mismatch do Cloudflare).\n\n💡 Bạn có thể bấm trực tiếp vào tài khoản sinh viên VKU bên dưới để vào ngay!');
-            }
-          });
-
-          tokenClient.requestAccessToken({ prompt: 'select_account' });
-        } catch (e) {
-          console.error('Lỗi token client:', e);
-          resetGoogleBtnState();
-          alert('Không thể khởi tạo phiên đăng nhập Google: ' + e.message);
+          handleGoogleAuthSuccess(googleUser);
         }
       };
 
-      if (window.google?.accounts?.oauth2) {
-        launchGsiTokenFlow();
-      } else {
-        let checks = 0;
-        const timer = setInterval(() => {
-          checks++;
-          if (window.google?.accounts?.oauth2) {
-            clearInterval(timer);
-            launchGsiTokenFlow();
-          } else if (checks > 25) {
-            clearInterval(timer);
-            resetGoogleBtnState();
-            alert('Không thể tải thư viện Google Identity Services. Vui lòng thử lại sau.');
-          }
-        }, 100);
-      }
+      window.addEventListener('message', handleMessage);
     };
 
     if (openGoogleBtn) {
