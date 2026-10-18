@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>VKU OCR Expense Tracker | Quản Lý Chi Tiêu & Nhận Dạng Hóa Đơn</title>
   <meta name="description" content="Ứng dụng quản lý chi tiêu cá nhân và nhận dạng hóa đơn thông minh PWA với công nghệ OCR trong trình duyệt.">
   <meta name="theme-color" content="#0284c7">
@@ -16,13 +16,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=13.0">
+  <link rel="stylesheet" href="style.css?v=14.0">
   <!-- Google Identity Services (OAuth 2.0 @vku.udn.vn) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <!-- On-Device Tesseract.js WebAssembly OCR for uploaded photos -->
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js" defer></script>
   <script>
-    const APP_VERSION = '13.0';
+    const APP_VERSION = '14.0';
     if (localStorage.getItem('vku_app_cache_v') !== APP_VERSION) {
       if ('caches' in window) {
         caches.keys().then(function(names) {
@@ -38,7 +38,7 @@
     }
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
-        navigator.serviceWorker.register('/sw.js?v=13.0').then(function (reg) {
+        navigator.serviceWorker.register('/sw.js?v=14.0').then(function (reg) {
           reg.update();
         }).catch(function () {});
       });
@@ -93,27 +93,27 @@
           <!-- Register-only fields -->
           <div id="register-extra-fields" class="hidden">
             <div class="form-group">
-              <label>HỌ VÀ TÊN SINH VIÊN *</label>
+              <label>HỌ VÀ TÊN *</label>
               <input type="text" id="auth-fullname" class="text-input" placeholder="VD: Nguyễn Văn A">
               <small id="err-fullname" class="field-error hidden"></small>
             </div>
             <div class="form-row-2">
               <div class="form-group">
-                <label>MÃ SINH VIÊN (MSSV) *</label>
-                <input type="text" id="auth-student-id" class="text-input" placeholder="VD: 23IT.B001">
+                <label>MÃ ĐỊNH DANH / MSSV (TÙY CHỌN)</label>
+                <input type="text" id="auth-student-id" class="text-input" placeholder="VD: NV01 hoặc MSSV">
                 <small id="err-student-id" class="field-error hidden"></small>
               </div>
               <div class="form-group">
-                <label>LỚP / ĐƠN VỊ CLB *</label>
-                <input type="text" id="auth-class" class="text-input" placeholder="VD: 23SE1">
+                <label>ĐƠN VỊ / NHÓM (TÙY CHỌN)</label>
+                <input type="text" id="auth-class" class="text-input" placeholder="VD: Cá nhân, Gia đình...">
                 <small id="err-class" class="field-error hidden"></small>
               </div>
             </div>
           </div>
 
           <div class="form-group">
-            <label>EMAIL SINH VIÊN VKU (@vku.udn.vn) *</label>
-            <input type="email" id="auth-email" class="text-input" placeholder="sinhvien@vku.udn.vn">
+            <label>ĐỊA CHỈ EMAIL *</label>
+            <input type="email" id="auth-email" class="text-input" placeholder="name@gmail.com hoặc email trường">
             <small id="err-email" class="field-error hidden"></small>
           </div>
 
@@ -141,28 +141,17 @@
           <span id="btn-google-text">Tiếp tục với Google (@vku.udn.vn)</span>
         </button>
 
-        <!-- Quick Student Account Login Box (Handles Cloudflare origin_mismatch) -->
+        <!-- Quick Guest / Demo Experience Mode -->
         <div class="quick-student-login-box">
-          <div class="quick-login-label">🎓 HOẶC ĐĂNG NHẬP NHANH TÀI KHOẢN SINH VIÊN VKU:</div>
-          <div class="quick-student-chips">
-            <button type="button" id="btn-quick-fill-thuong" class="student-chip active" title="Bấm để đăng nhập bằng tài khoản Nguyễn Thị Thương">
-              <span class="chip-avatar">NT</span>
-              <div class="chip-info">
-                <strong>Nguyễn Thị Thương (23IT.B219)</strong>
-                <small>thuongnt.23itb@vku.udn.vn • Lớp 23SE4</small>
-              </div>
-              <span class="chip-arrow">➔</span>
-            </button>
-            <button type="button" id="btn-quick-fill-demo" class="student-chip" title="Bấm để đăng nhập bằng tài khoản Demo">
-              <span class="chip-avatar">SV</span>
-              <div class="chip-info">
-                <strong>Sinh Viên Demo (23IT.B001)</strong>
-                <small>demo@vku.udn.vn • Lớp 23SE1</small>
-              </div>
-              <span class="chip-arrow">➔</span>
-            </button>
-          </div>
-          <small class="origin-note">💡 Nếu Google báo lỗi ủy quyền <em>(origin_mismatch)</em> do chính sách domain Cloudflare, hãy bấm trực tiếp vào tài khoản trên để vào ngay.</small>
+          <div class="quick-login-label">✨ TRẢI NGHIỆM NGAY KHÔNG CẦN TÀI KHOẢN:</div>
+          <button type="button" id="btn-quick-fill-demo" class="student-chip active" style="width:100%;margin-top:6px;" title="Bấm để trải nghiệm ngay với tư cách Khách">
+            <span class="chip-avatar">🚀</span>
+            <div class="chip-info">
+              <strong>Vào Thử Ngay (Chế Độ Khách / Demo)</strong>
+              <small>Trải nghiệm đầy đủ tính năng Quét OCR, Biểu đồ & Sổ chi tiêu</small>
+            </div>
+            <span class="chip-arrow">➔</span>
+          </button>
         </div>
 
         <!-- Zalo / In-app WebView Security Notice -->
@@ -192,8 +181,8 @@
           <div class="user-bar-left">
             <span class="user-bar-avatar" id="dash-user-avatar">👤</span>
             <div class="user-bar-info">
-              <strong id="dash-user-name">Nguyễn Thị Thương</strong>
-              <small id="dash-user-meta">23IT.B219 • 23SE4 • @vku.udn.vn</small>
+              <strong id="dash-user-name">Người Dùng</strong>
+              <small id="dash-user-meta">Tài khoản cá nhân</small>
             </div>
           </div>
           <button type="button" id="btn-dash-switch-acc" class="btn-switch-pill" title="Chuyển đổi tài khoản">
@@ -207,9 +196,14 @@
             <h2 id="scanner-cta-title">Chọn Ảnh Hóa Đơn & Nhận Dạng AI</h2>
             <p id="scanner-cta-desc">Tải file ảnh hóa đơn từ máy (.JPG, .PNG) hoặc kéo thả vào đây • Nhận dạng tự động</p>
           </div>
-          <button id="btn-open-scanner" class="btn-primary-scan" aria-label="Chọn ảnh hóa đơn">
-            📁 Chọn Ảnh Hóa Đơn
-          </button>
+          <div class="dashboard-cta-row">
+            <button id="btn-open-scanner" class="btn-primary-scan" aria-label="Chọn ảnh hóa đơn">
+              📁 Quét Hóa Đơn AI
+            </button>
+            <button id="btn-manual-add" class="btn-manual-entry" aria-label="Thêm chi tiêu thủ công">
+              ➕ Nhập Tay (Tiền Mặt)
+            </button>
+          </div>
         </section>
 
         <!-- Quick Sample Receipts Tester -->
@@ -333,7 +327,7 @@
             </div>
             <h2 id="profile-hero-name">Người dùng</h2>
             <p id="profile-hero-meta">Tài khoản sinh viên</p>
-            <p id="profile-hero-school">Trường Đại học Công nghệ Thông tin & Truyền thông Việt - Hàn (VKU)</p>
+            <p id="profile-hero-school">Hệ Thống Quản Lý Chi Tiêu & OCR Hóa Đơn Thông Minh</p>
             <p id="profile-hero-advisor">Email: --</p>
           </div>
         </section>
@@ -363,6 +357,15 @@
             <div class="action-text">
               <strong>Xuất Dữ Liệu CSV</strong>
               <small>Tải báo cáo chi tiêu dạng tệp CSV (UTF-8 có BOM)</small>
+            </div>
+            <span class="action-arrow">➔</span>
+          </div>
+
+          <div class="profile-action-card" id="btn-profile-backup-json">
+            <span class="action-icon">💾</span>
+            <div class="action-text">
+              <strong>Sao Lưu Dữ Liệu (Backup JSON)</strong>
+              <small>Tải tệp sao lưu chi tiêu về máy để bảo toàn dữ liệu khi đổi thiết bị</small>
             </div>
             <span class="action-arrow">➔</span>
           </div>
@@ -720,6 +723,6 @@ flutter build apk --release</code></pre>
     </div>
   </div>
 
-  <script src="app.js?v=13.0"></script>
+  <script src="app.js?v=14.0"></script>
 </body>
 </html>

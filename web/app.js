@@ -167,22 +167,13 @@ class AuthService {
 
   static getUsers() {
     const defaultUsers = {
-      'thuongnt.23itb@vku.udn.vn': {
-        id: 'USR-23ITB219',
-        fullName: 'Nguyễn Thị Thương',
-        studentId: '23IT.B219',
-        className: '23SE4',
-        email: 'thuongnt.23itb@vku.udn.vn',
-        role: 'Sinh viên VKU (23SE4)',
-        passwordHash: this.hashPassword('Password@2026')
-      },
-      'demo@vku.udn.vn': {
+      'demo@example.com': {
         id: 'USR-DEMO',
-        fullName: 'Sinh Viên Demo',
-        studentId: '23IT.B001',
-        className: '23SE1',
-        email: 'demo@vku.udn.vn',
-        role: 'Sinh viên VKU',
+        fullName: 'Người Dùng Trải Nghiệm',
+        studentId: 'GUEST-01',
+        className: 'Cá nhân',
+        email: 'demo@example.com',
+        role: 'Khách Trải Nghiệm',
         passwordHash: this.hashPassword('Demo@2026')
       }
     };
@@ -710,11 +701,11 @@ class AppController {
       const el = document.getElementById(id);
       if (el) {
         el.addEventListener('input', () => {
-          if (id === 'auth-email') validateField('auth-email', 'err-email', v => !v.toLowerCase().endsWith('@vku.udn.vn') ? 'Email sinh viên phải có đuôi @vku.udn.vn' : '');
+          if (id === 'auth-email') validateField('auth-email', 'err-email', v => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()) ? 'Vui lòng nhập email hợp lệ (VD: user@gmail.com)' : '');
           if (id === 'auth-password') validateField('auth-password', 'err-password', v => v.length < 8 ? 'Mật khẩu phải có tối thiểu 8 ký tự' : '');
           if (id === 'auth-fullname') validateField('auth-fullname', 'err-fullname', v => v.length < 3 ? 'Vui lòng nhập họ và tên' : '');
-          if (id === 'auth-student-id') validateField('auth-student-id', 'err-student-id', v => !/^[0-9]{2}[A-Z]{2}(\.[A-Z0-9]+)?$/i.test(v) ? 'MSSV không đúng định dạng (Ví dụ: 23IT.B001 hoặc 23IT123)' : '');
-          if (id === 'auth-class') validateField('auth-class', 'err-class', v => v.length < 2 ? 'Vui lòng nhập tên Lớp/Đơn vị' : '');
+          if (id === 'auth-student-id') validateField('auth-student-id', 'err-student-id', v => '');
+          if (id === 'auth-class') validateField('auth-class', 'err-class', v => '');
         });
       }
     });
@@ -722,14 +713,12 @@ class AppController {
     // Submit Form (Login / Register)
     document.getElementById('auth-form').onsubmit = (e) => {
       e.preventDefault();
-      const okEmail = validateField('auth-email', 'err-email', v => !v.toLowerCase().endsWith('@vku.udn.vn') ? 'Email sinh viên phải có đuôi @vku.udn.vn' : '');
+      const okEmail = validateField('auth-email', 'err-email', v => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()) ? 'Vui lòng nhập email hợp lệ (VD: user@gmail.com)' : '');
       const okPwd = validateField('auth-password', 'err-password', v => v.length < 8 ? 'Mật khẩu phải có tối thiểu 8 ký tự' : '');
       let okExtra = true;
       if (!this.isLoginMode) {
         const okName = validateField('auth-fullname', 'err-fullname', v => v.length < 3 ? 'Vui lòng nhập họ và tên' : '');
-        const okSid = validateField('auth-student-id', 'err-student-id', v => !/^[0-9]{2}[A-Z]{2}(\.[A-Z0-9]+)?$/i.test(v) ? 'MSSV không đúng định dạng (Ví dụ: 23IT.B001 hoặc 23IT123)' : '');
-        const okCls = validateField('auth-class', 'err-class', v => v.length < 2 ? 'Vui lòng nhập tên Lớp/Đơn vị' : '');
-        okExtra = okName && okSid && okCls;
+        okExtra = Boolean(okName);
       }
       if (!okEmail || !okPwd || !okExtra) return;
 
@@ -740,8 +729,8 @@ class AppController {
         ? AuthService.login(email, password)
         : AuthService.register({
             fullName: document.getElementById('auth-fullname').value.trim(),
-            studentId: document.getElementById('auth-student-id').value.trim().toUpperCase(),
-            className: document.getElementById('auth-class').value.trim().toUpperCase(),
+            studentId: document.getElementById('auth-student-id').value.trim() || 'USER-01',
+            className: document.getElementById('auth-class').value.trim() || 'Cá nhân',
             email,
             password
           });
@@ -756,32 +745,24 @@ class AppController {
       }
     };
 
-    // Quick Student Account Login buttons (Handles origin_mismatch)
-    const btnQuickThuong = document.getElementById('btn-quick-fill-thuong');
-    if (btnQuickThuong) {
-      btnQuickThuong.onclick = () => {
-        const users = AuthService.getUsers();
-        const u = users['thuongnt.23itb@vku.udn.vn'];
-        if (u) {
-          AuthService.setCurrentUser(u);
-          this.currentUser = u;
-          this.currentRoute = '/dash';
-          this.syncRouteGuard();
-        }
-      };
-    }
-
+    // Quick Guest / Demo Experience button
     const btnQuickDemo = document.getElementById('btn-quick-fill-demo');
     if (btnQuickDemo) {
       btnQuickDemo.onclick = () => {
         const users = AuthService.getUsers();
-        const u = users['demo@vku.udn.vn'];
-        if (u) {
-          AuthService.setCurrentUser(u);
-          this.currentUser = u;
-          this.currentRoute = '/dash';
-          this.syncRouteGuard();
-        }
+        let u = users['demo@example.com'] || {
+          id: 'USR-GUEST',
+          fullName: 'Khách Trải Nghiệm',
+          studentId: 'GUEST-01',
+          className: 'Cá nhân',
+          email: 'guest@example.com',
+          role: 'Người Dùng Khách',
+          passwordHash: AuthService.hashPassword('Demo@2026')
+        };
+        AuthService.setCurrentUser(u);
+        this.currentUser = u;
+        this.currentRoute = '/dash';
+        this.syncRouteGuard();
       };
     }
 
@@ -989,12 +970,35 @@ class AppController {
     const ctaCard = document.getElementById('scanner-cta-card');
     if (ctaCard) {
       ctaCard.onclick = (e) => {
-        if (!e.target.closest('#btn-open-scanner')) {
+        if (!e.target.closest('#btn-open-scanner') && !e.target.closest('#btn-manual-add')) {
           this.triggerImagePicker();
         }
       };
+      ctaCard.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        ctaCard.classList.add('drag-over');
+      });
+      ctaCard.addEventListener('dragleave', () => {
+        ctaCard.classList.remove('drag-over');
+      });
+      ctaCard.addEventListener('drop', (e) => {
+        e.preventDefault();
+        ctaCard.classList.remove('drag-over');
+        if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) {
+          this.processImageFile(e.dataTransfer.files[0]);
+        }
+      });
     }
-    document.getElementById('btn-open-scanner').onclick = () => this.triggerImagePicker();
+    const btnOpenScan = document.getElementById('btn-open-scanner');
+    if (btnOpenScan) btnOpenScan.onclick = () => this.triggerImagePicker();
+
+    const btnManual = document.getElementById('btn-manual-add');
+    if (btnManual) {
+      btnManual.onclick = (e) => {
+        e.stopPropagation();
+        this.openManualEntryModal();
+      };
+    }
 
     // Account Switcher and Logout Buttons
     const openAccModal = () => this.openAccountModal();
@@ -1034,6 +1038,11 @@ class AppController {
     const btnProfExport = document.getElementById('btn-profile-export-csv');
     if (btnProfExport) {
       btnProfExport.onclick = () => this.exportCsv();
+    }
+
+    const btnProfBackup = document.getElementById('btn-profile-backup-json');
+    if (btnProfBackup) {
+      btnProfBackup.onclick = () => this.exportJsonBackup();
     }
 
     const btnCloseAccModal = document.getElementById('btn-close-account-modal');
@@ -1492,6 +1501,11 @@ class AppController {
     const diagOcr = document.getElementById('diag-ocr-latency');
     if (diagOcr) diagOcr.textContent = `${latencyMs} ms (Tesseract.js WASM)`;
 
+    const thumbWrap = document.getElementById('receipt-thumb-wrap');
+    if (thumbWrap) thumbWrap.style.display = '';
+    const confBanner = document.getElementById('review-confidence-banner');
+    if (confBanner) confBanner.style.display = '';
+
     const thumbImg = document.getElementById('receipt-thumb-img');
     if (thumbImg) thumbImg.src = imageDataUrl;
 
@@ -1527,6 +1541,11 @@ class AppController {
     document.getElementById('raw-ocr-preview').textContent = result.rawText;
     document.getElementById('err-edit-merchant').classList.add('hidden');
     document.getElementById('err-edit-amount').classList.add('hidden');
+
+    const thumbWrap = document.getElementById('receipt-thumb-wrap');
+    if (thumbWrap) thumbWrap.style.display = '';
+    const confBanner = document.getElementById('review-confidence-banner');
+    if (confBanner) confBanner.style.display = '';
 
     const thumbImg = document.getElementById('receipt-thumb-img');
     thumbImg.src = this.currentPendingResult.thumbnail;
@@ -1606,6 +1625,62 @@ class AppController {
     this.transactions = this.transactions.filter(t => t.id !== id);
     StorageManager.saveTransactions(this.transactions);
     this.render(true);
+  }
+
+  openManualEntryModal() {
+    this.editingTxnId = null;
+    this.currentPendingResult = {
+      merchant: '',
+      amount: 0,
+      date: new Date().toISOString().slice(0, 10),
+      category: 'food',
+      confidence: 1.0,
+      latencyMs: 0,
+      thumbnail: '',
+      rawText: '(Khoản chi tiền mặt ghi nhận thủ công - Không có hóa đơn)'
+    };
+    document.getElementById('review-modal-title').textContent = '➕ Thêm Khoản Chi Tiêu Thủ Công';
+    document.getElementById('edit-merchant').value = '';
+    document.getElementById('edit-amount').value = '';
+    document.getElementById('edit-date').value = new Date().toISOString().slice(0, 10);
+    document.getElementById('edit-notes').value = '';
+    document.getElementById('raw-ocr-preview').textContent = '(Khoản chi tiền mặt ghi nhận thủ công - Không có hóa đơn)';
+    document.getElementById('err-edit-merchant').classList.add('hidden');
+    document.getElementById('err-edit-amount').classList.add('hidden');
+
+    const thumbWrap = document.getElementById('receipt-thumb-wrap');
+    if (thumbWrap) thumbWrap.style.display = 'none';
+
+    const confBanner = document.getElementById('review-confidence-banner');
+    if (confBanner) confBanner.style.display = 'none';
+
+    this.renderReviewCategoryChips('food');
+    document.getElementById('review-modal').classList.remove('hidden');
+    setTimeout(() => {
+      const amtInput = document.getElementById('edit-amount');
+      if (amtInput) amtInput.focus();
+    }, 150);
+  }
+
+  exportJsonBackup() {
+    const backupData = {
+      appName: 'Smart Expense OCR Tracker',
+      version: '13.0',
+      exportedAt: new Date().toISOString(),
+      user: this.currentUser ? { fullName: this.currentUser.fullName, email: this.currentUser.email } : null,
+      monthlyBudget: StorageManager.getMonthlyBudget(),
+      transactions: this.transactions
+    };
+    const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `smart_expense_backup_${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    alert('✅ Đã tải tệp sao lưu JSON thành công! Bạn có thể lưu giữ tệp này để bảo toàn dữ liệu.');
   }
 
   exportCsv() {
