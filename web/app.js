@@ -167,6 +167,15 @@ class AuthService {
 
   static getUsers() {
     const defaultUsers = {
+      'thuongnt.23itb@vku.udn.vn': {
+        id: 'USR-23ITB219',
+        fullName: 'Nguyễn Thị Thương',
+        studentId: '23IT.B219',
+        className: '23SE4',
+        email: 'thuongnt.23itb@vku.udn.vn',
+        role: 'Sinh viên VKU (23SE4)',
+        passwordHash: this.hashPassword('Password@2026')
+      },
       'demo@vku.udn.vn': {
         id: 'USR-DEMO',
         fullName: 'Sinh Viên Demo',
@@ -590,6 +599,16 @@ class AppController {
     const profAdvisor = document.getElementById('profile-hero-advisor');
     if (profAdvisor) profAdvisor.textContent = `Email: ${this.currentUser.email}`;
 
+    const dashAvatar = document.getElementById('dash-user-avatar');
+    if (dashAvatar) dashAvatar.textContent = initials || 'VKU';
+    const dashName = document.getElementById('dash-user-name');
+    if (dashName) dashName.textContent = this.currentUser.fullName || 'Sinh viên VKU';
+    const dashMeta = document.getElementById('dash-user-meta');
+    if (dashMeta) dashMeta.textContent = `${this.currentUser.studentId || ''} • Lớp ${this.currentUser.className || ''} • ${this.currentUser.email}`;
+
+    const btnDashSwitch = document.getElementById('btn-dash-switch-acc');
+    if (btnDashSwitch) btnDashSwitch.onclick = () => this.openAccountModal();
+
     const topAvatar = document.getElementById('user-avatar-badge');
     if (topAvatar) topAvatar.textContent = initials || 'VKU';
     const topTitle = document.getElementById('user-profile-title');
@@ -737,6 +756,35 @@ class AppController {
       }
     };
 
+    // Quick Student Account Login buttons (Handles origin_mismatch)
+    const btnQuickThuong = document.getElementById('btn-quick-fill-thuong');
+    if (btnQuickThuong) {
+      btnQuickThuong.onclick = () => {
+        const users = AuthService.getUsers();
+        const u = users['thuongnt.23itb@vku.udn.vn'];
+        if (u) {
+          AuthService.setCurrentUser(u);
+          this.currentUser = u;
+          this.currentRoute = '/dash';
+          this.syncRouteGuard();
+        }
+      };
+    }
+
+    const btnQuickDemo = document.getElementById('btn-quick-fill-demo');
+    if (btnQuickDemo) {
+      btnQuickDemo.onclick = () => {
+        const users = AuthService.getUsers();
+        const u = users['demo@vku.udn.vn'];
+        if (u) {
+          AuthService.setCurrentUser(u);
+          this.currentUser = u;
+          this.currentRoute = '/dash';
+          this.syncRouteGuard();
+        }
+      };
+    }
+
     // Logout Button in AppBar
     const appLogoutBtn = document.getElementById('btn-logout-user');
     if (appLogoutBtn) {
@@ -856,7 +904,7 @@ class AppController {
                 console.warn('Google GSI callback error:', tokenResponse);
                 resetGoogleBtnState();
                 if (tokenResponse.error !== 'popup_closed_by_user') {
-                  alert('Lỗi đăng nhập Google: ' + tokenResponse.error);
+                  alert('Lỗi đăng nhập Google: ' + tokenResponse.error + '\n\n💡 Bạn có thể bấm trực tiếp vào tài khoản sinh viên VKU bên dưới để vào ngay mà không lo lỗi ủy quyền domain!');
                 }
                 return;
               }
@@ -864,7 +912,7 @@ class AppController {
               const accessToken = tokenResponse?.access_token;
               if (!accessToken) {
                 resetGoogleBtnState();
-                alert('Không nhận được access token từ Google.');
+                alert('Không nhận được access token từ Google.\n\n💡 Bạn có thể bấm trực tiếp vào tài khoản sinh viên VKU bên dưới để vào ngay!');
                 return;
               }
 
@@ -911,7 +959,7 @@ class AppController {
             error_callback: (err) => {
               console.warn('Google popup error_callback:', err);
               resetGoogleBtnState();
-              alert('Cửa sổ đăng nhập Google bị chặn hoặc gặp sự cố.');
+              alert('Cửa sổ đăng nhập Google bị chặn hoặc gặp lỗi ủy quyền (origin_mismatch do Cloudflare).\n\n💡 Bạn có thể bấm trực tiếp vào tài khoản sinh viên VKU bên dưới để vào ngay!');
             }
           });
 

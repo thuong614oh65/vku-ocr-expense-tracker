@@ -1320,9 +1320,10 @@ body {
   background: var(--card-bg);
   border-top: 1px solid var(--border-color);
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  padding: 6px 12px 10px;
+  grid-template-columns: repeat(4, 1fr);
+  padding: 6px 4px 8px;
   z-index: 95;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.04);
 }
 
 .nav-dest {
@@ -1331,12 +1332,14 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 3px;
-  padding: 6px 4px;
+  padding: 6px 2px;
   border-radius: 12px;
   cursor: pointer;
   color: var(--text-muted);
   transition: all 0.15s ease;
+  min-width: 0;
 }
 
 .nav-dest.active {
@@ -1350,27 +1353,213 @@ body {
 
 .nav-label {
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 /* FloatingActionButton.extended (Week 7 Slide 28) */
 .fab-extended {
   position: fixed;
-  bottom: 76px;
-  right: max(18px, calc(50vw - 242px));
+  bottom: 68px;
+  right: max(16px, calc(50vw - 235px));
   background: var(--primary);
   color: #ffffff;
   border: none;
-  border-radius: 16px;
-  padding: 12px 16px;
+  border-radius: 24px;
+  padding: 10px 16px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  box-shadow: 0 4px 16px rgba(2, 132, 199, 0.35);
+  cursor: pointer;
+  z-index: 90;
+}
+
+/* Active User Bar on Dashboard */
+.active-user-bar {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.user-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.user-bar-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--primary-light);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 13px;
   font-weight: 800;
-  box-shadow: 0 6px 20px rgba(2, 132, 199, 0.38);
+  flex-shrink: 0;
+}
+
+.user-bar-info {
+  min-width: 0;
+}
+
+.user-bar-info strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-bar-info small {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.btn-switch-pill {
+  background: var(--primary-light);
+  color: var(--primary);
+  border: 1.5px solid var(--primary);
+  border-radius: 18px;
+  padding: 6px 12px;
+  font-size: 11.5px;
+  font-weight: 700;
   cursor: pointer;
-  z-index: 96;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.btn-switch-pill:hover {
+  background: var(--primary);
+  color: #ffffff;
+}
+
+/* Quick Student Login Box on Auth Screen */
+.quick-student-login-box {
+  margin-top: 14px;
+  padding: 12px;
+  background: #f8fafc;
+  border: 1px dashed var(--border-color);
+  border-radius: 12px;
+}
+
+body.dark-mode .quick-student-login-box {
+  background: #0f172a;
+}
+
+.quick-login-label {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--primary);
+  margin-bottom: 8px;
+  letter-spacing: 0.3px;
+}
+
+.quick-student-chips {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.student-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--card-bg);
+  border: 1.5px solid var(--border-color);
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+  width: 100%;
+}
+
+body.dark-mode .student-chip {
+  background: #1e293b;
+}
+
+.student-chip.active {
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
+
+body.dark-mode .student-chip.active {
+  background: rgba(2, 132, 199, 0.2);
+}
+
+.chip-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.chip-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.chip-info strong {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chip-info small {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.chip-arrow {
+  color: var(--primary);
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.origin-note {
+  display: block;
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.4;
 }
 
 /* Dynamic Route /expense/:id Detail Modal */
