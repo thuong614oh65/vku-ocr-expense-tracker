@@ -13,6 +13,8 @@ import '../widgets/custom_bar_chart.dart';
 import '../widgets/expense_summary_card.dart';
 import 'camera_scanner_screen.dart';
 import 'receipt_review_screen.dart';
+import '../models/user_profile.dart';
+import '../services/device_info_channel.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -58,6 +60,147 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     if (res == true && mounted) {
       setState(() {});
     }
+  }
+
+  void _showAccountSwitcher(BuildContext context) {
+    final auth = AuthService.instance;
+    final currentUser = auth.currentUser;
+    final saved = auth.savedProfiles;
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(18.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Quản Lý & Đổi Tài Khoản',
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0284C7).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFF0284C7)),
+                  ),
+                  child: Row(
+                    children: [
+                      const CircleAvatar(
+                        backgroundColor: Color(0xFF0284C7),
+                        child:
+                            Icon(Icons.check, color: Colors.white, size: 18),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${currentUser?.fullName ?? "Nguyễn Thị Thương"} (Đang dùng)',
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w800, fontSize: 13.5),
+                            ),
+                            Text(
+                              '${currentUser?.studentId} • ${currentUser?.email}',
+                              style: const TextStyle(
+                                  fontSize: 11, color: Color(0xFF64748B)),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                if (saved.length > 1) ...[
+                  const Text(
+                    'TÀI KHOẢN KHÁC TRÊN THIẾT BỊ:',
+                    style: TextStyle(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF64748B)),
+                  ),
+                  const SizedBox(height: 6),
+                  ...saved
+                      .where((p) => p.email != currentUser?.email)
+                      .map((p) => ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: Colors.grey.shade200,
+                              child: Text(
+                                  p.fullName.isNotEmpty ? p.fullName[0] : 'U'),
+                            ),
+                            title: Text(p.fullName,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w700, fontSize: 13)),
+                            subtitle: Text('${p.studentId} • ${p.email}',
+                                style: const TextStyle(fontSize: 11)),
+                            trailing: ElevatedButton(
+                              onPressed: () async {
+                                Navigator.pop(ctx);
+                                await auth.switchToProfile(p);
+                                if (mounted) setState(() {});
+                              },
+                              child: const Text('Chọn',
+                                  style: TextStyle(fontSize: 12)),
+                            ),
+                          )),
+                  const SizedBox(height: 10),
+                ],
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.add),
+                        label: const Text('Thêm Tài Khoản'),
+                        onPressed: () async {
+                          Navigator.pop(ctx);
+                          await auth.logout();
+                          if (context.mounted) context.go('/login');
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFEF4444)),
+                        icon: const Icon(Icons.logout, color: Colors.white),
+                        label: const Text('Đăng Xuất',
+                            style: TextStyle(color: Colors.white)),
+                        onPressed: () async {
+                          Navigator.pop(ctx);
+                          await auth.logout();
+                          if (context.mounted) context.go('/login');
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _deleteTxn(String id) async {
@@ -117,6 +260,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           ],
         ),
         actions: [
+          IconButton(
+            tooltip: 'Đổi tài khoản sinh viên',
+            icon: const Icon(Icons.switch_account_outlined,
+                color: Color(0xFF0284C7)),
+            onPressed: () => _showAccountSwitcher(context),
+          ),
           IconButton(
             tooltip:
                 isDark ? 'Chế độ Sáng (Light Mode)' : 'Chế độ Tối (Dark Mode)',
@@ -186,13 +335,42 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            '${user?.fullName ?? "Nguyễn Thị Thương"} • ${user?.studentId ?? "23IT.B219"}',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 14.5,
-                              fontWeight: FontWeight.w800,
-                            ),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  '${user?.fullName ?? "Nguyễn Thị Thương"} • ${user?.studentId ?? "23IT.B219"}',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 14.5,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
+                              FutureBuilder<int>(
+                                future: DeviceInfoChannel.getBatteryLevel(),
+                                builder: (context, snapshot) {
+                                  final level = snapshot.data ?? 96;
+                                  return Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 7, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.22),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(color: Colors.white38),
+                                    ),
+                                    child: Text(
+                                      '🔋 $level%',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 2),
                           Text(
@@ -202,6 +380,73 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               fontSize: 11,
                               fontWeight: FontWeight.w500,
                             ),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              InkWell(
+                                onTap: () => _showAccountSwitcher(context),
+                                borderRadius: BorderRadius.circular(8),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: Colors.white30),
+                                  ),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.switch_account,
+                                          size: 13, color: Colors.white),
+                                      SizedBox(width: 4),
+                                      Text(
+                                        'Đổi TK',
+                                        style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 10.5,
+                                            fontWeight: FontWeight.w700),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              InkWell(
+                                onTap: () async {
+                                  await AuthService.instance.logout();
+                                  if (context.mounted) context.go('/login');
+                                },
+                                borderRadius: BorderRadius.circular(8),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFEF4444)
+                                        .withOpacity(0.35),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                        color: Colors.redAccent.withOpacity(0.5)),
+                                  ),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.logout,
+                                          size: 13, color: Colors.white),
+                                      SizedBox(width: 4),
+                                      Text(
+                                        'Đăng xuất',
+                                        style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 10.5,
+                                            fontWeight: FontWeight.w700),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),

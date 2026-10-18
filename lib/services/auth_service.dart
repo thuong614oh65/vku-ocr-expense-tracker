@@ -176,6 +176,19 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
   }
 
+  List<UserProfile> get savedProfiles {
+    return _accounts.values
+        .map((a) => UserProfile.fromMap(
+            Map<String, dynamic>.from(a['profile'] as Map)))
+        .toList();
+  }
+
+  Future<void> switchToProfile(UserProfile profile) async {
+    _currentUser = profile;
+    await _saveSession();
+    notifyListeners();
+  }
+
   Future<void> logout() async {
     _currentUser = null;
     final prefs = await SharedPreferences.getInstance();
