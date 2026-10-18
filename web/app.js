@@ -1458,6 +1458,18 @@ class AppController {
       video.style.display = 'none';
       if (hint) hint.textContent = 'Chưa mở được camera. Vui lòng bấm "Chọn Ảnh Hóa Đơn" bên dưới để tải ảnh từ máy, hoặc thử mẫu demo.';
     }
+
+    // Prewarm fast AI model in background while user points camera
+    if (window.Tesseract && !this.isTesseractWarmed) {
+      this.isTesseractWarmed = true;
+      setTimeout(() => {
+        window.Tesseract.recognize(
+          'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+          'vie+eng',
+          { langPath: 'https://tessdata.projectnaptha.com/4.0.0_fast' }
+        ).catch(() => {});
+      }, 150);
+    }
   }
 
   closeScannerModal() {
@@ -1517,7 +1529,7 @@ class AppController {
       const img = new Image();
       img.crossOrigin = 'Anonymous';
       img.onload = () => {
-        const maxDim = 1600;
+        const maxDim = 1000;
         let w = img.width;
         let h = img.height;
         if (w > maxDim || h > maxDim) {
@@ -1549,7 +1561,7 @@ class AppController {
             data[i + 2] = clamped;
           }
           ctx.putImageData(imgData, 0, 0);
-          resolve(canvas.toDataURL('image/jpeg', 0.9));
+          resolve(canvas.toDataURL('image/jpeg', 0.85));
         } catch (_) {
           resolve(imageDataUrl);
         }
@@ -1587,18 +1599,36 @@ class AppController {
       }
 
       // Preprocess image contrast & grayscale before recognition (Item 26)
-      if (statusMsg) statusMsg.textContent = 'Đang tối ưu độ tương phản & khử nhiễu ảnh...';
+      if (statusMsg) statusMsg.textContent = 'Đang tối ưu độ tương phản & làm nét ảnh...';
       const processedImage = await this.preprocessImageForOCR(imageDataUrl);
 
       if (window.Tesseract) {
-        const res = await window.Tesseract.recognize(processedImage, 'vie+eng', {
+        if (statusMsg) statusMsg.textContent = 'Đang khởi động bộ máy AI Vision...';
+        const ocrPromise = window.Tesseract.recognize(processedImage, 'vie+eng', {
+          langPath: 'https://tessdata.projectnaptha.com/4.0.0_fast',
           logger: (m) => {
-            if (m && m.status === 'recognizing text' && statusMsg) {
-              const pct = Math.round((m.progress || 0) * 100);
-              statusMsg.textContent = `Đang nhận dạng văn bản (${pct}%)...`;
+            if (!statusMsg || !m) return;
+            const pct = Math.round((m.progress || 0) * 100);
+            if (m.status === 'loading language traineddata') {
+              statusMsg.textContent = `Đang tải mô hình AI tiếng Việt (${pct}%)...`;
+            } else if (m.status === 'loading tesseract core' || m.status === 'initializing tesseract') {
+              statusMsg.textContent = 'Đang nạp lõi AI WebAssembly...';
+            } else if (m.status === 'initializing api') {
+              statusMsg.textContent = 'Đang cấu hình AI Vision...';
+            } else if (m.status === 'recognizing text') {
+              statusMsg.textContent = `Đang đọc ký tự & số tiền (${pct}%)...`;
+            } else if (m.status) {
+              statusMsg.textContent = `Đang xử lý (${pct}%)...`;
             }
           }
         });
+
+        // 18-second safety timeout so user is never stuck indefinitely
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('OCR_TIMEOUT')), 18000);
+        });
+
+        const res = await Promise.race([ocrPromise, timeoutPromise]);
         extractedText = (res && res.data && res.data.text) ? res.data.text.trim() : '';
         ocrConfidence = (res && res.data && typeof res.data.confidence === 'number')
           ? Math.max(0, Math.min(100, Math.round(res.data.confidence)))
@@ -1606,6 +1636,9 @@ class AppController {
       }
     } catch (err) {
       console.warn('Lỗi OCR Tesseract:', err);
+      if (err.message === 'OCR_TIMEOUT') {
+        alert('Tải mô hình AI bị chậm do tốc độ mạng. Bạn có thể tự điền nhanh thông tin vào form hoặc bấm thử các hóa đơn mẫu phía dưới!');
+      }
     }
 
     const latencyMs = Math.round(performance.now() - startTime);
