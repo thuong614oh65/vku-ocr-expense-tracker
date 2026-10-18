@@ -2814,43 +2814,171 @@ body.dark-mode .btn-manual-entry {
 }
 
 /* ========================================================================
-   RESPONSIVE SAAS DESKTOP 2-COLUMN LAYOUT (C20)
+   REPORTS TAB STYLES & DESKTOP RESPONSIVENESS
    ======================================================================== */
-@media (min-width: 1100px) {
-  #app {
-    max-width: 1160px !important;
-    width: 95%;
+.reports-header-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 16px 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.reports-header-text h2 {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text-main);
+  margin-top: 2px;
+}
+
+.reports-header-text p {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.btn-primary-action {
+  background: var(--primary);
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  padding: 8px 14px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.btn-primary-action:hover {
+  background: var(--primary-dark);
+}
+
+.reports-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+@media (min-width: 640px) {
+  .reports-kpi-grid {
+    grid-template-columns: repeat(4, 1fr);
   }
-  #main-app-shell:not(.route-profile) {
+}
+
+.report-kpi-box {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.report-kpi-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.report-kpi-val {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.report-kpi-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.text-primary { color: var(--primary) !important; }
+.text-success { color: var(--green) !important; }
+.text-warning { color: var(--amber) !important; }
+.text-danger { color: var(--red) !important; }
+
+.reports-charts-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+@media (min-width: 768px) {
+  .reports-charts-grid {
     display: grid;
-    grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
-    gap: 24px;
-    align-items: start;
-    padding: 20px 24px calc(105px + env(safe-area-inset-bottom, 0px));
-    box-sizing: border-box;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
   }
-  #main-app-shell:not(.route-profile) #view-dash {
-    display: flex !important;
-    min-width: 0;
-  }
-  #main-app-shell:not(.route-profile) #view-reports {
-    display: flex !important;
-    min-width: 0;
-    position: sticky;
-    top: 76px;
-  }
-  .bottom-nav {
-    max-width: 1160px;
-    border-radius: 16px 16px 0 0;
-  }
-  .fab-circle-56 {
-    display: none;
-  }
+}
+
+.chart-sub {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.report-category-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  margin-top: 8px;
+}
+
+.report-category-table th {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.report-category-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.table-cat-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .canvas-wrap canvas {
   max-width: 100%;
   height: auto;
+}
+
+@media (min-width: 1100px) {
+  #app {
+    max-width: 880px !important;
+  }
+  .bottom-nav {
+    max-width: 880px;
+    border-radius: 16px 16px 0 0;
+  }
+  .fab-circle-56 {
+    right: max(24px, calc(50vw - 420px));
+  }
 }
 
 @media (max-width: 639px) {

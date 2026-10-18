@@ -969,6 +969,8 @@ class AppController {
 
     // Export CSV
     document.getElementById('btn-export-csv').onclick = () => this.exportCsv();
+    const btnRepExport = document.getElementById('btn-reports-export-csv');
+    if (btnRepExport) btnRepExport.onclick = () => this.exportCsv();
 
     // Edit Monthly Budget (D3)
     const btnEditBudget = document.getElementById('btn-edit-budget');
@@ -1959,6 +1961,81 @@ class AppController {
           advice += `• 🎯 Kiểm soát chi tiêu rất tốt! Bạn còn dư <strong>${this.formatVND(remainingBudget)}</strong> trong hạn mức dự kiến.`;
         }
         insightsEl.innerHTML = advice;
+      }
+    }
+
+    // Populate Reports Tab KPI cards & Category Breakdown Table
+    const repTotalEl = document.getElementById('rep-kpi-total');
+    if (repTotalEl) repTotalEl.textContent = this.formatVND(totalAmount);
+    const repCountEl = document.getElementById('rep-kpi-count');
+    if (repCountEl) repCountEl.textContent = `${this.transactions.length} giao dịch`;
+    const repBudgetEl = document.getElementById('rep-kpi-budget');
+    if (repBudgetEl) repBudgetEl.textContent = this.formatVND(budget);
+    const repRemEl = document.getElementById('rep-kpi-remaining');
+    if (repRemEl) repRemEl.textContent = `Còn lại: ${this.formatVND(remainingBudget)}`;
+    const repPctEl = document.getElementById('rep-kpi-pct');
+    if (repPctEl) repPctEl.textContent = `${pct}%`;
+    const repStatusEl = document.getElementById('rep-kpi-status');
+    if (repStatusEl) {
+      repStatusEl.textContent = pct >= 100 ? 'Vượt hạn mức' : (pct >= 80 ? 'Sắp hết' : 'Ngân sách an toàn');
+      repStatusEl.className = 'report-kpi-sub ' + (pct >= 100 ? 'text-danger' : (pct >= 80 ? 'text-warning' : 'text-success'));
+    }
+
+    const catTotals = {};
+    const catCounts = {};
+    Object.keys(CATEGORIES).forEach(k => {
+      catTotals[k] = 0;
+      catCounts[k] = 0;
+    });
+    this.transactions.forEach(t => {
+      catTotals[t.category] = (catTotals[t.category] || 0) + t.amount;
+      catCounts[t.category] = (catCounts[t.category] || 0) + 1;
+    });
+
+    let topCatKey = 'food';
+    let topCatAmt = 0;
+    Object.keys(catTotals).forEach(k => {
+      if (catTotals[k] > topCatAmt) {
+        topCatAmt = catTotals[k];
+        topCatKey = k;
+      }
+    });
+
+    const repTopCatEl = document.getElementById('rep-kpi-top-cat');
+    if (repTopCatEl) {
+      repTopCatEl.textContent = topCatAmt > 0 ? (CATEGORIES[topCatKey]?.name || '--') : '--';
+    }
+    const repTopAmtEl = document.getElementById('rep-kpi-top-amount');
+    if (repTopAmtEl) {
+      repTopAmtEl.textContent = topCatAmt > 0 ? this.formatVND(topCatAmt) : '0 ₫';
+    }
+
+    const repTbody = document.getElementById('report-category-tbody');
+    if (repTbody) {
+      repTbody.innerHTML = '';
+      if (this.transactions.length === 0) {
+        repTbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:14px;">Chưa có dữ liệu giao dịch để phân loại.</td></tr>';
+      } else {
+        Object.keys(CATEGORIES).forEach(k => {
+          const amt = catTotals[k];
+          const cnt = catCounts[k];
+          if (cnt > 0) {
+            const cat = CATEGORIES[k];
+            const p = totalAmount > 0 ? ((amt / totalAmount) * 100).toFixed(1) : 0;
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td>
+                <span class="table-cat-badge" style="background:${cat.color}18;color:${cat.color};">
+                  ${cat.icon} ${cat.name}
+                </span>
+              </td>
+              <td style="text-align:center;font-weight:700;">${cnt}</td>
+              <td style="text-align:right;font-weight:800;color:var(--text-main);">${this.formatVND(amt)}</td>
+              <td style="text-align:right;font-weight:700;color:var(--primary);">${p}%</td>
+            `;
+            repTbody.appendChild(tr);
+          }
+        });
       }
     }
 

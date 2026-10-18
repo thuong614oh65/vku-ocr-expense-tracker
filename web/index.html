@@ -16,13 +16,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=17.0">
+  <link rel="stylesheet" href="style.css?v=18.0">
   <!-- Google Identity Services (OAuth 2.0 @vku.udn.vn) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <!-- On-Device Tesseract.js WebAssembly OCR for uploaded photos -->
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js" defer></script>
   <script>
-    const APP_VERSION = '17.0';
+    const APP_VERSION = '18.0';
     if (localStorage.getItem('vku_app_cache_v') !== APP_VERSION) {
       if ('caches' in window) {
         caches.keys().then(function(names) {
@@ -39,7 +39,7 @@
     }
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
-        navigator.serviceWorker.register('/sw.js?v=17.0').then(function (reg) {
+        navigator.serviceWorker.register('/sw.js?v=18.0').then(function (reg) {
           reg.update();
         }).catch(function () {});
       });
@@ -328,35 +328,110 @@
       </div>
 
       <!-- ================= TAB 3: /reports (BÁO CÁO & BIỂU ĐỒ CANVAS) ================= -->
-      <div id="view-reports" class="tab-view-pane">
-        <!-- Canvas Chart 1: Donut Pie Chart -->
-        <section class="chart-card">
-          <div class="chart-header">
-            <h3>📊 Cơ Cấu Chi Tiêu</h3>
-            <span class="custom-painter-badge">Biểu đồ cơ cấu</span>
+      <div id="view-reports" class="tab-view-pane hidden">
+        <!-- Reports Header Banner -->
+        <section class="reports-header-card">
+          <div class="reports-header-text">
+            <span class="vku-badge">BÁO CÁO TÀI CHÍNH • FINANCIAL ANALYTICS</span>
+            <h2>Phân Tích & Cơ Cấu Chi Tiêu</h2>
+            <p>Báo cáo tổng hợp số liệu, biểu đồ trực quan và đánh giá tài chính thông minh</p>
           </div>
-          <div class="canvas-wrap">
-            <canvas id="donutChartCanvas" width="240" height="240"></canvas>
-          </div>
-          <div id="pie-legend" class="pie-legend"></div>
+          <button id="btn-reports-export-csv" class="btn-primary-action" title="Tải báo cáo CSV / Excel" aria-label="Tải báo cáo CSV">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span>Xuất Báo Cáo</span>
+          </button>
         </section>
 
-        <!-- Canvas Chart 2: Weekly Spending Bar Chart -->
+        <!-- Reports KPI Quick Overview Grid -->
+        <section class="reports-kpi-grid">
+          <div class="report-kpi-box">
+            <span class="report-kpi-label">Tổng Chi Tiêu</span>
+            <strong id="rep-kpi-total" class="report-kpi-val text-primary">0 ₫</strong>
+            <small id="rep-kpi-count" class="report-kpi-sub">0 giao dịch</small>
+          </div>
+          <div class="report-kpi-box">
+            <span class="report-kpi-label">Hạn Mức Ngân Sách</span>
+            <strong id="rep-kpi-budget" class="report-kpi-val text-success">3.500.000 ₫</strong>
+            <small id="rep-kpi-remaining" class="report-kpi-sub">Còn lại: 3.500.000 ₫</small>
+          </div>
+          <div class="report-kpi-box">
+            <span class="report-kpi-label">Chi Tiêu Cao Nhất</span>
+            <strong id="rep-kpi-top-cat" class="report-kpi-val">--</strong>
+            <small id="rep-kpi-top-amount" class="report-kpi-sub">0 ₫</small>
+          </div>
+          <div class="report-kpi-box">
+            <span class="report-kpi-label">Tỷ Lệ Đã Dùng</span>
+            <strong id="rep-kpi-pct" class="report-kpi-val">0%</strong>
+            <small id="rep-kpi-status" class="report-kpi-sub text-success">Ngân sách an toàn</small>
+          </div>
+        </section>
+
+        <!-- Charts Grid (2 columns on desktop, 1 column on mobile) -->
+        <div class="reports-charts-grid">
+          <!-- Canvas Chart 1: Donut Pie Chart -->
+          <section class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h3>📊 Cơ Cấu Chi Tiêu</h3>
+                <p class="chart-sub">Tỷ trọng phần trăm các khoản chi tiêu</p>
+              </div>
+              <span class="custom-painter-badge">Donut Chart</span>
+            </div>
+            <div class="canvas-wrap">
+              <canvas id="donutChartCanvas" width="240" height="240"></canvas>
+            </div>
+            <div id="pie-legend" class="pie-legend"></div>
+          </section>
+
+          <!-- Canvas Chart 2: Weekly Spending Bar Chart -->
+          <section class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h3>📈 Chi Tiêu 7 Ngày Gần Nhất</h3>
+                <p class="chart-sub">Biến động số tiền tiêu dùng theo từng ngày</p>
+              </div>
+              <span class="custom-painter-badge">Bar Chart</span>
+            </div>
+            <div class="canvas-wrap">
+              <canvas id="barChartCanvas" width="340" height="190"></canvas>
+            </div>
+          </section>
+        </div>
+
+        <!-- Category Summary Breakdown Table -->
         <section class="chart-card">
           <div class="chart-header">
-            <h3>📈 Chi Tiêu 7 Ngày Gần Nhất</h3>
-            <span class="custom-painter-badge">Theo ngày thực tế</span>
+            <div>
+              <h3>📑 Bảng Thống Kê Theo Danh Mục</h3>
+              <p class="chart-sub">Chi tiết số lượng giao dịch và số tiền từng hạng mục</p>
+            </div>
+            <span class="custom-painter-badge">Bảng Thống Kê</span>
           </div>
-          <div class="canvas-wrap">
-            <canvas id="barChartCanvas" width="340" height="190"></canvas>
+          <div class="table-responsive">
+            <table class="report-category-table">
+              <thead>
+                <tr>
+                  <th>Danh mục</th>
+                  <th style="text-align:center;">Số GD</th>
+                  <th style="text-align:right;">Tổng tiền</th>
+                  <th style="text-align:right;">Tỷ trọng</th>
+                </tr>
+              </thead>
+              <tbody id="report-category-tbody">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
           </div>
         </section>
 
         <!-- Financial Insights & AI Advisory Card -->
         <section class="chart-card insights-card">
           <div class="chart-header">
-            <h3>💡 Đánh Giá & Phân Tích Tài Chính AI</h3>
-            <span class="custom-painter-badge">AI Assistant</span>
+            <div>
+              <h3>💡 Đánh Giá & Lời Khuyên Tài Chính AI</h3>
+              <p class="chart-sub">Trợ lý AI phân tích hành vi và tư vấn tối ưu ngân sách</p>
+            </div>
+            <span class="custom-painter-badge">AI Advisor</span>
           </div>
           <div class="insights-content">
             <p id="insights-text">Hệ thống đang phân tích chi tiêu của bạn để đưa ra lời khuyên tối ưu ngân sách cá nhân...</p>
@@ -832,6 +907,6 @@ flutter build apk --release</code></pre>
     </div>
   </div>
 
-  <script src="app.js?v=17.0"></script>
+  <script src="app.js?v=18.0"></script>
 </body>
 </html>
