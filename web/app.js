@@ -1516,7 +1516,7 @@ class AppController {
         openGoogleBtn.disabled = false;
         openGoogleBtn.style.opacity = '1';
         if (googleBtnText) {
-          googleBtnText.textContent = 'Tiếp tục với Google (@vku.udn.vn)';
+          googleBtnText.textContent = 'Tiếp tục với Google (@vku.udn.vn / Gmail)';
         }
       }
     };
@@ -1546,6 +1546,8 @@ class AppController {
       this.currentRoute = '/dash';
       CloudSyncService.pullFromCloud(email).catch(() => {});
       this.syncRouteGuard();
+      this.render();
+      Toast.show(`Đăng nhập Google thành công! Chào mừng ${googleUser.fullName}`, 'success');
     };
 
     const ensureGoogleGsiScriptLoaded = () => {
@@ -1578,7 +1580,8 @@ class AppController {
       });
     };
 
-    // Real Google OAuth Launch (100% accounts.google.com - matching MP2 googleOAuthPopupService.ts)
+    // Real Google OAuth Launch via Authorized Origin Bridge (100% accounts.google.com)
+    // Client ID is authorized on https://vku-room-booking-17t.pages.dev, completely eliminating origin_mismatch
     const openRealGooglePopupWindow = () => {
       hideError();
       if (isEmbeddedWebView()) {
@@ -1587,95 +1590,58 @@ class AppController {
         return;
       }
 
-      const fallbackToBridge = () => {
-        const returnUrl = encodeURIComponent(window.location.origin + window.location.pathname);
-        const bridgeUrl = `/oauth-bridge?return_to=${returnUrl}`;
-        window.location.href = bridgeUrl;
-      };
-
-      const launchGsiTokenFlow = () => {
-        const gsi = window.google?.accounts?.oauth2;
-        if (!gsi) {
-          fallbackToBridge();
-          return;
-        }
-
-        if (openGoogleBtn) {
-          openGoogleBtn.disabled = true;
-          openGoogleBtn.style.opacity = '0.75';
-          if (googleBtnText) googleBtnText.textContent = 'Đang mở tài khoản Google (@vku.udn.vn)...';
-        }
-
-        try {
-          const tokenClient = gsi.initTokenClient({
-            client_id: GOOGLE_OAUTH_CLIENT_ID,
-            scope: 'openid email profile',
-            hosted_domain: 'vku.udn.vn',
-            prompt: 'select_account',
-            callback: async (tokenResponse) => {
-              resetGoogleBtnState();
-              if (tokenResponse?.error) {
-                if (tokenResponse.error !== 'popup_closed_by_user') {
-                  showError(`Xác thực Google không thành công: ${tokenResponse.error_description || tokenResponse.error}`);
-                }
-                return;
-              }
-
-              const accessToken = tokenResponse?.access_token;
-              if (!accessToken) {
-                showError('Không nhận được mã xác thực từ Google.');
-                return;
-              }
-
-              try {
-                const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-                  headers: { Authorization: `Bearer ${accessToken}` }
-                });
-                if (!res.ok) {
-                  showError('Không thể tải thông tin hồ sơ từ máy chủ Google.');
-                  return;
-                }
-                const profile = await res.json();
-                const email = (profile?.email || '').trim().toLowerCase();
-
-                if (!email.endsWith('@vku.udn.vn')) {
-                  showError(`Tài khoản ${email} không thuộc tổ chức VKU. Vui lòng chọn tài khoản email sinh viên/giảng viên có đuôi @vku.udn.vn.`);
-                  return;
-                }
-
-                handleGoogleAuthSuccess(profile);
-              } catch (_err) {
-                showError('Lỗi kết nối khi lấy thông tin tài khoản Google VKU.');
-              }
-            },
-            error_callback: (err) => {
-              resetGoogleBtnState();
-              if (err?.type !== 'popup_closed') {
-                // If popup blocked on mobile Safari, use same-origin bridge redirect
-                fallbackToBridge();
-              }
-            }
-          });
-
-          tokenClient.requestAccessToken({ prompt: 'select_account' });
-        } catch (_err) {
-          resetGoogleBtnState();
-          fallbackToBridge();
-        }
-      };
-
-      if (window.google?.accounts?.oauth2) {
-        launchGsiTokenFlow();
-      } else {
-        ensureGoogleGsiScriptLoaded().then(ready => {
-          if (ready) {
-            launchGsiTokenFlow();
-          } else {
-            fallbackToBridge();
-          }
-        });
+      if (openGoogleBtn) {
+        openGoogleBtn.disabled = true;
+        openGoogleBtn.style.opacity = '0.75';
+        if (googleBtnText) googleBtnText.textContent = 'Đang mở cổng Google OAuth 2.0...';
       }
+
+      const returnUrl = encodeURIComponent(window.location.origin + window.location.pathname);
+      const bridgeUrl = `https://vku-room-booking-17t.pages.dev/oauth-bridge?return_to=${returnUrl}`;
+
+      const width = 480;
+      const height = 620;
+      const left = window.screenX + Math.max(0, (window.outerWidth - width) / 2);
+      const top = window.screenY + Math.max(0, (window.outerHeight - height) / 2);
+
+      let popup = null;
+      try {
+        popup = window.open(
+          bridgeUrl,
+          'vku_oauth_bridge_popup',
+          `width=${width},height=${height},left=${left},top=${top},status=0,menubar=0,toolbar=0,resizable=yes,scrollbars=yes`
+        );
+      } catch (e) {
+        console.warn('Popup open error:', e);
+      }
+
+      // Nếu trình duyệt chặn popup, chuyển hướng an toàn sang bridge
+      if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+        window.location.href = bridgeUrl;
+        return;
+      }
+
+      if (popup.focus) popup.focus();
+
+      const checkPopupTimer = setInterval(() => {
+        try {
+          if (!popup || popup.closed) {
+            clearInterval(checkPopupTimer);
+            resetGoogleBtnState();
+          }
+        } catch (_) {
+          clearInterval(checkPopupTimer);
+          resetGoogleBtnState();
+        }
+      }, 1000);
     };
+
+    // Lắng nghe sự kiện xác thực Google OAuth thành công từ cửa sổ cầu nối
+    window.addEventListener('message', (event) => {
+      if (event.data?.type === 'VKU_GOOGLE_AUTH_SUCCESS' && event.data?.profile) {
+        handleGoogleAuthSuccess(event.data.profile);
+      }
+    });
 
     if (openGoogleBtn) {
       openGoogleBtn.onclick = () => {
