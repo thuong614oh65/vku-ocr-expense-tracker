@@ -16,20 +16,20 @@ const CATEGORIES = {
 
 const SAMPLE_RECEIPTS = [
   {
-    merchant: 'WinMart+ Cổng Trường VKU',
+    merchant: 'Siêu Thị WinMart+',
     amount: 87500,
     date: '2026-10-12',
     category: 'food',
     confidence: 0.96,
-    rawText: `WINMART+ VKU DA NANG\nSieu Thi VinCommerce - Cua hang WinMart+\nDia chi: 470 Duong Tran Dai Nghia, Ngu Hanh Son, Da Nang\nMST: 0104918404-128\n----------------------------------------\nPHIEU THANH TOAN\nSo HD: HD101226-00412\nNgay: 12/10/2026 11:45\nThu ngan: Nguyen Thi Lan\n\n1. Banh mi cha bong             18,000\n2. Sua chua Vinamilk 100g (x2)  17,000\n3. Nuoc khoang Lavie 500ml      7,500\n4. Ca phe lon Highlands        15,000\n5. Mi ly Omachi Bo Xot         30,000\n----------------------------------------\nCONG TIEN HANG:                  87,500\nVAT (8%):                         7,000\nTONG CONG:                       87,500 VND\nTIEN MAT:                       100,000\nTIEN THUA:                       12,500\n----------------------------------------\nCam on quy khach - Hen gap lai!`
+    rawText: `WINMART+ DA NANG\nSieu Thi VinCommerce - Cua hang WinMart+\nDia chi: 470 Duong Tran Dai Nghia, Ngu Hanh Son, Da Nang\nMST: 0104918404-128\n----------------------------------------\nPHIEU THANH TOAN\nSo HD: HD101226-00412\nNgay: 12/10/2026 11:45\nThu ngan: Nguyen Thi Lan\n\n1. Banh mi cha bong             18,000\n2. Sua chua Vinamilk 100g (x2)  17,000\n3. Nuoc khoang Lavie 500ml      7,500\n4. Ca phe lon Highlands        15,000\n5. Mi ly Omachi Bo Xot         30,000\n----------------------------------------\nCONG TIEN HANG:                  87,500\nVAT (8%):                         7,000\nTONG CONG:                       87,500 VND\nTIEN MAT:                       100,000\nTIEN THUA:                       12,500\n----------------------------------------\nCam on quy khach - Hen gap lai!`
   },
   {
-    merchant: 'Highlands Coffee VKU',
+    merchant: 'Highlands Coffee',
     amount: 115000,
     date: '2026-10-11',
     category: 'food',
     confidence: 0.94,
-    rawText: `HIGHLANDS COFFEE VKU\nCong ty Co Phan Dich Vu Ca Phe Cao Nguyen\nDia chi: Toa nha V, Truong Dai hoc CNTT & TT Viet - Han\nTel: (0236) 3667 888\n----------------------------------------\nHOA DON BAN LE\nBan so: 08 (Khu V)\nGio vao: 14:15 - 11/10/2026\n\n1. Phin Sua Da (L)              39,000\n2. Tra Sen Vang Kem Cheese (M)  49,000\n3. Banh Mousse Dao              27,000\n----------------------------------------\nTONG CONG:                     115,000 đ\nChuyen khoan QR:               115,000\n----------------------------------------\nPass Wifi: highlandscoffee2026\nHighlands Coffee xin cam on!`
+    rawText: `HIGHLANDS COFFEE\nCong ty Co Phan Dich Vu Ca Phe Cao Nguyen\nDia chi: Tran Dai Nghia, Da Nang\nTel: (0236) 3667 888\n----------------------------------------\nHOA DON BAN LE\nBan so: 08\nGio vao: 14:15 - 11/10/2026\n\n1. Phin Sua Da (L)              39,000\n2. Tra Sen Vang Kem Cheese (M)  49,000\n3. Banh Mousse Dao              27,000\n----------------------------------------\nTONG CONG:                     115,000 đ\nChuyen khoan QR:               115,000\n----------------------------------------\nHighlands Coffee xin cam on!`
   },
   {
     merchant: 'Nhà Sách Fahasa Đà Nẵng',
@@ -410,6 +410,7 @@ class AppController {
     this.editingTxnId = null;
     this.viewingTxnId = null;
     this.selectedFilterCategory = 'all';
+    this.selectedDateRange = 'all';
     this.searchQuery = '';
     this.cameraStream = null;
     this.isTorchOn = false;
@@ -574,7 +575,7 @@ class AppController {
     if (switchBtn) switchBtn.classList.remove('hidden');
 
     // Populate UserProfile in /profile Pane and AppBar
-    const initials = (this.currentUser.fullName || 'VKU')
+    const initials = (this.currentUser.fullName || 'User')
       .split(' ')
       .filter(Boolean)
       .slice(-2)
@@ -582,26 +583,26 @@ class AppController {
       .join('');
 
     const profAvatar = document.getElementById('profile-avatar-large');
-    if (profAvatar) profAvatar.textContent = initials || 'VKU';
+    if (profAvatar) profAvatar.textContent = initials || 'US';
     const profName = document.getElementById('profile-hero-name');
-    if (profName) profName.textContent = this.currentUser.fullName || 'Sinh viên VKU';
+    if (profName) profName.textContent = this.currentUser.fullName || 'Người Dùng';
     const profMeta = document.getElementById('profile-hero-meta');
-    if (profMeta) profMeta.textContent = `${this.currentUser.studentId || ''} • Lớp ${this.currentUser.className || ''}`;
+    if (profMeta) profMeta.textContent = this.currentUser.studentId ? `Mã: ${this.currentUser.studentId}` : 'Tài khoản cá nhân';
     const profAdvisor = document.getElementById('profile-hero-advisor');
     if (profAdvisor) profAdvisor.textContent = `Email: ${this.currentUser.email}`;
 
     const dashAvatar = document.getElementById('dash-user-avatar');
-    if (dashAvatar) dashAvatar.textContent = initials || 'VKU';
+    if (dashAvatar) dashAvatar.textContent = initials || 'US';
     const dashName = document.getElementById('dash-user-name');
-    if (dashName) dashName.textContent = this.currentUser.fullName || 'Sinh viên VKU';
+    if (dashName) dashName.textContent = this.currentUser.fullName || 'Người Dùng';
     const dashMeta = document.getElementById('dash-user-meta');
-    if (dashMeta) dashMeta.textContent = `${this.currentUser.studentId || ''} • Lớp ${this.currentUser.className || ''} • ${this.currentUser.email}`;
+    if (dashMeta) dashMeta.textContent = `Email: ${this.currentUser.email}`;
 
     const btnDashSwitch = document.getElementById('btn-dash-switch-acc');
     if (btnDashSwitch) btnDashSwitch.onclick = () => this.openAccountModal();
 
     const topAvatar = document.getElementById('user-avatar-badge');
-    if (topAvatar) topAvatar.textContent = initials || 'VKU';
+    if (topAvatar) topAvatar.textContent = initials || 'US';
     const topTitle = document.getElementById('user-profile-title');
     if (topTitle) topTitle.textContent = `${this.currentUser.fullName}`;
     const topSub = document.getElementById('user-profile-sub');
@@ -1044,6 +1045,48 @@ class AppController {
     if (btnProfBackup) {
       btnProfBackup.onclick = () => this.exportJsonBackup();
     }
+
+    // JSON Restore from Backup
+    const btnProfRestore = document.getElementById('btn-profile-restore-json');
+    const inputRestore = document.getElementById('input-restore-backup');
+    if (btnProfRestore && inputRestore) {
+      btnProfRestore.onclick = () => inputRestore.click();
+      inputRestore.onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          try {
+            const data = JSON.parse(ev.target.result);
+            if (Array.isArray(data.transactions)) {
+              this.transactions = data.transactions;
+              StorageManager.saveTransactions(this.transactions);
+              if (data.monthlyBudget) {
+                StorageManager.setMonthlyBudget(data.monthlyBudget);
+              }
+              alert(`✅ Đã khôi phục thành công ${this.transactions.length} khoản chi tiêu!`);
+              this.render(true);
+            } else {
+              alert('⚠️ Tệp sao lưu không đúng định dạng JSON hợp lệ.');
+            }
+          } catch (err) {
+            alert('⚠️ Lỗi khi đọc tệp JSON: ' + err.message);
+          }
+          inputRestore.value = '';
+        };
+        reader.readAsText(file);
+      };
+    }
+
+    // Date Range Filter Pills
+    document.querySelectorAll('.date-filter-pill').forEach(pill => {
+      pill.onclick = () => {
+        document.querySelectorAll('.date-filter-pill').forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        this.selectedDateRange = pill.dataset.range || 'all';
+        this.render(false);
+      };
+    });
 
     const btnCloseAccModal = document.getElementById('btn-close-account-modal');
     if (btnCloseAccModal) {
@@ -1757,7 +1800,74 @@ class AppController {
       }
     }
 
+    // FinTech Wallet Card Progress & Remaining Status
+    const remainingBudget = Math.max(0, budget - totalAmount);
+    const remEl = document.getElementById('kpi-remaining-budget');
+    if (remEl) remEl.textContent = `Còn lại: ${this.formatVND(remainingBudget)}`;
+
+    const walletBar = document.getElementById('wallet-progress-bar');
+    if (walletBar) {
+      walletBar.style.width = `${Math.min(100, pct)}%`;
+      walletBar.classList.remove('warning', 'danger');
+      if (pct >= 100) {
+        walletBar.classList.add('danger');
+      } else if (pct >= 80) {
+        walletBar.classList.add('warning');
+      }
+    }
+
+    const healthBadge = document.getElementById('kpi-health-status');
+    if (healthBadge) {
+      if (pct >= 100) {
+        healthBadge.textContent = '🔴 Vượt hạn mức';
+      } else if (pct >= 80) {
+        healthBadge.textContent = '🟡 Cảnh báo: Sắp hết';
+      } else {
+        healthBadge.textContent = '🟢 Ngân sách an toàn';
+      }
+    }
+
+    // AI Financial Insights Engine
+    const insightsEl = document.getElementById('insights-text');
+    if (insightsEl) {
+      if (this.transactions.length === 0) {
+        insightsEl.textContent = 'Chưa có đủ dữ liệu chi tiêu. Bạn hãy quét hóa đơn hoặc bấm "Ghi Tiền Mặt" để AI phân tích thói quen và tư vấn tài chính cá nhân.';
+      } else {
+        const catTotals = {};
+        this.transactions.forEach(t => {
+          catTotals[t.category] = (catTotals[t.category] || 0) + t.amount;
+        });
+        let topCatKey = 'food';
+        let topCatAmt = 0;
+        Object.keys(catTotals).forEach(k => {
+          if (catTotals[k] > topCatAmt) {
+            topCatAmt = catTotals[k];
+            topCatKey = k;
+          }
+        });
+        const topCat = CATEGORIES[topCatKey] || CATEGORIES.other;
+        const topCatPct = totalAmount > 0 ? Math.round((topCatAmt / totalAmount) * 100) : 0;
+
+        let advice = `💡 <strong>Đánh giá tài chính AI:</strong> Bạn đã ghi nhận <strong>${this.transactions.length} khoản chi</strong> với tổng chi tiêu <strong>${this.formatVND(totalAmount)}</strong>.<br>`;
+        advice += `• Khoản chi lớn nhất hiện tại thuộc mục <strong>${topCat.icon} ${topCat.name}</strong> (${this.formatVND(topCatAmt)}, chiếm ${topCatPct}% ngân sách).<br>`;
+        if (pct >= 100) {
+          advice += `• ⚠️ Bạn đã vượt ngân sách dự trù tháng <strong>${pct - 100}%</strong>. Nên hoãn các khoản chi thiết bị hoặc giải trí không cấp thiết.`;
+        } else if (pct >= 80) {
+          advice += `• ⚡ Bạn đã chạm <strong>${pct}%</strong> hạn mức. Hãy duy trì chi tiêu trung bình dưới <strong>${this.formatVND(Math.round(remainingBudget / 10))}/ngày</strong> trong thời gian tới.`;
+        } else {
+          advice += `• 🎯 Kiểm soát chi tiêu rất tốt! Bạn còn dư <strong>${this.formatVND(remainingBudget)}</strong> trong hạn mức dự kiến.`;
+        }
+        insightsEl.innerHTML = advice;
+      }
+    }
+
     this.renderFilterCategoryChips();
+
+    // Date Range Filtering Logic
+    const now = new Date();
+    const todayStr = now.toISOString().slice(0, 10);
+    const oneWeekAgo = new Date(now.getTime() - 7 * 86400000).toISOString().slice(0, 10);
+    const thisMonthPrefix = now.toISOString().slice(0, 7);
 
     const filtered = this.transactions.filter(t => {
       const matchesCat = this.selectedFilterCategory === 'all' || t.category === this.selectedFilterCategory;
@@ -1765,7 +1875,17 @@ class AppController {
         (t.merchant || '').toLowerCase().includes(this.searchQuery) ||
         (t.notes || '').toLowerCase().includes(this.searchQuery) ||
         (t.rawText || '').toLowerCase().includes(this.searchQuery);
-      return matchesCat && matchesSearch;
+
+      let matchesDate = true;
+      if (this.selectedDateRange === 'today') {
+        matchesDate = (t.date === todayStr);
+      } else if (this.selectedDateRange === 'this_week') {
+        matchesDate = (t.date >= oneWeekAgo);
+      } else if (this.selectedDateRange === 'this_month') {
+        matchesDate = (t.date && t.date.startsWith(thisMonthPrefix));
+      }
+
+      return matchesCat && matchesSearch && matchesDate;
     });
 
     document.getElementById('txn-count-badge').textContent = `${filtered.length} bản ghi`;

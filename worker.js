@@ -42,20 +42,11 @@ export default {
         const payload = await verifyRes.json();
         const email = (payload.email || '').trim().toLowerCase();
 
-        // Enforce @vku.udn.vn domain check server-side
-        if (!email.endsWith('@vku.udn.vn')) {
-          return new Response(JSON.stringify({
-            success: false,
-            message: `Tài khoản (${email}) không thuộc tổ chức VKU (@vku.udn.vn). Vui lòng chọn tài khoản sinh viên/cán bộ trường.`
-          }), {
-            status: 403,
-            headers: { 'Content-Type': 'application/json; charset=utf-8' }
-          });
-        }
-
-        // Extract student metadata
+        // Extract user metadata (supports both VKU and personal Google accounts)
         const name = payload.name || email.split('@')[0];
-        const studentId = email.split('@')[0].toUpperCase();
+        const isVku = email.endsWith('@vku.udn.vn');
+        const studentId = isVku ? email.split('@')[0].toUpperCase() : 'MEM-' + Date.now().toString().slice(-4);
+        const role = isVku ? 'Thành viên VKU (Google Verified)' : 'Thành viên SmartSpend (Google Verified)';
 
         return new Response(JSON.stringify({
           success: true,
@@ -64,10 +55,10 @@ export default {
             id: 'USR-G-' + (payload.sub || Date.now()),
             fullName: name,
             studentId: studentId,
-            className: 'VKU-SV',
+            className: isVku ? 'VKU-Member' : 'Cá nhân',
             email: email,
             avatar: payload.picture || '',
-            role: 'Sinh viên VKU (Google Verified)',
+            role: role,
             authProvider: 'GOOGLE_OAUTH2'
           }
         }), {
@@ -110,7 +101,7 @@ export default {
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
       "font-src 'self' https://fonts.gstatic.com; " +
       "worker-src 'self' blob:; " +
-      "frame-src https://accounts.google.com;"
+      "frame-src https://accounts.google.com https://vku-room-booking-17t.pages.dev;"
     );
 
     // Disable caching on HTML, SW, JS, CSS to guarantee instant updates

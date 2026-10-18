@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>VKU OCR Expense Tracker | Quản Lý Chi Tiêu & Nhận Dạng Hóa Đơn</title>
+  <title>SmartSpend AI | Sổ Quản Lý Chi Tiêu & Quét Hóa Đơn AI</title>
   <meta name="description" content="Ứng dụng quản lý chi tiêu cá nhân và nhận dạng hóa đơn thông minh PWA với công nghệ OCR trong trình duyệt.">
   <meta name="theme-color" content="#0284c7">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="VKU Expense OCR">
+  <meta name="apple-mobile-web-app-title" content="SmartSpend AI">
   <link rel="manifest" href="/manifest.json">
   <link rel="icon" type="image/png" href="/favicon.png">
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
@@ -16,13 +16,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=14.0">
+  <link rel="stylesheet" href="style.css?v=15.0">
   <!-- Google Identity Services (OAuth 2.0 @vku.udn.vn) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <!-- On-Device Tesseract.js WebAssembly OCR for uploaded photos -->
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js" defer></script>
   <script>
-    const APP_VERSION = '14.0';
+    const APP_VERSION = '15.0';
     if (localStorage.getItem('vku_app_cache_v') !== APP_VERSION) {
       if ('caches' in window) {
         caches.keys().then(function(names) {
@@ -38,7 +38,7 @@
     }
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
-        navigator.serviceWorker.register('/sw.js?v=14.0').then(function (reg) {
+        navigator.serviceWorker.register('/sw.js?v=15.0').then(function (reg) {
           reg.update();
         }).catch(function () {});
       });
@@ -47,15 +47,15 @@
 </head>
 <body>
   <div id="app">
-    <!-- Top App Bar (Material 3 AppBar) -->
+    <!-- Top App Bar (Sleek FinTech Header) -->
     <header class="app-bar">
       <div class="brand-wrap">
-        <span class="vku-badge">VKU EXPENSE OCR • PWA & WEB APP</span>
-        <h1>Quản Lý Chi Tiêu & OCR Hóa Đơn AI</h1>
+        <span class="vku-badge">SMARTSPEND AI • FINANCIAL ASSISTANT</span>
+        <h1>Sổ Chi Tiêu & Quét Hóa Đơn AI</h1>
       </div>
       <div class="header-actions">
         <button id="btn-theme-toggle" class="icon-btn" title="Chuyển đổi Giao diện Sáng / Tối" aria-label="Chuyển đổi giao diện sáng tối">🌙</button>
-        <button id="btn-export-csv" class="icon-btn" title="Xuất báo cáo CSV" aria-label="Xuất báo cáo CSV">📥</button>
+        <button id="btn-export-csv" class="icon-btn" title="Xuất báo cáo CSV / Excel" aria-label="Xuất báo cáo CSV">📥</button>
         <button id="btn-install-app" class="install-btn" title="Tải APK Android hoặc cài PWA" aria-label="Cài đặt ứng dụng">📲 Cài App</button>
         <button id="btn-switch-account" class="switch-account-btn hidden" title="Chuyển đổi tài khoản" aria-label="Chuyển đổi tài khoản">🔄 Đổi tài khoản</button>
         <button id="btn-logout-user" class="logout-btn hidden" title="Đăng xuất khỏi thiết bị" aria-label="Đăng xuất khỏi thiết bị">↪️ Đăng xuất</button>
@@ -72,14 +72,14 @@
     </div>
 
     <!-- ====================================================================
-         ROUTE 1: /login — AUTHENTICATION SCREEN (Week 8 Slide 4 & Slide 24)
+         AUTHENTICATION SCREEN
          ==================================================================== -->
     <main id="auth-screen" class="auth-screen hidden">
       <div class="auth-hero-card">
-        <div class="auth-logo-circle">🤖</div>
+        <div class="auth-logo-circle">💳</div>
         <span class="route-pill">Cổng Đăng Nhập An Toàn</span>
-        <h2>Hệ Thống Sổ Chi Tiêu AI VKU</h2>
-        <p>Hệ thống quản lý chi tiêu và nhận dạng hóa đơn thông minh</p>
+        <h2>SmartSpend AI</h2>
+        <p>Trợ lý thông minh quản lý chi tiêu và nhận dạng hóa đơn</p>
       </div>
 
       <div class="auth-form-card">
@@ -99,8 +99,8 @@
             </div>
             <div class="form-row-2">
               <div class="form-group">
-                <label>MÃ ĐỊNH DANH / MSSV (TÙY CHỌN)</label>
-                <input type="text" id="auth-student-id" class="text-input" placeholder="VD: NV01 hoặc MSSV">
+                <label>SỐ ĐIỆN THOẠI / MÃ THÀNH VIÊN (TÙY CHỌN)</label>
+                <input type="text" id="auth-student-id" class="text-input" placeholder="VD: 0912345678 hoặc MEM-01">
                 <small id="err-student-id" class="field-error hidden"></small>
               </div>
               <div class="form-group">
@@ -136,9 +136,9 @@
         <div class="auth-divider"><span>HOẶC XÁC THỰC GOOGLE</span></div>
 
         <!-- Direct Google OAuth 2.0 Sign-In Button (Zero Origin-Mismatch) -->
-        <button type="button" id="btn-open-google-login" class="btn-google-sso" aria-label="Đăng nhập bằng tài khoản Google trường VKU">
+        <button type="button" id="btn-open-google-login" class="btn-google-sso" aria-label="Đăng nhập bằng tài khoản Google">
           <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-          <span id="btn-google-text">Tiếp tục với Google (@vku.udn.vn)</span>
+          <span id="btn-google-text">Tiếp tục với Google</span>
         </button>
 
         <!-- Quick Guest / Demo Experience Mode -->
@@ -156,9 +156,9 @@
 
         <!-- Zalo / In-app WebView Security Notice -->
         <div id="zalo-security-box" class="zalo-security-box hidden">
-          <div class="zalo-security-title">🔒 Bảo mật đăng nhập tài khoản Google (@vku.udn.vn)</div>
+          <div class="zalo-security-title">🔒 Mở trên trình duyệt chuẩn (Safari / Chrome)</div>
           <p class="zalo-security-desc">
-            Theo tiêu chuẩn bảo mật của Google (RFC 8252), đăng nhập Google yêu cầu thực hiện trên trình duyệt chuẩn (<strong>Safari / Chrome</strong>) và hạn chế trình duyệt nhúng của Zalo để bảo vệ tài khoản <strong>@vku.udn.vn</strong>.
+            Để đăng nhập Google và sử dụng camera quét OCR tốt nhất, hãy mở ứng dụng trên trình duyệt chuẩn (<strong>Safari / Chrome</strong>) thay vì trình duyệt nhúng của Zalo.
           </p>
           <div class="zalo-action-row">
             <button type="button" id="btn-zalo-open-browser" class="zalo-open-browser-btn">🧭 Mở ngay bằng Safari / Chrome</button>
@@ -177,71 +177,88 @@
       <!-- ================= TAB 1: /dash (SỔ CHI TIÊU) ================= -->
       <div id="view-dash" class="tab-view-pane">
         <!-- Active User Info Bar with Quick Account Switcher Button -->
+        <!-- Active User Greeting Bar -->
         <section class="active-user-bar">
           <div class="user-bar-left">
             <span class="user-bar-avatar" id="dash-user-avatar">👤</span>
             <div class="user-bar-info">
+              <span class="greeting-sub">Xin chào 👋</span>
               <strong id="dash-user-name">Người Dùng</strong>
-              <small id="dash-user-meta">Tài khoản cá nhân</small>
             </div>
           </div>
           <button type="button" id="btn-dash-switch-acc" class="btn-switch-pill" title="Chuyển đổi tài khoản">
             🔄 Đổi Tài Khoản
           </button>
         </section>
-        <!-- Prominent AI Scanner / Image Picker CTA Card (Adaptive: Desktop vs Mobile) -->
+
+        <!-- Premium Financial Wallet Card (Fintech Style) -->
+        <section class="fintech-wallet-card">
+          <div class="wallet-card-header">
+            <div>
+              <span class="wallet-label">TỔNG CHI TIÊU THÁNG</span>
+              <div id="kpi-total-amount" class="wallet-amount">0 ₫</div>
+            </div>
+            <button id="btn-edit-budget" class="btn-budget-pill" title="Chỉnh sửa ngân sách tháng" aria-label="Chỉnh sửa ngân sách tháng">
+              🎯 Hạn mức: <strong id="kpi-budget-amount">3.500.000 ₫</strong> ✏️
+            </button>
+          </div>
+
+          <!-- Budget Progress Bar -->
+          <div class="wallet-progress-wrap">
+            <div class="progress-info-row">
+              <span id="kpi-budget-progress" class="progress-pct">Đã dùng: 0%</span>
+              <span id="kpi-remaining-budget" class="progress-rem">Còn lại: 3.500.000 ₫</span>
+            </div>
+            <div class="progress-track">
+              <div id="wallet-progress-bar" class="progress-bar-fill" style="width: 0%;"></div>
+            </div>
+          </div>
+          
+          <div class="wallet-footer-row">
+            <span id="kpi-total-count" class="wallet-meta-sub">🧾 0 giao dịch đã lưu</span>
+            <span id="kpi-health-status" class="wallet-status-badge">🟢 Ngân sách an toàn</span>
+          </div>
+        </section>
+
+        <!-- Quick Action Hub (Primary Actions) -->
+        <section class="quick-action-hub">
+          <button id="btn-open-scanner" class="action-card-btn primary-scan" aria-label="Quét hóa đơn">
+            <span class="action-card-icon">📸</span>
+            <div class="action-card-text">
+              <strong>Quét Hóa Đơn AI</strong>
+              <small>Bóc tách tự động</small>
+            </div>
+          </button>
+          <button id="btn-manual-add" class="action-card-btn secondary-cash" aria-label="Nhập chi tiêu tiền mặt">
+            <span class="action-card-icon">➕</span>
+            <div class="action-card-text">
+              <strong>Ghi Tiền Mặt</strong>
+              <small>Nhập nhanh 3 giây</small>
+            </div>
+          </button>
+        </section>
+
+        <!-- Drop Zone for PC / Laptop -->
         <section id="scanner-cta-card" class="scanner-cta-card">
           <div id="scanner-cta-icon" class="scanner-icon-wrap">📁</div>
           <div class="scanner-text-wrap">
-            <h2 id="scanner-cta-title">Chọn Ảnh Hóa Đơn & Nhận Dạng AI</h2>
-            <p id="scanner-cta-desc">Tải file ảnh hóa đơn từ máy (.JPG, .PNG) hoặc kéo thả vào đây • Nhận dạng tự động</p>
-          </div>
-          <div class="dashboard-cta-row">
-            <button id="btn-open-scanner" class="btn-primary-scan" aria-label="Chọn ảnh hóa đơn">
-              📁 Quét Hóa Đơn AI
-            </button>
-            <button id="btn-manual-add" class="btn-manual-entry" aria-label="Thêm chi tiêu thủ công">
-              ➕ Nhập Tay (Tiền Mặt)
-            </button>
+            <h2 id="scanner-cta-title">Tải Ảnh Hóa Đơn Hoặc Kéo Thả File</h2>
+            <p id="scanner-cta-desc">Hỗ trợ ảnh chụp (.JPG, .PNG) • Trí tuệ nhân tạo OCR tự động nhận diện</p>
           </div>
         </section>
 
         <!-- Quick Sample Receipts Tester -->
         <section class="sample-tester-section">
           <div class="section-title-row">
-            <span class="badge-accent">DỮ LIỆU MẪU THỬ NGHIỆM</span>
-            <span class="section-sub">Bấm chọn để nạp dữ liệu mẫu thử nghiệm:</span>
+            <span class="badge-accent">DỮ LIỆU MẪU THỰC TẾ</span>
+            <span class="section-sub">Bấm chọn để nạp mẫu kiểm tra:</span>
           </div>
           <div class="sample-chips-row">
-            <button class="sample-chip" data-index="0">🏪 WinMart+ VKU (87.500₫)</button>
+            <button class="sample-chip" data-index="0">🏪 Siêu Thị WinMart+ (87.500₫)</button>
             <button class="sample-chip" data-index="1">☕ Highlands Coffee (115.000₫)</button>
             <button class="sample-chip" data-index="2">📚 Nhà Sách Fahasa (245.000₫)</button>
             <button class="sample-chip" data-index="3">⛽ Xăng Petrolimex (70.000₫)</button>
             <button class="sample-chip" data-index="4">💻 Thế Giới Di Động (350.000₫)</button>
-          </div>
-        </section>
-
-        <!-- KPI Summary Cards -->
-        <section class="kpi-grid">
-          <div class="kpi-card">
-            <div class="kpi-header">
-              <span class="kpi-dot blue"></span>
-              <span class="kpi-title">TỔNG CHI TIÊU</span>
-            </div>
-            <div id="kpi-total-amount" class="kpi-value">0 ₫</div>
-            <div id="kpi-total-count" class="kpi-sub">0 giao dịch đã lưu</div>
-          </div>
-
-          <div class="kpi-card">
-            <div class="kpi-header" style="display:flex;justify-content:space-between;align-items:center;">
-              <div style="display:flex;align-items:center;gap:6px;">
-                <span class="kpi-dot green"></span>
-                <span class="kpi-title">NGÂN SÁCH THÁNG</span>
-              </div>
-              <button id="btn-edit-budget" class="icon-btn-budget" title="Chỉnh sửa ngân sách tháng" aria-label="Chỉnh sửa ngân sách tháng" style="background:transparent;border:none;cursor:pointer;font-size:13px;padding:2px 4px;">✏️</button>
-            </div>
-            <div id="kpi-budget-amount" class="kpi-value">3.500.000 ₫</div>
-            <div id="kpi-budget-progress" class="kpi-sub">Đã dùng: 0%</div>
           </div>
         </section>
 
@@ -250,14 +267,21 @@
           <div class="search-row">
             <input type="text" id="search-txn-input" class="text-input" placeholder="🔍 Tìm kiếm theo tên cửa hàng, món hàng, ghi chú...">
           </div>
+          <!-- Date Range Filters -->
+          <div class="date-filter-row">
+            <button class="date-filter-pill active" data-range="all">Tất cả</button>
+            <button class="date-filter-pill" data-range="this_month">Tháng này</button>
+            <button class="date-filter-pill" data-range="this_week">7 ngày qua</button>
+            <button class="date-filter-pill" data-range="today">Hôm nay</button>
+          </div>
           <div id="filter-category-chips" class="sample-chips-row" style="margin-top:8px;"></div>
         </section>
 
         <!-- Recent Transactions Section -->
         <section class="transactions-section">
           <div class="section-title-row">
-            <h3>Danh Sách Hóa Đơn</h3>
-            <span id="txn-count-badge" class="count-badge">0 bản ghi</span>
+            <h3>Danh Sách Chi Tiêu</h3>
+            <span id="txn-count-badge" class="count-badge">0 giao dịch</span>
           </div>
           <div id="transactions-list" class="transactions-list"></div>
         </section>
@@ -288,46 +312,49 @@
           </div>
         </section>
 
-        <!-- Platform Channel & Architecture Diagnostic Card -->
-        <section class="chart-card">
+        <!-- Financial Insights & AI Advisory Card -->
+        <section class="chart-card insights-card">
           <div class="chart-header">
-            <h3>⚡ Về App Flutter (Bản Native Android)</h3>
-            <span class="custom-painter-badge">Kiến trúc hệ thống</span>
+            <h3>💡 Đánh Giá & Phân Tích Tài Chính AI</h3>
+            <span class="custom-painter-badge">AI Assistant</span>
           </div>
-          <div class="diag-grid">
-            <div id="diag-battery-box" class="diag-item">
-              <span class="diag-label">Mức pin thiết bị</span>
-              <strong id="diag-battery-val">Đang kiểm tra...</strong>
-            </div>
-            <div class="diag-item">
-              <span class="diag-label">Độ trễ OCR</span>
-              <strong id="diag-ocr-latency">Đo thực tế (Tesseract.js)</strong>
-            </div>
-            <div class="diag-item">
-              <span class="diag-label">Kiến trúc App</span>
-              <strong>Riverpod 2 (Native) / PWA (Web)</strong>
-            </div>
-            <div class="diag-item">
-              <span class="diag-label">Lưu trữ dữ liệu</span>
-              <strong>IndexedDB / LocalStorage (Web)</strong>
+          <div class="insights-content">
+            <p id="insights-text">Hệ thống đang phân tích chi tiêu của bạn để đưa ra lời khuyên tối ưu ngân sách cá nhân...</p>
+            <div class="diag-grid" style="margin-top:14px;">
+              <div id="diag-battery-box" class="diag-item">
+                <span class="diag-label">Mức pin thiết bị</span>
+                <strong id="diag-battery-val">Đang kiểm tra...</strong>
+              </div>
+              <div class="diag-item">
+                <span class="diag-label">Tốc độ xử lý AI</span>
+                <strong id="diag-ocr-latency">Đo thực tế</strong>
+              </div>
+              <div class="diag-item">
+                <span class="diag-label">Trạng thái đồng bộ</span>
+                <strong>Đồng bộ tức thời (Offline-ready)</strong>
+              </div>
+              <div class="diag-item">
+                <span class="diag-label">Công nghệ quét</span>
+                <strong>AI Vision Engine v2.0</strong>
+              </div>
             </div>
           </div>
         </section>
       </div>
 
-      <!-- ================= TAB 4: /profile (HỒ SƠ CÁ NHÂN & THIẾT BỊ) ================= -->
+      <!-- ================= TAB 4: /profile (HỒ SƠ CÁ NHÂN & CÀI ĐẶT) ================= -->
       <div id="view-profile" class="tab-view-pane hidden">
         <!-- Profile Hero Card -->
         <section class="profile-hero-card">
           <div id="profile-avatar-large" class="profile-avatar-large">U</div>
           <div class="profile-hero-info">
             <div class="profile-badge-row">
-              <span class="badge-accent">TÀI KHOẢN NGƯỜI DÙNG</span>
+              <span class="badge-accent">THÀNH VIÊN SMART SPEND</span>
               <span id="profile-battery-badge" class="battery-pill hidden">🔋 Pin: --</span>
             </div>
             <h2 id="profile-hero-name">Người dùng</h2>
-            <p id="profile-hero-meta">Tài khoản sinh viên</p>
-            <p id="profile-hero-school">Hệ Thống Quản Lý Chi Tiêu & OCR Hóa Đơn Thông Minh</p>
+            <p id="profile-hero-meta">Tài khoản cá nhân</p>
+            <p id="profile-hero-school">Quản lý chi tiêu thông minh & Nhận diện hóa đơn AI</p>
             <p id="profile-hero-advisor">Email: --</p>
           </div>
         </section>
@@ -338,7 +365,7 @@
             <span class="action-icon">🔄</span>
             <div class="action-text">
               <strong>Đổi Tài Khoản</strong>
-              <small>Chuyển đổi tài khoản trên thiết bị này</small>
+              <small>Chuyển đổi hoặc đăng nhập tài khoản khác trên máy này</small>
             </div>
             <span class="action-arrow">➔</span>
           </div>
@@ -347,7 +374,7 @@
             <span class="action-icon">📲</span>
             <div class="action-text">
               <strong>Cài Đặt App & Tải APK</strong>
-              <small>Tải app-release.apk Native Android hoặc cài PWA Standalone</small>
+              <small>Tải app-release.apk Android hoặc cài PWA vào màn hình chính</small>
             </div>
             <span class="action-arrow">➔</span>
           </div>
@@ -355,8 +382,8 @@
           <div class="profile-action-card" id="btn-profile-export-csv">
             <span class="action-icon">📥</span>
             <div class="action-text">
-              <strong>Xuất Dữ Liệu CSV</strong>
-              <small>Tải báo cáo chi tiêu dạng tệp CSV (UTF-8 có BOM)</small>
+              <strong>Xuất Dữ Liệu Báo Cáo CSV</strong>
+              <small>Tải bảng tính chi tiêu tương thích Microsoft Excel & Google Sheets</small>
             </div>
             <span class="action-arrow">➔</span>
           </div>
@@ -370,6 +397,16 @@
             <span class="action-arrow">➔</span>
           </div>
 
+          <div class="profile-action-card" id="btn-profile-restore-json">
+            <span class="action-icon">📤</span>
+            <div class="action-text">
+              <strong>Khôi Phục Dữ Liệu (Restore JSON)</strong>
+              <small>Nhập dữ liệu từ tệp sao lưu JSON đã lưu trước đó</small>
+            </div>
+            <span class="action-arrow">➔</span>
+          </div>
+          <input type="file" id="input-restore-backup" accept=".json" style="display:none;">
+
           <div class="profile-action-card danger" id="btn-profile-logout">
             <span class="action-icon">↪️</span>
             <div class="action-text">
@@ -380,15 +417,20 @@
           </div>
         </section>
 
-        <!-- System & MethodChannel Info -->
-        <section class="system-info-card">
-          <h4>📱 Thông Tin Nền Tảng & Thiết Bị</h4>
-          <ul class="system-info-list">
-            <li><span>Môi trường:</span> <strong>Trình duyệt Web (PWA) / Native Android APK</strong></li>
-            <li id="profile-battery-row"><span>Mức pin thiết bị:</span> <strong id="profile-battery-text">Đang kiểm tra...</strong></li>
-            <li><span>Lưu trữ:</span> <strong>LocalStorage / IndexedDB (Bản Web) • SQLite (Bản Native)</strong></li>
-            <li><span>Nhận dạng văn bản:</span> <strong>Tesseract.js WASM (Bản Web) • ML Kit (Bản Native)</strong></li>
-            <li><span>Quản lý trạng thái:</span> <strong>Flutter Riverpod 2 (Bản Native)</strong></li>
+        <!-- Security & Privacy Guarantee Card -->
+        <section class="security-guarantee-card">
+          <div class="security-header">
+            <span class="sec-icon">🛡️</span>
+            <div>
+              <h4>Cam Kết Bảo Mật & Quyền Riêng Tư Tuyệt Đối</h4>
+              <p>Dữ liệu tài chính là tài sản riêng tư quan trọng nhất của bạn</p>
+            </div>
+          </div>
+          <ul class="security-bullets">
+            <li><span>🔒</span> <strong>Bảo mật lưu trữ cục bộ:</strong> Toàn bộ lịch sử chi tiêu lưu trữ trên thiết bị của bạn bằng cơ chế IndexedDB / LocalStorage mã hóa.</li>
+            <li><span>⚡</span> <strong>Xử lý AI Client-Side:</strong> Ảnh chụp hóa đơn được phân tích trực tiếp trên máy bằng WebAssembly / AI Vision, không tải ảnh lên máy chủ công cộng.</li>
+            <li><span>📤</span> <strong>Quyền sở hữu dữ liệu 100%:</strong> Bạn toàn quyền sao lưu, xuất tệp Excel/CSV hoặc xóa hoàn toàn dữ liệu bất cứ khi nào.</li>
+            <li id="profile-battery-row"><span>🔋</span> <strong id="profile-battery-text">Mức pin thiết bị: Đang kiểm tra...</strong></li>
           </ul>
         </section>
       </div>
@@ -613,7 +655,7 @@
             <span class="modal-icon">📲</span>
             <div>
               <h3>Cài Đặt & Đóng Gói Ứng Dụng</h3>
-              <p>VKU OCR Expense Tracker • PWA & Native Android APK</p>
+              <p>SmartSpend AI • PWA & Native Android APK</p>
             </div>
           </div>
           <button id="btn-close-install" class="icon-btn-close" aria-label="Đóng">✕</button>
@@ -723,6 +765,6 @@ flutter build apk --release</code></pre>
     </div>
   </div>
 
-  <script src="app.js?v=14.0"></script>
+  <script src="app.js?v=15.0"></script>
 </body>
 </html>

@@ -1,8 +1,8 @@
 {
   "id": "/",
-  "name": "VKU Expense OCR - Quản Lý Chi Tiêu",
-  "short_name": "VKU Expense OCR",
-  "description": "Ứng dụng quản lý chi tiêu cá nhân và nhận dạng hóa đơn thông minh PWA",
+  "name": "SmartSpend AI - Sổ Quản Lý Chi Tiêu & Quét Hóa Đơn",
+  "short_name": "SmartSpend AI",
+  "description": "Ứng dụng quản lý chi tiêu cá nhân thông minh và quét hóa đơn AI tự động",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
