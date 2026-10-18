@@ -16,13 +16,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=24.0">
+  <link rel="stylesheet" href="style.css?v=25.0">
   <!-- Google Identity Services (OAuth 2.0 @vku.udn.vn) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <!-- On-Device Tesseract.js WebAssembly OCR (Local Zero-Latency Engine) -->
   <script src="/tesseract/tesseract.min.js" defer></script>
   <script>
-    const APP_VERSION = '24.0';
+    const APP_VERSION = '25.0';
     if (localStorage.getItem('vku_app_cache_v') !== APP_VERSION) {
       if ('caches' in window) {
         caches.keys().then(function(names) {
@@ -39,7 +39,7 @@
     }
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
-        navigator.serviceWorker.register('/sw.js?v=24.0').then(function (reg) {
+        navigator.serviceWorker.register('/sw.js?v=25.0').then(function (reg) {
           reg.update();
         }).catch(function () {});
       });
@@ -444,37 +444,6 @@
           </div>
         </section>
 
-        <!-- Financial Insights & AI Advisory Card -->
-        <section class="chart-card insights-card">
-          <div class="chart-header">
-            <div>
-              <h3>💡 Đánh Giá & Lời Khuyên Tài Chính AI</h3>
-              <p class="chart-sub">Trợ lý AI phân tích hành vi và tư vấn tối ưu ngân sách</p>
-            </div>
-            <span class="custom-painter-badge">AI Advisor</span>
-          </div>
-          <div class="insights-content">
-            <p id="insights-text">Hệ thống đang phân tích chi tiêu của bạn để đưa ra lời khuyên tối ưu ngân sách cá nhân...</p>
-            <div class="diag-grid" style="margin-top:14px;">
-              <div id="diag-battery-box" class="diag-item">
-                <span class="diag-label">Mức pin thiết bị</span>
-                <strong id="diag-battery-val">Đang kiểm tra...</strong>
-              </div>
-              <div class="diag-item">
-                <span class="diag-label">Tốc độ xử lý AI</span>
-                <strong id="diag-ocr-latency">Đo thực tế</strong>
-              </div>
-              <div class="diag-item">
-                <span class="diag-label">Trạng thái đồng bộ</span>
-                <strong>Đồng bộ tức thời (Offline-ready)</strong>
-              </div>
-              <div class="diag-item">
-                <span class="diag-label">Công nghệ quét</span>
-                <strong>AI Vision Engine v2.0</strong>
-              </div>
-            </div>
-          </div>
-        </section>
       </div>
 
       <!-- ================= TAB 4: /profile (HỒ SƠ CÁ NHÂN & CÀI ĐẶT) ================= -->
@@ -1016,6 +985,6 @@ flutter build apk --release</code></pre>
     <span id="sync-toast-msg">Đã đồng bộ với Đám Mây</span>
   </div>
 
-  <script src="app.js?v=24.0"></script>
+  <script src="app.js?v=25.0"></script>
 </body>
 </html>
