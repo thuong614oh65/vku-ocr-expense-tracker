@@ -311,10 +311,112 @@ class StorageManager {
     }
   }
 
-  static setMonthlyBudget(val, userEmail) {
+  static getBudgetUpdatedAt(userEmail) {
+    try {
+      const key = this.getUserKey(userEmail, 'budget_time');
+      const val = localStorage.getItem(key);
+      return val ? parseInt(val, 10) : 0;
+    } catch {
+      return 0;
+    }
+  }
+
+  static setMonthlyBudget(val, userEmail, timestamp = null) {
     try {
       const key = this.getUserKey(userEmail, 'budget');
       localStorage.setItem(key, String(val));
+      const timeKey = this.getUserKey(userEmail, 'budget_time');
+      localStorage.setItem(timeKey, String(timestamp || Date.now()));
+    } catch (_) {}
+  }
+}
+
+class CloudSyncService {
+  static isSyncing = false;
+  static lastSyncTime = null;
+  static syncListeners = [];
+
+  static onSyncStatusChange(cb) {
+    if (typeof cb === 'function') this.syncListeners.push(cb);
+  }
+
+  static notifyStatus(status, text, lastTime = null) {
+    if (lastTime) this.lastSyncTime = lastTime;
+    for (const cb of this.syncListeners) {
+      try { cb({ status, text, lastSyncTime: this.lastSyncTime }); } catch (_) {}
+    }
+  }
+
+  static async pullFromCloud(userEmail) {
+    if (!userEmail || !navigator.onLine) return null;
+    try {
+      const res = await fetch(`/api/sync?email=${encodeURIComponent(userEmail.trim().toLowerCase())}`);
+      if (!res.ok) return null;
+      const json = await res.json();
+      if (json && json.success && json.exists && json.data) {
+        return json.data;
+      }
+      return null;
+    } catch (e) {
+      console.warn('CloudSyncService pull notice:', e);
+      return null;
+    }
+  }
+
+  static async pushToCloud(userEmail, transactions, monthlyBudget, categoryBudgets = {}) {
+    if (!userEmail || !navigator.onLine) return null;
+    try {
+      this.isSyncing = true;
+      this.notifyStatus('syncing', 'Đang đồng bộ...');
+      const deviceName = /iPhone|iPad|iPod/i.test(navigator.userAgent)
+        ? 'iPhone'
+        : (/Android/i.test(navigator.userAgent) ? 'Android' : 'Máy tính / PC');
+
+      const budgetTime = StorageManager.getBudgetUpdatedAt(userEmail) || Date.now();
+
+      const payload = {
+        email: userEmail.trim().toLowerCase(),
+        monthlyBudget: monthlyBudget,
+        categoryBudgets: categoryBudgets,
+        budgetUpdatedAt: budgetTime,
+        transactions: (transactions || []).map(t => ({
+          ...t,
+          updatedAt: t.updatedAt || Date.now()
+        })),
+        clientUpdatedAt: Date.now(),
+        device: `${deviceName} (${new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })})`
+      };
+
+      const res = await fetch('/api/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      this.isSyncing = false;
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const json = await res.json();
+      if (json && json.success && json.data) {
+        this.notifyStatus('synced', 'Đã đồng bộ', Date.now());
+        return json.data;
+      }
+      this.notifyStatus('idle', 'Sẵn sàng');
+      return null;
+    } catch (e) {
+      this.isSyncing = false;
+      console.warn('CloudSyncService push notice:', e);
+      this.notifyStatus('error', 'Lỗi đồng bộ');
+      return null;
+    }
+  }
+
+  static async deleteFromCloud(userEmail, transactionId) {
+    if (!userEmail || !navigator.onLine) return;
+    try {
+      await fetch('/api/sync/delete-txn', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: userEmail, id: transactionId })
+      });
     } catch (_) {}
   }
 }
@@ -586,6 +688,7 @@ class AppController {
     this.checkUrlForOAuthCallback();
     this.initAuthUI();
     this.initUI();
+    this.initCloudSync();
     this.syncRouteGuard();
     this.prewarmOcrWorker();
   }
@@ -648,6 +751,180 @@ class AppController {
           await this.processUploadedImageFile(e.dataTransfer.files[0]);
         }
       });
+    }
+  }
+
+  initCloudSync() {
+    CloudSyncService.onSyncStatusChange(info => {
+      this.updateSyncUI(info);
+    });
+
+    const syncBtn = document.getElementById('btn-cloud-sync');
+    if (syncBtn) {
+      syncBtn.onclick = () => {
+        this.syncWithCloud(true, true);
+      };
+    }
+
+    const profileSyncBtn = document.getElementById('btn-profile-sync-now');
+    if (profileSyncBtn) {
+      profileSyncBtn.onclick = () => {
+        this.syncWithCloud(true, true);
+      };
+    }
+
+    // Auto sync on visibility change (e.g. user switched back from another tab or app)
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && this.currentUser?.email) {
+        this.syncWithCloud(true, false);
+      }
+    });
+
+    // Auto sync on window focus
+    window.addEventListener('focus', () => {
+      if (this.currentUser?.email) {
+        this.syncWithCloud(true, false);
+      }
+    });
+
+    // Auto sync on online reconnect
+    window.addEventListener('online', () => {
+      if (this.currentUser?.email) {
+        this.syncWithCloud(false, false);
+        this.showSyncToast('Đã kết nối mạng - Đang đồng bộ...');
+      }
+    });
+
+    window.addEventListener('offline', () => {
+      this.updateSyncUI({ status: 'offline', text: 'Ngoại tuyến' });
+    });
+
+    // Periodic background sync every 20s if visible
+    setInterval(() => {
+      if (document.visibilityState === 'visible' && this.currentUser?.email && navigator.onLine) {
+        this.syncWithCloud(true, false);
+      }
+    }, 20000);
+
+    // Initial pull if already logged in
+    if (this.currentUser?.email) {
+      setTimeout(() => this.syncWithCloud(true, false), 400);
+    }
+  }
+
+  updateSyncUI(info) {
+    const badge = document.getElementById('sync-status-badge');
+    const syncBtn = document.getElementById('btn-cloud-sync');
+    const profileDesc = document.getElementById('profile-sync-status-desc');
+
+    if (badge) {
+      if (info.status === 'syncing') {
+        badge.textContent = 'Đang đồng bộ...';
+        if (syncBtn) {
+          syncBtn.className = 'cloud-sync-btn syncing';
+        }
+      } else if (info.status === 'offline') {
+        badge.textContent = 'Ngoại tuyến';
+        if (syncBtn) {
+          syncBtn.className = 'cloud-sync-btn offline';
+        }
+      } else if (info.status === 'error') {
+        badge.textContent = 'Chưa đồng bộ';
+        if (syncBtn) {
+          syncBtn.className = 'cloud-sync-btn offline';
+        }
+      } else {
+        badge.textContent = 'Đã đồng bộ';
+        if (syncBtn) {
+          syncBtn.className = 'cloud-sync-btn';
+        }
+      }
+    }
+
+    if (profileDesc) {
+      if (info.status === 'syncing') {
+        profileDesc.textContent = '🔄 Đang đồng bộ hóa dữ liệu với Cloudflare KV...';
+      } else if (info.status === 'offline') {
+        profileDesc.textContent = '📡 Chế độ Ngoại tuyến (Offline). Dữ liệu lưu an toàn trên máy.';
+      } else if (info.lastSyncTime) {
+        const timeStr = new Date(info.lastSyncTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        profileDesc.textContent = `☁️ Đã đồng bộ tức thì với Đám Mây (${timeStr}). Tự động cập nhật giữa ĐT & Máy tính.`;
+      }
+    }
+  }
+
+  showSyncToast(msg) {
+    const toast = document.getElementById('sync-toast');
+    const msgEl = document.getElementById('sync-toast-msg');
+    if (!toast || !msgEl) return;
+    msgEl.textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(this._syncToastTimer);
+    this._syncToastTimer = setTimeout(() => {
+      toast.classList.remove('show');
+    }, 2800);
+  }
+
+  async syncWithCloud(isPullFirst = true, userTriggered = false) {
+    if (!this.currentUser?.email) return;
+    if (!navigator.onLine) {
+      this.updateSyncUI({ status: 'offline', text: 'Ngoại tuyến' });
+      if (userTriggered) this.showSyncToast('Thiết bị đang ngoại tuyến - dữ liệu lưu an toàn trên máy');
+      return;
+    }
+
+    try {
+      if (isPullFirst) {
+        const cloudData = await CloudSyncService.pullFromCloud(this.currentUser.email);
+        if (cloudData) {
+          let hasChanges = false;
+          const localTxns = StorageManager.getTransactions(this.currentUser.email);
+          const localBudgetTime = StorageManager.getBudgetUpdatedAt(this.currentUser.email);
+
+          // 1. Sync Budget from cloud if cloud is newer
+          if (cloudData.monthlyBudget && (cloudData.budgetUpdatedAt || 0) > localBudgetTime) {
+            StorageManager.setMonthlyBudget(cloudData.monthlyBudget, this.currentUser.email, cloudData.budgetUpdatedAt);
+            hasChanges = true;
+          }
+
+          // 2. Merge transactions by id
+          const txnMap = new Map();
+          localTxns.forEach(t => txnMap.set(t.id, t));
+
+          for (const ct of (cloudData.transactions || [])) {
+            if (!ct || !ct.id) continue;
+            if (!txnMap.has(ct.id)) {
+              txnMap.set(ct.id, ct);
+              hasChanges = true;
+            } else {
+              const lt = txnMap.get(ct.id);
+              if ((ct.updatedAt || 0) > (lt.updatedAt || 0)) {
+                txnMap.set(ct.id, { ...lt, ...ct });
+                hasChanges = true;
+              }
+            }
+          }
+
+          const merged = Array.from(txnMap.values()).sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+          this.transactions = merged;
+          StorageManager.saveTransactions(merged, this.currentUser.email);
+
+          if (hasChanges) {
+            this.render(false);
+          }
+        }
+      }
+
+      // Push latest state to cloud to keep Cloudflare KV perfectly synchronized
+      const curBudget = StorageManager.getMonthlyBudget(this.currentUser.email);
+      const pushRes = await CloudSyncService.pushToCloud(this.currentUser.email, this.transactions, curBudget);
+      if (pushRes) {
+        if (userTriggered) {
+          this.showSyncToast('✓ Đã đồng bộ hoàn toàn giữa Điện thoại & Máy tính!');
+        }
+      }
+    } catch (e) {
+      console.warn('syncWithCloud notice:', e);
     }
   }
 
@@ -752,6 +1029,7 @@ class AppController {
 
     // Authenticated: Load user-specific transactions and show ShellRoute
     this.transactions = StorageManager.getTransactions(this.currentUser.email);
+    this.syncWithCloud(true, false);
     authScreen.classList.add('hidden');
     mainShell.classList.remove('hidden');
     bottomNav.classList.remove('hidden');
@@ -1626,7 +1904,25 @@ class AppController {
     const cur = StorageManager.getMonthlyBudget(this.currentUser?.email);
     const input = document.getElementById('input-budget-amount');
     const err = document.getElementById('err-budget-amount');
-    if (input) input.value = cur;
+    const dailyPreview = document.getElementById('budget-daily-amount');
+
+    const updateDaily = () => {
+      const val = parseInt(input.value, 10);
+      if (dailyPreview) {
+        if (!isNaN(val) && val > 0) {
+          const perDay = Math.round(val / 30);
+          dailyPreview.textContent = `${this.formatVND(perDay)} / ngày`;
+        } else {
+          dailyPreview.textContent = '-- ₫ / ngày';
+        }
+      }
+    };
+
+    if (input) {
+      input.value = cur;
+      input.oninput = updateDaily;
+      updateDaily();
+    }
     if (err) err.classList.add('hidden');
 
     const closeBtn = document.getElementById('btn-close-budget');
@@ -1639,7 +1935,10 @@ class AppController {
 
     modal.querySelectorAll('.budget-preset-btn').forEach(btn => {
       btn.onclick = () => {
-        if (input) input.value = btn.dataset.amount;
+        if (input) {
+          input.value = btn.dataset.amount;
+          updateDaily();
+        }
         if (err) err.classList.add('hidden');
       };
     });
@@ -1651,6 +1950,9 @@ class AppController {
           StorageManager.setMonthlyBudget(val, this.currentUser?.email);
           closeModal();
           this.render(false);
+          // Sync immediately to cloud across all devices!
+          CloudSyncService.pushToCloud(this.currentUser?.email, this.transactions, val);
+          this.showSyncToast(`✓ Đã lưu & đồng bộ hạn mức ${this.formatVND(val)} lên Đám Mây!`);
         } else {
           if (err) err.classList.remove('hidden');
         }
@@ -2109,7 +2411,8 @@ class AppController {
       confidence: this.currentPendingResult ? this.currentPendingResult.confidence : 0.92,
       notes,
       rawText: this.currentPendingResult ? this.currentPendingResult.rawText : '',
-      thumbnail: this.currentPendingResult ? this.currentPendingResult.thumbnail : ''
+      thumbnail: this.currentPendingResult ? this.currentPendingResult.thumbnail : '',
+      updatedAt: Date.now()
     };
 
     if (this.editingTxnId) {
@@ -2123,6 +2426,10 @@ class AppController {
     StorageManager.saveTransactions(this.transactions, this.currentUser?.email);
     document.getElementById('review-modal').classList.add('hidden');
     this.render(true);
+
+    // Push to Cloudflare KV for immediate cross-device sync!
+    CloudSyncService.pushToCloud(this.currentUser?.email, this.transactions, StorageManager.getMonthlyBudget(this.currentUser?.email));
+    this.showSyncToast('✓ Đã lưu & đồng bộ hóa đơn lên Đám Mây!');
   }
 
   deleteTransaction(id, ev) {
@@ -2130,6 +2437,11 @@ class AppController {
     this.transactions = this.transactions.filter(t => t.id !== id);
     StorageManager.saveTransactions(this.transactions, this.currentUser?.email);
     this.render(true);
+
+    // Sync deletion to cloud across all devices
+    CloudSyncService.deleteFromCloud(this.currentUser?.email, id);
+    CloudSyncService.pushToCloud(this.currentUser?.email, this.transactions, StorageManager.getMonthlyBudget(this.currentUser?.email));
+    this.showSyncToast('Đã xóa & đồng bộ thay đổi trên tất cả thiết bị');
   }
 
   openManualEntryModal() {

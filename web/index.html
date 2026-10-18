@@ -16,13 +16,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=23.0">
+  <link rel="stylesheet" href="style.css?v=24.0">
   <!-- Google Identity Services (OAuth 2.0 @vku.udn.vn) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <!-- On-Device Tesseract.js WebAssembly OCR (Local Zero-Latency Engine) -->
   <script src="/tesseract/tesseract.min.js" defer></script>
   <script>
-    const APP_VERSION = '23.0';
+    const APP_VERSION = '24.0';
     if (localStorage.getItem('vku_app_cache_v') !== APP_VERSION) {
       if ('caches' in window) {
         caches.keys().then(function(names) {
@@ -39,7 +39,7 @@
     }
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
-        navigator.serviceWorker.register('/sw.js?v=23.0').then(function (reg) {
+        navigator.serviceWorker.register('/sw.js?v=24.0').then(function (reg) {
           reg.update();
         }).catch(function () {});
       });
@@ -55,6 +55,13 @@
         <h1 class="brand-title">Sổ Chi Tiêu & Quét Hóa Đơn AI</h1>
       </div>
       <div class="header-actions">
+        <button id="btn-cloud-sync" class="cloud-sync-btn" title="Đồng bộ tức thì Đám Mây (Điện thoại & Máy tính)" aria-label="Đồng bộ đám mây">
+          <span class="sync-dot"></span>
+          <svg class="sync-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>
+          </svg>
+          <span id="sync-status-badge">Đã đồng bộ</span>
+        </button>
         <button id="btn-theme-toggle" class="icon-btn" title="Chuyển đổi Giao diện Sáng / Tối" aria-label="Chuyển đổi giao diện sáng tối">
           <svg class="svg-icon-sun hidden" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
           <svg class="svg-icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
@@ -489,6 +496,15 @@
 
         <!-- Profile Quick Action Cards -->
         <section class="profile-actions-grid">
+          <div class="profile-action-card" id="btn-profile-sync-now" style="border-left: 4px solid var(--primary-color, #0284c7);">
+            <span class="action-icon">☁️</span>
+            <div class="action-text">
+              <strong>Đồng Bộ Đám Mây Đa Thiết Bị (Real-time Cloud Sync)</strong>
+              <small id="profile-sync-status-desc">Dữ liệu tự động đồng bộ tức thì giữa Điện thoại & Máy tính PC</small>
+            </div>
+            <span class="action-arrow">⚡</span>
+          </div>
+
           <div class="profile-action-card" id="btn-profile-switch-acc">
             <span class="action-icon">🔄</span>
             <div class="action-text">
@@ -947,11 +963,23 @@ flutter build apk --release</code></pre>
         </div>
 
         <div class="modal-body-scroll" style="padding: 16px 20px;">
+          <!-- Custom Budget Explanation Banner -->
+          <div class="budget-info-banner">
+            <span class="info-icon">💡</span>
+            <div>
+              <strong>Hạn mức chi tiêu là của riêng bạn (Tùy chỉnh tự do)</strong>
+              <p>Mỗi cá nhân / sinh viên có nhu cầu tài chính khác nhau. Bạn có thể tự do đặt hạn mức ngân sách tháng theo ý muốn. Hệ thống sẽ tự động <strong>đồng bộ hạn mức này lên tất cả thiết bị (điện thoại & máy tính)</strong> qua tài khoản của bạn.</p>
+            </div>
+          </div>
+
           <div class="form-group">
             <label>SỐ TIỀN NGÂN SÁCH THÁNG (VNĐ) *</label>
             <div class="currency-input-wrap">
-              <input type="number" id="input-budget-amount" class="text-input font-bold text-blue" placeholder="VD: 3500000" min="100000" step="100000">
+              <input type="number" id="input-budget-amount" class="text-input font-bold text-blue" placeholder="VD: 3500000" min="200000" step="100000">
               <span class="currency-symbol">₫</span>
+            </div>
+            <div id="budget-daily-preview" class="budget-daily-preview">
+              Mức chi trung bình dự kiến: <strong id="budget-daily-amount">116.000 ₫ / ngày</strong> (tháng 30 ngày)
             </div>
             <small id="err-budget-amount" class="field-error hidden">Vui lòng nhập số tiền ngân sách hợp lệ (> 0 VNĐ).</small>
           </div>
@@ -961,10 +989,12 @@ flutter build apk --release</code></pre>
               GỢI Ý HẠN MỨC PHỔ BIẾN:
             </label>
             <div class="sample-chips-row" style="flex-wrap: wrap; gap: 8px;">
-              <button type="button" class="sample-chip budget-preset-btn" data-amount="2000000">2.000.000 ₫</button>
-              <button type="button" class="sample-chip budget-preset-btn" data-amount="3500000">3.500.000 ₫</button>
-              <button type="button" class="sample-chip budget-preset-btn" data-amount="5000000">5.000.000 ₫</button>
-              <button type="button" class="sample-chip budget-preset-btn" data-amount="8000000">8.000.000 ₫</button>
+              <button type="button" class="sample-chip budget-preset-btn" data-amount="1500000">1.500.000 ₫ (Tiết kiệm)</button>
+              <button type="button" class="sample-chip budget-preset-btn" data-amount="2500000">2.500.000 ₫ (Cơ bản)</button>
+              <button type="button" class="sample-chip budget-preset-btn" data-amount="3500000">3.500.000 ₫ (Sinh viên VKU)</button>
+              <button type="button" class="sample-chip budget-preset-btn" data-amount="5000000">5.000.000 ₫ (Trung bình)</button>
+              <button type="button" class="sample-chip budget-preset-btn" data-amount="8000000">8.000.000 ₫ (Thoải mái)</button>
+              <button type="button" class="sample-chip budget-preset-btn" data-amount="12000000">12.000.000 ₫ (Đi làm)</button>
             </div>
           </div>
         </div>
@@ -978,9 +1008,14 @@ flutter build apk --release</code></pre>
           </button>
         </div>
       </div>
-    </div>
   </div>
 
-  <script src="app.js?v=23.0"></script>
+  <!-- Real-time Cloud Sync Toast Notification -->
+  <div id="sync-toast" class="sync-toast">
+    <span>☁️</span>
+    <span id="sync-toast-msg">Đã đồng bộ với Đám Mây</span>
+  </div>
+
+  <script src="app.js?v=24.0"></script>
 </body>
 </html>

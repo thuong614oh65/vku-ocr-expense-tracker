@@ -10,5 +10,11 @@
     "directory": "web",
     "binding": "ASSETS",
     "run_worker_first": true
-  }
+  },
+  "kv_namespaces": [
+    {
+      "binding": "EXPENSE_SYNC_KV",
+      "id": "44361761f78e478182ec88cc867f7157"
+    }
+  ]
 }

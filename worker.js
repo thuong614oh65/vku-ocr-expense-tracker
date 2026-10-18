@@ -77,6 +77,170 @@ export default {
     }
 
     // ========================================================================
+    // 1B. API: REAL-TIME CROSS-DEVICE CLOUD SYNC (Cloudflare KV)
+    // ========================================================================
+    if (url.pathname === '/api/sync' || url.pathname.startsWith('/api/sync/')) {
+      if (request.method === 'OPTIONS') {
+        return new Response(null, {
+          status: 204,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+          }
+        });
+      }
+
+      const corsHeaders = {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Access-Control-Allow-Origin': '*',
+        'Cache-Control': 'no-cache, no-store, must-revalidate'
+      };
+
+      if (!env.EXPENSE_SYNC_KV) {
+        return new Response(JSON.stringify({
+          success: false,
+          message: 'Dịch vụ lưu trữ đám mây EXPENSE_SYNC_KV chưa được kết nối.'
+        }), { status: 503, headers: corsHeaders });
+      }
+
+      // GET /api/sync?email=...
+      if (url.pathname === '/api/sync' && request.method === 'GET') {
+        try {
+          const email = (url.searchParams.get('email') || '').trim().toLowerCase();
+          if (!email) {
+            return new Response(JSON.stringify({ success: false, message: 'Thiếu tham số email' }), { status: 400, headers: corsHeaders });
+          }
+
+          const cloudData = await env.EXPENSE_SYNC_KV.get('user:' + email, { type: 'json' });
+          if (!cloudData) {
+            return new Response(JSON.stringify({
+              success: true,
+              exists: false,
+              message: 'Chưa có bản lưu trên đám mây',
+              data: null
+            }), { status: 200, headers: corsHeaders });
+          }
+
+          return new Response(JSON.stringify({
+            success: true,
+            exists: true,
+            message: 'Đồng bộ từ đám mây thành công',
+            data: cloudData
+          }), { status: 200, headers: corsHeaders });
+        } catch (err) {
+          return new Response(JSON.stringify({ success: false, message: 'Lỗi tải đám mây: ' + err.message }), { status: 500, headers: corsHeaders });
+        }
+      }
+
+      // POST /api/sync
+      if (url.pathname === '/api/sync' && request.method === 'POST') {
+        try {
+          const body = await request.json();
+          const email = (body.email || '').trim().toLowerCase();
+          if (!email) {
+            return new Response(JSON.stringify({ success: false, message: 'Thiếu email tài khoản' }), { status: 400, headers: corsHeaders });
+          }
+
+          const existing = (await env.EXPENSE_SYNC_KV.get('user:' + email, { type: 'json' })) || {
+            monthlyBudget: 3500000,
+            categoryBudgets: {},
+            budgetUpdatedAt: 0,
+            transactions: [],
+            updatedAt: 0
+          };
+
+          // 1. Merge transactions with conflict resolution
+          const txnMap = new Map();
+          for (const t of (existing.transactions || [])) {
+            if (t && t.id) txnMap.set(t.id, t);
+          }
+
+          for (const t of (body.transactions || [])) {
+            if (!t || !t.id) continue;
+            const ex = txnMap.get(t.id);
+            if (!ex) {
+              txnMap.set(t.id, { ...t, updatedAt: t.updatedAt || Date.now() });
+            } else {
+              const incomingTime = t.updatedAt || 0;
+              const existingTime = ex.updatedAt || 0;
+              if (incomingTime >= existingTime) {
+                txnMap.set(t.id, { ...ex, ...t, updatedAt: incomingTime || Date.now() });
+              }
+            }
+          }
+
+          const mergedTransactions = Array.from(txnMap.values())
+            .filter(t => !t.isDeleted)
+            .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+
+          // 2. Merge Budget
+          let monthlyBudget = existing.monthlyBudget || 3500000;
+          let categoryBudgets = existing.categoryBudgets || {};
+          let budgetUpdatedAt = existing.budgetUpdatedAt || 0;
+
+          const incomingBudgetTime = body.budgetUpdatedAt || body.clientUpdatedAt || 0;
+          if (typeof body.monthlyBudget === 'number' && body.monthlyBudget > 0) {
+            if (incomingBudgetTime >= budgetUpdatedAt || !existing.budgetUpdatedAt) {
+              monthlyBudget = body.monthlyBudget;
+              budgetUpdatedAt = incomingBudgetTime || Date.now();
+            }
+          }
+
+          if (body.categoryBudgets && typeof body.categoryBudgets === 'object') {
+            categoryBudgets = { ...categoryBudgets, ...body.categoryBudgets };
+          }
+
+          const mergedData = {
+            email,
+            monthlyBudget,
+            categoryBudgets,
+            budgetUpdatedAt,
+            transactions: mergedTransactions,
+            updatedAt: Date.now(),
+            lastDevice: body.device || 'Thiết bị người dùng'
+          };
+
+          await env.EXPENSE_SYNC_KV.put('user:' + email, JSON.stringify(mergedData));
+
+          return new Response(JSON.stringify({
+            success: true,
+            message: 'Đồng bộ tức thời với đám mây thành công',
+            data: mergedData
+          }), { status: 200, headers: corsHeaders });
+        } catch (err) {
+          return new Response(JSON.stringify({ success: false, message: 'Lỗi ghi đám mây: ' + err.message }), { status: 500, headers: corsHeaders });
+        }
+      }
+
+      // POST /api/sync/delete-txn
+      if (url.pathname === '/api/sync/delete-txn' && request.method === 'POST') {
+        try {
+          const body = await request.json();
+          const email = (body.email || '').trim().toLowerCase();
+          const txnId = body.id || body.transactionId;
+          if (!email || !txnId) {
+            return new Response(JSON.stringify({ success: false, message: 'Thiếu email hoặc mã giao dịch' }), { status: 400, headers: corsHeaders });
+          }
+
+          const existing = await env.EXPENSE_SYNC_KV.get('user:' + email, { type: 'json' });
+          if (existing && Array.isArray(existing.transactions)) {
+            existing.transactions = existing.transactions.filter(t => t.id !== txnId);
+            existing.updatedAt = Date.now();
+            await env.EXPENSE_SYNC_KV.put('user:' + email, JSON.stringify(existing));
+          }
+
+          return new Response(JSON.stringify({
+            success: true,
+            message: 'Đã xóa giao dịch đồng bộ trên đám mây'
+          }), { status: 200, headers: corsHeaders });
+        } catch (err) {
+          return new Response(JSON.stringify({ success: false, message: 'Lỗi xóa đám mây: ' + err.message }), { status: 500, headers: corsHeaders });
+        }
+      }
+    }
+
+    // ========================================================================
     // 2. SERVE STATIC ASSETS WITH ENFORCED SECURITY HEADERS (A6)
     // ========================================================================
     const response = await env.ASSETS.fetch(request);
