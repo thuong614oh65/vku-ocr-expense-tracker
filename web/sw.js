@@ -1,14 +1,16 @@
-const CACHE_NAME = 'smartspend-expense-v21';
+const CACHE_NAME = 'smartspend-expense-v23';
 const ASSETS = [
   '/',
   '/index.html',
-  '/style.css?v=21.0',
-  '/app.js?v=21.0',
+  '/style.css?v=23.0',
+  '/app.js?v=23.0',
   '/manifest.json',
   '/hoa_don_mau_test.png',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
-  'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'
+  '/tesseract/tesseract.min.js',
+  '/tesseract/worker.min.js',
+  '/tessdata/vie.traineddata.gz'
 ];
 
 self.addEventListener('install', (event) => {
@@ -26,12 +28,30 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Always fetch fresh network first for app code, fallback to cache when offline
-// Cache-first for OCR models & CDNs so app works 100% OFFLINE without internet
+// Cache-first for OCR models & engine assets so they run 100% OFFLINE
+// Fresh network first for app code (index.html, app.js, style.css)
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
 
+  // 1. Static OCR models & engine: Cache-first
+  if (url.pathname.startsWith('/tessdata/') || url.pathname.startsWith('/tesseract/')) {
+    event.respondWith(
+      caches.match(event.request).then((cached) => {
+        if (cached) return cached;
+        return fetch(event.request).then((networkRes) => {
+          if (networkRes && networkRes.status === 200) {
+            const copy = networkRes.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy)).catch(() => {});
+          }
+          return networkRes;
+        }).catch(() => cached);
+      })
+    );
+    return;
+  }
+
+  // 2. Same-origin app assets
   if (url.origin === self.location.origin) {
     event.respondWith(
       fetch(event.request, { cache: 'no-store' })
@@ -44,13 +64,15 @@ self.addEventListener('fetch', (event) => {
         })
         .catch(() => caches.match(event.request).then((cached) => cached || caches.match('/index.html')))
     );
-  } else if (
+    return;
+  }
+
+  // 3. External assets (fonts, icons)
+  if (
     url.hostname.includes('jsdelivr.net') ||
-    url.hostname.includes('projectnaptha.com') ||
     url.hostname.includes('fonts.googleapis.com') ||
     url.hostname.includes('fonts.gstatic.com')
   ) {
-    // Cache CDN & OCR model assets so they run offline even with Airplane Mode
     event.respondWith(
       caches.match(event.request).then((cached) => {
         if (cached) return cached;

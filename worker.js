@@ -105,8 +105,18 @@ export default {
       "frame-src https://accounts.google.com https://vku-room-booking-17t.pages.dev;"
     );
 
-    // Disable caching on HTML, SW, JS, CSS to guarantee instant updates
-    if (url.pathname === '/' || url.pathname.endsWith('.html') || url.pathname.endsWith('sw.js') || url.pathname.endsWith('.js') || url.pathname.endsWith('.css')) {
+    // Cache static OCR models & WebAssembly permanently, but keep app code fresh
+    if (url.pathname.includes('/tessdata/') || url.pathname.includes('/tesseract/')) {
+      newHeaders.set('Cache-Control', 'public, max-age=31536000, immutable');
+      newHeaders.set('Access-Control-Allow-Origin', '*');
+      if (url.pathname.endsWith('.gz')) {
+        newHeaders.set('Content-Type', 'application/gzip');
+      } else if (url.pathname.endsWith('.wasm')) {
+        newHeaders.set('Content-Type', 'application/wasm');
+      } else if (url.pathname.endsWith('.js')) {
+        newHeaders.set('Content-Type', 'application/javascript; charset=utf-8');
+      }
+    } else if (url.pathname === '/' || url.pathname.endsWith('.html') || url.pathname.endsWith('sw.js') || url.pathname.endsWith('.js') || url.pathname.endsWith('.css')) {
       newHeaders.set('Cache-Control', 'no-cache, no-store, must-revalidate');
       newHeaders.set('Pragma', 'no-cache');
       newHeaders.set('Expires', '0');
