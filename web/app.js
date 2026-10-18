@@ -221,7 +221,7 @@ class AuthService {
       return { success: false, message: 'Mật khẩu không chính xác. Vui lòng kiểm tra lại!' };
     }
     this.setCurrentUser(user);
-    return { success: true, message: `Chào mừng ${user.fullName} (${user.studentId})!`, user };
+    return { success: true, message: `Chào mừng ${user.fullName}!`, user };
   }
 
   static register({ fullName, studentId, className, email, password }) {
@@ -236,7 +236,7 @@ class AuthService {
       studentId: studentId.trim().toUpperCase(),
       className: className.trim().toUpperCase(),
       email: cleanEmail,
-      role: 'Sinh viên VKU / Thủ quỹ CLB',
+      role: 'Thành viên SmartSpend',
       passwordHash: this.hashPassword(password)
     };
     users[cleanEmail] = newUser;
@@ -251,14 +251,36 @@ class AuthService {
 }
 
 class StorageManager {
-  static KEY = 'vku_ocr_expenses_web_v2';
   static THEME_KEY = 'vku_ocr_theme_mode';
-  static BUDGET_KEY = 'vku_monthly_budget';
 
-  static getTransactions() {
+  static getUserKey(userEmail, suffix = 'expenses') {
+    if (!userEmail) return `smartspend_${suffix}_guest`;
+    const clean = userEmail.trim().toLowerCase().replace(/[^a-z0-9_@.-]/g, '_');
+    return `smartspend_${suffix}_${clean}`;
+  }
+
+  static getTransactions(userEmail) {
     try {
-      const data = localStorage.getItem(this.KEY);
-      if (!data) return [];
+      const key = this.getUserKey(userEmail, 'expenses');
+      let data = localStorage.getItem(key);
+
+      // Migration fallback from global key for demo user
+      if (!data && (!userEmail || userEmail === 'demo@example.com')) {
+        data = localStorage.getItem('vku_ocr_expenses_web_v2');
+      }
+
+      if (!data) {
+        // If guest or demo account, return seed sample transactions for instant exploration
+        if (!userEmail || userEmail === 'demo@example.com') {
+          return SEED_TRANSACTIONS.map(t => ({
+            ...t,
+            thumbnail: generateReceiptImageBase64(t.merchant, t.amount, t.date, t.rawText)
+          }));
+        }
+        // New real user starts with a clean slate (0 transactions)
+        return [];
+      }
+
       const list = JSON.parse(data);
       if (!Array.isArray(list)) return [];
       return list.map(t => ({
@@ -270,26 +292,29 @@ class StorageManager {
     }
   }
 
-  static saveTransactions(txns) {
+  static saveTransactions(txns, userEmail) {
     try {
-      localStorage.setItem(this.KEY, JSON.stringify(txns));
+      const key = this.getUserKey(userEmail, 'expenses');
+      localStorage.setItem(key, JSON.stringify(txns));
     } catch (e) {
       console.warn('Lỗi lưu localStorage:', e);
     }
   }
 
-  static getMonthlyBudget() {
+  static getMonthlyBudget(userEmail) {
     try {
-      const val = localStorage.getItem(this.BUDGET_KEY);
+      const key = this.getUserKey(userEmail, 'budget');
+      const val = localStorage.getItem(key);
       return val ? parseInt(val, 10) : 3500000;
     } catch {
       return 3500000;
     }
   }
 
-  static setMonthlyBudget(val) {
+  static setMonthlyBudget(val, userEmail) {
     try {
-      localStorage.setItem(this.BUDGET_KEY, String(val));
+      const key = this.getUserKey(userEmail, 'budget');
+      localStorage.setItem(key, String(val));
     } catch (_) {}
   }
 }
@@ -401,8 +426,8 @@ class RegexReceiptParser {
 
 class AppController {
   constructor() {
-    this.transactions = StorageManager.getTransactions();
     this.currentUser = AuthService.getCurrentUser();
+    this.transactions = StorageManager.getTransactions(this.currentUser?.email);
     this.isLoginMode = true;
     this.obscurePassword = true; // Ephemeral state (Week 8 Slide 4)
     this.currentRoute = this.currentUser ? '/dash' : '/login';
@@ -427,27 +452,7 @@ class AppController {
   }
 
   initDesktopAdaptation() {
-    if (this.isDesktop) {
-      const ctaIcon = document.getElementById('scanner-cta-icon');
-      const ctaTitle = document.getElementById('scanner-cta-title');
-      const ctaDesc = document.getElementById('scanner-cta-desc');
-      const ctaBtn = document.getElementById('btn-open-scanner');
-      const fabIcon = document.getElementById('fab-icon');
-      const fabLabel = document.getElementById('fab-label');
-      const navIcon = document.getElementById('nav-scanner-icon');
-      const navLabel = document.getElementById('nav-scanner-label');
-
-      if (ctaIcon) ctaIcon.textContent = '📁';
-      if (ctaTitle) ctaTitle.textContent = 'Chọn Ảnh Hóa Đơn';
-      if (ctaDesc) ctaDesc.textContent = 'Tải file ảnh hóa đơn (.JPG, .PNG) hoặc kéo thả vào đây • Nhận dạng tự động';
-      if (ctaBtn) ctaBtn.textContent = '📁 Chọn Ảnh Hóa Đơn';
-      if (fabIcon) fabIcon.textContent = '📁';
-      if (fabLabel) fabLabel.textContent = 'Chọn Ảnh Hóa Đơn';
-      if (navIcon) navIcon.textContent = '📁';
-      if (navLabel) navLabel.textContent = 'Chọn Ảnh Hóa Đơn';
-    }
-
-    // Drag and Drop for Desktop
+    // Retain clean SVG icons & labels; handle drag-and-drop for desktop
     const ctaCard = document.getElementById('scanner-cta-card');
     if (ctaCard) {
       ctaCard.addEventListener('dragover', (e) => {
@@ -565,17 +570,18 @@ class AppController {
       mainShell.classList.add('hidden');
       bottomNav.classList.add('hidden');
       fab.classList.add('hidden');
-      logoutBtn.classList.add('hidden');
+      if (logoutBtn) logoutBtn.classList.add('hidden');
       if (switchBtn) switchBtn.classList.add('hidden');
       return;
     }
 
-    // Authenticated: Show ShellRoute (/dash or /reports)
+    // Authenticated: Load user-specific transactions and show ShellRoute
+    this.transactions = StorageManager.getTransactions(this.currentUser.email);
     authScreen.classList.add('hidden');
     mainShell.classList.remove('hidden');
     bottomNav.classList.remove('hidden');
     fab.classList.remove('hidden');
-    logoutBtn.classList.remove('hidden');
+    if (logoutBtn) logoutBtn.classList.remove('hidden');
     if (switchBtn) switchBtn.classList.remove('hidden');
 
     // Populate UserProfile in /profile Pane and AppBar
@@ -647,7 +653,7 @@ class AppController {
     } else {
       // /dash
       if (viewDash) viewDash.classList.remove('hidden');
-      if (viewReports) viewReports.classList.remove('hidden');
+      if (viewReports) viewReports.classList.add('hidden');
       if (viewProfile) viewProfile.classList.add('hidden');
       if (fab) fab.classList.remove('hidden');
     }
@@ -657,6 +663,7 @@ class AppController {
     });
 
     this.render(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   initAuthUI() {
@@ -967,12 +974,12 @@ class AppController {
     const btnEditBudget = document.getElementById('btn-edit-budget');
     if (btnEditBudget) {
       btnEditBudget.onclick = () => {
-        const cur = StorageManager.getMonthlyBudget();
+        const cur = StorageManager.getMonthlyBudget(this.currentUser?.email);
         const input = prompt('Nhập số tiền ngân sách tháng mới (VNĐ):', cur);
         if (input !== null) {
           const val = parseInt(input.replace(/[^0-9]/g, ''), 10);
           if (!isNaN(val) && val > 0) {
-            StorageManager.setMonthlyBudget(val);
+            StorageManager.setMonthlyBudget(val, this.currentUser?.email);
             this.render(false);
           } else {
             alert('Vui lòng nhập ngân sách hợp lệ (> 0 VNĐ).');
@@ -1085,9 +1092,9 @@ class AppController {
             const data = JSON.parse(ev.target.result);
             if (Array.isArray(data.transactions)) {
               this.transactions = data.transactions;
-              StorageManager.saveTransactions(this.transactions);
+              StorageManager.saveTransactions(this.transactions, this.currentUser?.email);
               if (data.monthlyBudget) {
-                StorageManager.setMonthlyBudget(data.monthlyBudget);
+                StorageManager.setMonthlyBudget(data.monthlyBudget, this.currentUser?.email);
               }
               alert(`✅ Đã khôi phục thành công ${this.transactions.length} khoản chi tiêu!`);
               this.render(true);
@@ -1746,7 +1753,7 @@ class AppController {
     }
 
     this.editingTxnId = null;
-    StorageManager.saveTransactions(this.transactions);
+    StorageManager.saveTransactions(this.transactions, this.currentUser?.email);
     document.getElementById('review-modal').classList.add('hidden');
     this.render(true);
   }
@@ -1754,7 +1761,7 @@ class AppController {
   deleteTransaction(id, ev) {
     if (ev) ev.stopPropagation();
     this.transactions = this.transactions.filter(t => t.id !== id);
-    StorageManager.saveTransactions(this.transactions);
+    StorageManager.saveTransactions(this.transactions, this.currentUser?.email);
     this.render(true);
   }
 
@@ -1805,7 +1812,7 @@ class AppController {
       version: '13.0',
       exportedAt: new Date().toISOString(),
       user: this.currentUser ? { fullName: this.currentUser.fullName, email: this.currentUser.email } : null,
-      monthlyBudget: StorageManager.getMonthlyBudget(),
+      monthlyBudget: StorageManager.getMonthlyBudget(this.currentUser?.email),
       transactions: this.transactions
     };
     const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json;charset=utf-8;' });
@@ -1878,7 +1885,7 @@ class AppController {
     document.getElementById('kpi-total-amount').textContent = this.formatVND(totalAmount);
     document.getElementById('kpi-total-count').textContent = `${this.transactions.length} giao dịch đã lưu`;
 
-    const budget = StorageManager.getMonthlyBudget();
+    const budget = StorageManager.getMonthlyBudget(this.currentUser?.email);
     const budgetEl = document.getElementById('kpi-budget-amount');
     if (budgetEl) budgetEl.textContent = this.formatVND(budget);
 

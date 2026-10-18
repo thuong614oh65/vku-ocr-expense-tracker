@@ -16,13 +16,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=16.0">
+  <link rel="stylesheet" href="style.css?v=17.0">
   <!-- Google Identity Services (OAuth 2.0 @vku.udn.vn) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <!-- On-Device Tesseract.js WebAssembly OCR for uploaded photos -->
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js" defer></script>
   <script>
-    const APP_VERSION = '16.0';
+    const APP_VERSION = '17.0';
     if (localStorage.getItem('vku_app_cache_v') !== APP_VERSION) {
       if ('caches' in window) {
         caches.keys().then(function(names) {
@@ -34,11 +34,12 @@
           for (var reg of regs) { reg.unregister(); }
         });
       }
+      localStorage.removeItem('vku_ocr_auth_session_v1');
       localStorage.setItem('vku_app_cache_v', APP_VERSION);
     }
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
-        navigator.serviceWorker.register('/sw.js?v=16.0').then(function (reg) {
+        navigator.serviceWorker.register('/sw.js?v=17.0').then(function (reg) {
           reg.update();
         }).catch(function () {});
       });
@@ -83,7 +84,7 @@
     <!-- ====================================================================
          AUTHENTICATION SCREEN
          ==================================================================== -->
-    <main id="auth-screen" class="auth-screen hidden">
+    <main id="auth-screen" class="auth-screen">
       <div class="auth-hero-card">
         <div class="auth-logo-circle">
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
@@ -196,7 +197,7 @@
     <!-- ====================================================================
          SHELL ROUTE: /dash & /reports (Week 8 Slide 23 Persistent Navigation)
          ==================================================================== -->
-    <main id="main-app-shell" class="content-scroll">
+    <main id="main-app-shell" class="content-scroll hidden">
       <!-- ================= TAB 1: /dash (SỔ CHI TIÊU) ================= -->
       <div id="view-dash" class="tab-view-pane">
         <!-- Active User Info Bar with Quick Account Switcher Button -->
@@ -209,8 +210,9 @@
               <strong id="dash-user-name">Người Dùng</strong>
             </div>
           </div>
-          <button type="button" id="btn-dash-switch-acc" class="btn-switch-pill" title="Chuyển đổi tài khoản">
-            🔄 Đổi Tài Khoản
+          <button type="button" id="btn-dash-switch-acc" class="btn-switch-pill" title="Chuyển đổi hoặc xem tài khoản">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <span>Tài Khoản</span>
           </button>
         </section>
 
@@ -265,14 +267,14 @@
           </button>
         </section>
 
-        <!-- Drop Zone for PC / Laptop -->
+        <!-- Drop Zone for PC / Laptop File Upload -->
         <section id="scanner-cta-card" class="scanner-cta-card">
           <div id="scanner-cta-icon" class="scanner-icon-wrap">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg>
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
           </div>
           <div class="scanner-text-wrap">
-            <h2 id="scanner-cta-title">Tải Ảnh Hóa Đơn Hoặc Kéo Thả File</h2>
-            <p id="scanner-cta-desc">Hỗ trợ ảnh chụp (.JPG, .PNG) • Trí tuệ nhân tạo OCR tự động nhận diện</p>
+            <h2 id="scanner-cta-title">Tải File Hoặc Kéo Thả Hóa Đơn</h2>
+            <p id="scanner-cta-desc">Hỗ trợ ảnh chụp .JPG, .PNG • Trí tuệ nhân tạo OCR tự động nhận diện</p>
           </div>
         </section>
 
@@ -492,7 +494,7 @@
     </main>
 
     <!-- Circular 56px FloatingActionButton for OCR Camera Scan -->
-    <button id="fab-scan-receipt" class="fab-circle-56" title="Quét Hóa Đơn AI" aria-label="Quét hóa đơn AI">
+    <button id="fab-scan-receipt" class="fab-circle-56 hidden" title="Quét Hóa Đơn AI" aria-label="Quét hóa đơn AI">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
         <circle cx="12" cy="13" r="3"/>
@@ -500,7 +502,7 @@
     </button>
 
     <!-- Persistent Bottom NavigationBar -->
-    <nav id="bottom-nav-bar" class="bottom-nav">
+    <nav id="bottom-nav-bar" class="bottom-nav hidden">
       <button class="nav-dest active" data-route="/dash" aria-label="Sổ Chi Tiêu">
         <span class="nav-icon">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-8"/><path d="M16 12h-8"/><path d="M12 16h-4"/></svg>
@@ -830,6 +832,6 @@ flutter build apk --release</code></pre>
     </div>
   </div>
 
-  <script src="app.js?v=16.0"></script>
+  <script src="app.js?v=17.0"></script>
 </body>
 </html>
