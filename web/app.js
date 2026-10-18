@@ -481,7 +481,7 @@ class AppController {
   }
 
   triggerScanOrFilePicker() {
-    this.triggerImagePicker();
+    this.openScannerModal();
   }
 
   applyTheme() {
@@ -560,18 +560,14 @@ class AppController {
     const mainShell = document.getElementById('main-app-shell');
     const bottomNav = document.getElementById('bottom-nav-bar');
     const fab = document.getElementById('fab-scan-receipt');
-    const logoutBtn = document.getElementById('btn-logout-user');
 
     // Route Guard: Redirect unauthenticated user to /login
-    const switchBtn = document.getElementById('btn-switch-account');
     if (!this.currentUser) {
       this.currentRoute = '/login';
       authScreen.classList.remove('hidden');
       mainShell.classList.add('hidden');
       bottomNav.classList.add('hidden');
       fab.classList.add('hidden');
-      if (logoutBtn) logoutBtn.classList.add('hidden');
-      if (switchBtn) switchBtn.classList.add('hidden');
       return;
     }
 
@@ -581,8 +577,6 @@ class AppController {
     mainShell.classList.remove('hidden');
     bottomNav.classList.remove('hidden');
     fab.classList.remove('hidden');
-    if (logoutBtn) logoutBtn.classList.remove('hidden');
-    if (switchBtn) switchBtn.classList.remove('hidden');
 
     // Populate UserProfile in /profile Pane and AppBar
     const initials = (this.currentUser.fullName || 'User')
@@ -605,18 +599,12 @@ class AppController {
     if (dashAvatar) dashAvatar.textContent = initials || 'US';
     const dashName = document.getElementById('dash-user-name');
     if (dashName) dashName.textContent = this.currentUser.fullName || 'Người Dùng';
-    const dashMeta = document.getElementById('dash-user-meta');
-    if (dashMeta) dashMeta.textContent = `Email: ${this.currentUser.email}`;
 
     const btnDashSwitch = document.getElementById('btn-dash-switch-acc');
     if (btnDashSwitch) btnDashSwitch.onclick = () => this.openAccountModal();
 
     const topAvatar = document.getElementById('user-avatar-badge');
     if (topAvatar) topAvatar.textContent = initials || 'US';
-    const topTitle = document.getElementById('user-profile-title');
-    if (topTitle) topTitle.textContent = `${this.currentUser.fullName}`;
-    const topSub = document.getElementById('user-profile-sub');
-    if (topSub) topSub.textContent = `Email: ${this.currentUser.email}`;
 
     if (this.currentRoute === '/login') {
       this.currentRoute = '/dash';
@@ -796,14 +784,6 @@ class AppController {
       };
     }
 
-    // Logout Button in AppBar
-    const appLogoutBtn = document.getElementById('btn-logout-user');
-    if (appLogoutBtn) {
-      appLogoutBtn.onclick = () => {
-        AuthService.logout();
-        this.syncRouteGuard();
-      };
-    }
 
     // ========================================================================
     // GOOGLE IDENTITY SERVICES OAUTH (A4)
@@ -972,22 +952,10 @@ class AppController {
     const btnRepExport = document.getElementById('btn-reports-export-csv');
     if (btnRepExport) btnRepExport.onclick = () => this.exportCsv();
 
-    // Edit Monthly Budget (D3)
+    // Edit Monthly Budget via dedicated Budget Setting Modal
     const btnEditBudget = document.getElementById('btn-edit-budget');
     if (btnEditBudget) {
-      btnEditBudget.onclick = () => {
-        const cur = StorageManager.getMonthlyBudget(this.currentUser?.email);
-        const input = prompt('Nhập số tiền ngân sách tháng mới (VNĐ):', cur);
-        if (input !== null) {
-          const val = parseInt(input.replace(/[^0-9]/g, ''), 10);
-          if (!isNaN(val) && val > 0) {
-            StorageManager.setMonthlyBudget(val, this.currentUser?.email);
-            this.render(false);
-          } else {
-            alert('Vui lòng nhập ngân sách hợp lệ (> 0 VNĐ).');
-          }
-        }
-      };
+      btnEditBudget.onclick = () => this.openBudgetModal();
     }
 
     // Bottom NavigationBar (ShellRoute: /dash, /scanner, /reports)
@@ -995,15 +963,16 @@ class AppController {
       btn.onclick = () => this.navigateShell(btn.dataset.route);
     });
 
-    // FloatingActionButton.extended (Unified triggerImagePicker - E2)
-    document.getElementById('fab-scan-receipt').onclick = () => this.triggerImagePicker();
+    // FloatingActionButton.extended (Unified openScannerModal viewfinder)
+    const fabScan = document.getElementById('fab-scan-receipt');
+    if (fabScan) fabScan.onclick = () => this.openScannerModal();
 
-    // Scanner CTA Card & Button (Unified triggerImagePicker - E2)
+    // Scanner CTA Card & Button (Unified openScannerModal viewfinder)
     const ctaCard = document.getElementById('scanner-cta-card');
     if (ctaCard) {
       ctaCard.onclick = (e) => {
         if (!e.target.closest('#btn-open-scanner') && !e.target.closest('#btn-manual-add')) {
-          this.triggerImagePicker();
+          this.openScannerModal();
         }
       };
       ctaCard.addEventListener('dragover', (e) => {
@@ -1022,7 +991,7 @@ class AppController {
       });
     }
     const btnOpenScan = document.getElementById('btn-open-scanner');
-    if (btnOpenScan) btnOpenScan.onclick = () => this.triggerImagePicker();
+    if (btnOpenScan) btnOpenScan.onclick = () => this.openScannerModal();
 
     const btnManual = document.getElementById('btn-manual-add');
     if (btnManual) {
@@ -1037,19 +1006,6 @@ class AppController {
     const btnHeaderAvatar = document.getElementById('btn-header-avatar');
     if (btnHeaderAvatar) btnHeaderAvatar.onclick = openAccModal;
 
-    const btnSwitch = document.getElementById('btn-switch-account');
-    if (btnSwitch) btnSwitch.onclick = openAccModal;
-
-    const btnCardSwitch = document.getElementById('btn-card-switch-acc');
-    if (btnCardSwitch) btnCardSwitch.onclick = openAccModal;
-
-    const btnCardLogout = document.getElementById('btn-card-logout');
-    if (btnCardLogout) {
-      btnCardLogout.onclick = () => {
-        AuthService.logout();
-        this.syncRouteGuard();
-      };
-    }
 
     // Profile Pane Action Buttons
     const btnProfSwitch = document.getElementById('btn-profile-switch-acc');
@@ -1397,6 +1353,55 @@ class AppController {
   }
 
   /**
+   * Opens Dedicated Budget Setting Modal
+   */
+  openBudgetModal() {
+    const modal = document.getElementById('budget-modal');
+    if (!modal) return;
+    const cur = StorageManager.getMonthlyBudget(this.currentUser?.email);
+    const input = document.getElementById('input-budget-amount');
+    const err = document.getElementById('err-budget-amount');
+    if (input) input.value = cur;
+    if (err) err.classList.add('hidden');
+
+    const closeBtn = document.getElementById('btn-close-budget');
+    const cancelBtn = document.getElementById('btn-cancel-budget');
+    const saveBtn = document.getElementById('btn-save-budget');
+
+    const closeModal = () => modal.classList.add('hidden');
+    if (closeBtn) closeBtn.onclick = closeModal;
+    if (cancelBtn) cancelBtn.onclick = closeModal;
+
+    modal.querySelectorAll('.budget-preset-btn').forEach(btn => {
+      btn.onclick = () => {
+        if (input) input.value = btn.dataset.amount;
+        if (err) err.classList.add('hidden');
+      };
+    });
+
+    if (saveBtn) {
+      saveBtn.onclick = () => {
+        const val = parseInt(input.value, 10);
+        if (!isNaN(val) && val > 0) {
+          StorageManager.setMonthlyBudget(val, this.currentUser?.email);
+          closeModal();
+          this.render(false);
+        } else {
+          if (err) err.classList.remove('hidden');
+        }
+      };
+    }
+
+    modal.classList.remove('hidden');
+    setTimeout(() => {
+      if (input) {
+        input.focus();
+        input.select();
+      }
+    }, 100);
+  }
+
+  /**
    * Opens Dynamic Route /expense/:id Detail Modal
    */
   openExpenseDetailModal(txn) {
@@ -1408,7 +1413,22 @@ class AppController {
     document.getElementById('detail-amount-value').textContent = this.formatVND(txn.amount);
     document.getElementById('detail-cat-chip').textContent =
       `${cat.icon} ${cat.name} • Độ tin cậy OCR: ${Math.round((txn.confidence || 0.92) * 100)}%`;
-    document.getElementById('detail-thumb-img').src = txn.thumbnail || '';
+
+    const thumbImg = document.getElementById('detail-thumb-img');
+    const thumbCaption = document.getElementById('detail-thumb-caption');
+    if (txn.thumbnail) {
+      if (thumbImg) {
+        thumbImg.src = txn.thumbnail;
+        thumbImg.style.display = 'block';
+      }
+      if (thumbCaption) thumbCaption.textContent = '🖼️ Ảnh Hóa Đơn Lưu Trữ Cục Bộ';
+    } else {
+      if (thumbImg) {
+        thumbImg.style.display = 'none';
+      }
+      if (thumbCaption) thumbCaption.textContent = '📝 Khoản Chi Ghi Nhận Thủ Công (Không Kèm Ảnh)';
+    }
+
     document.getElementById('detail-date-text').textContent = `Ngày giao dịch: ${txn.date}`;
     document.getElementById('detail-notes-text').textContent = `Ghi chú: ${txn.notes || 'Không có ghi chú'}`;
     document.getElementById('detail-raw-ocr').textContent = txn.rawText || '(Hóa đơn nhập thủ công)';
@@ -1420,6 +1440,7 @@ class AppController {
     const scannerModal = document.getElementById('scanner-modal');
     scannerModal.classList.remove('hidden');
     const video = document.getElementById('camera-video');
+    const hint = document.getElementById('camera-hint-text');
     try {
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         this.cameraStream = await navigator.mediaDevices.getUserMedia({
@@ -1428,9 +1449,14 @@ class AppController {
         });
         video.srcObject = this.cameraStream;
         video.style.display = 'block';
+        if (hint) hint.textContent = 'Đặt hóa đơn vào khung cắt • Chạm màn hình để lấy nét';
+      } else {
+        video.style.display = 'none';
+        if (hint) hint.textContent = 'Chưa mở được camera. Vui lòng bấm "Chọn Ảnh Hóa Đơn" bên dưới để tải ảnh từ máy, hoặc thử mẫu demo.';
       }
     } catch (_) {
       video.style.display = 'none';
+      if (hint) hint.textContent = 'Chưa mở được camera. Vui lòng bấm "Chọn Ảnh Hóa Đơn" bên dưới để tải ảnh từ máy, hoặc thử mẫu demo.';
     }
   }
 
@@ -1438,6 +1464,8 @@ class AppController {
     const scannerModal = document.getElementById('scanner-modal');
     scannerModal.classList.add('hidden');
     document.getElementById('ocr-loading-overlay').classList.add('hidden');
+    const hint = document.getElementById('camera-hint-text');
+    if (hint) hint.textContent = 'Đặt hóa đơn vào khung cắt • Chạm màn hình để lấy nét';
     if (this.cameraStream) {
       this.cameraStream.getTracks().forEach(t => t.stop());
       this.cameraStream = null;

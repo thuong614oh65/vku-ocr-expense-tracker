@@ -627,10 +627,10 @@
             <span id="detail-cat-chip" class="detail-chip">--</span>
           </div>
 
-          <div class="receipt-thumb-wrap">
-            <img id="detail-thumb-img" src="" alt="Ảnh hóa đơn">
+          <div class="receipt-thumb-wrap" id="detail-thumb-wrap">
+            <img id="detail-thumb-img" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1' height='1'%3E%3C/svg%3E" alt="Ảnh hóa đơn">
             <div class="receipt-thumb-meta">
-              <strong>🖼️ Ảnh Hóa Đơn Lưu Trữ Cục Bộ</strong>
+              <strong id="detail-thumb-caption">🖼️ Ảnh Hóa Đơn Lưu Trữ Cục Bộ</strong>
               <span id="detail-date-text">Ngày giao dịch: --</span>
               <span id="detail-notes-text">Ghi chú: —</span>
             </div>
@@ -736,7 +736,7 @@
 
           <!-- Cropped Receipt Thumbnail Preview -->
           <div id="receipt-thumb-wrap" class="receipt-thumb-wrap">
-            <img id="receipt-thumb-img" src="" alt="Ảnh hóa đơn">
+            <img id="receipt-thumb-img" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1' height='1'%3E%3C/svg%3E" alt="Ảnh hóa đơn">
             <div class="receipt-thumb-meta">
               <strong>🖼️ Ảnh Hóa Đơn Đã Cắt Khung</strong>
               <span id="detected-items-summary">Đã lưu bộ nhớ đệm cục bộ</span>
@@ -905,8 +905,58 @@ flutter build apk --release</code></pre>
         </div>
       </div>
     </div>
+
+    <!-- ====================================================================
+         BUDGET SETTING MODAL
+         ==================================================================== -->
+    <div id="budget-modal" class="modal-overlay hidden">
+      <div class="review-modal-card" style="max-width: 440px;">
+        <div class="modal-header">
+          <div class="header-title-wrap">
+            <span class="modal-icon">🎯</span>
+            <div>
+              <h3>Cài Đặt Hạn Mức Ngân Sách</h3>
+              <p>Hạn mức chi tiêu dự kiến cho tháng này</p>
+            </div>
+          </div>
+          <button id="btn-close-budget" class="icon-btn-close" aria-label="Đóng cửa sổ">✕</button>
+        </div>
+
+        <div class="modal-body-scroll" style="padding: 16px 20px;">
+          <div class="form-group">
+            <label>SỐ TIỀN NGÂN SÁCH THÁNG (VNĐ) *</label>
+            <div class="currency-input-wrap">
+              <input type="number" id="input-budget-amount" class="text-input font-bold text-blue" placeholder="VD: 3500000" min="100000" step="100000">
+              <span class="currency-symbol">₫</span>
+            </div>
+            <small id="err-budget-amount" class="field-error hidden">Vui lòng nhập số tiền ngân sách hợp lệ (> 0 VNĐ).</small>
+          </div>
+
+          <div style="margin-top: 14px;">
+            <label style="font-size: 11px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 8px;">
+              GỢI Ý HẠN MỨC PHỔ BIẾN:
+            </label>
+            <div class="sample-chips-row" style="flex-wrap: wrap; gap: 8px;">
+              <button type="button" class="sample-chip budget-preset-btn" data-amount="2000000">2.000.000 ₫</button>
+              <button type="button" class="sample-chip budget-preset-btn" data-amount="3500000">3.500.000 ₫</button>
+              <button type="button" class="sample-chip budget-preset-btn" data-amount="5000000">5.000.000 ₫</button>
+              <button type="button" class="sample-chip budget-preset-btn" data-amount="8000000">8.000.000 ₫</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer" style="display: flex; gap: 10px; padding: 12px 20px 18px;">
+          <button type="button" id="btn-cancel-budget" class="btn-secondary-full" style="flex: 1;">
+            Hủy Bỏ
+          </button>
+          <button type="button" id="btn-save-budget" class="btn-save-primary" style="flex: 1;">
+            ✓ Lưu Ngân Sách
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <script src="app.js?v=18.0"></script>
+  <script src="app.js?v=19.0"></script>
 </body>
 </html>
