@@ -94,13 +94,14 @@ export default {
     // Content Security Policy
     newHeaders.set(
       'Content-Security-Policy',
-      "default-src 'self'; " +
-      "script-src 'self' 'unsafe-inline' https://accounts.google.com https://cdn.jsdelivr.net; " +
-      "connect-src 'self' https://accounts.google.com https://oauth2.googleapis.com https://cdn.jsdelivr.net https://tessdata.projectnaptha.com blob:; " +
+      "default-src 'self' 'unsafe-inline' blob: data:; " +
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' https://accounts.google.com https://cdn.jsdelivr.net; " +
+      "connect-src 'self' https://accounts.google.com https://oauth2.googleapis.com https://cdn.jsdelivr.net https://tessdata.projectnaptha.com https://unpkg.com blob: data:; " +
       "img-src 'self' data: blob: https:; " +
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
       "font-src 'self' https://fonts.gstatic.com; " +
-      "worker-src 'self' blob:; " +
+      "worker-src 'self' blob: https://cdn.jsdelivr.net; " +
+      "child-src 'self' blob: https://cdn.jsdelivr.net; " +
       "frame-src https://accounts.google.com https://vku-room-booking-17t.pages.dev;"
     );
 
