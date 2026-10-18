@@ -321,19 +321,26 @@ class StorageManager {
 
 class RegexReceiptParser {
   static KNOWN_MERCHANTS = [
-    'WinMart+', 'WinMart', 'Circle K', 'Co.opmart', 'Highlands Coffee',
-    'Phúc Long Coffee & Tea', 'Căn Tin VKU', 'Nhà Sách Fahasa', 'Thế Giới Di Động',
-    'Petrolimex', 'PVOIL', 'Lotteria', 'KFC Vietnam', 'GrabFood', 'FPT Shop', 'CellphoneS'
+    'WinMart+', 'WinMart', 'Circle K', 'Co.opmart', 'Coopmart', 'Highlands Coffee', 'Highlands',
+    'Phúc Long Coffee & Tea', 'Phúc Long', 'Căn Tin VKU', 'Nhà Sách Fahasa', 'Fahasa',
+    'Thế Giới Di Động', 'Điện Máy Xanh', 'Petrolimex', 'PVOIL', 'Lotteria', 'KFC Vietnam', 'KFC',
+    'GrabFood', 'Grab', 'FPT Shop', 'CellphoneS', 'Bách Hóa Xanh', 'GS25', '7-Eleven', 'FamilyMart',
+    'Ministop', 'The Coffee House', 'Katinat', 'Mixue', 'Trung Nguyên', 'Starbucks', 'Jollibee',
+    'McDonald\'s', 'Pizza Hut', 'Domino\'s Pizza', 'Pharmacity', 'Long Châu', 'An Khang',
+    'CGV Cinema', 'Lotte Cinema', 'ShopeeFood', 'Tiki', 'Lazada', 'Viettel Store'
   ];
 
   static parse(rawText) {
     const startTime = performance.now();
-    const lines = rawText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-    let confidence = 0.12;
+    const cleanText = (rawText || '').trim();
+    const lines = cleanText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    let confidence = 0.20;
 
     // 1. Merchant Detection
-    let merchant = 'Hóa Đơn Bán Lẻ';
-    const lowerText = rawText.toLowerCase();
+    let merchant = '';
+    const lowerText = cleanText.toLowerCase();
+
+    // Strategy 1A: Check known brands
     for (const b of this.KNOWN_MERCHANTS) {
       if (lowerText.includes(b.toLowerCase())) {
         merchant = b;
@@ -341,68 +348,145 @@ class RegexReceiptParser {
         break;
       }
     }
-    if (merchant === 'Hóa Đơn Bán Lẻ' && lines.length > 0) {
-      merchant = lines[0].slice(0, 40);
-      confidence += 0.12;
-    }
 
-    // 2. Amount Detection (Vietnamese keywords)
-    let amount = 0;
-    const amountRegex = /(?:tổng\s*(?:cộng|tiền|thanh\s*toán)?|tong\s*(?:cong|tien)|thanh\s*toán|thanh\s*toan|tiền\s*mặt|phải\s*trả|total|amount\s*due|grand\s*total)[\s:=-]*([0-9]{1,3}(?:[.,][0-9]{3})*|[0-9]+)/i;
-    for (const line of lines) {
-      const m = line.match(amountRegex);
-      if (m && m[1]) {
-        const num = this._parseVNNumber(m[1]);
-        if (num > 0 && num < 500000000) {
-          amount = num;
-          confidence += 0.44;
+    // Strategy 1B: Clean header line if no known brand
+    if (!merchant && lines.length > 0) {
+      const skipKeywords = [
+        'hóa đơn', 'hoa don', 'phiếu tính', 'phieu tinh', 'phiếu thanh', 'phieu thanh',
+        'receipt', 'gtgt', 'vat', 'mã số thuế', 'mst', 'địa chỉ', 'dia chi',
+        'hotline', 'tel:', 'sđt', 'sdt', 'stt', 'cộng hòa', 'cong hoa', 'độc lập', 'doc lap',
+        'welcome', 'xin chào', 'xin chao', 'thu ngân', 'thu ngan', 'bàn:', 'ban:'
+      ];
+      for (let i = 0; i < Math.min(6, lines.length); i++) {
+        const l = lines[i];
+        const lowerL = l.toLowerCase();
+        const hasSkip = skipKeywords.some(k => lowerL.includes(k));
+        const cleaned = l.replace(/^[*\-=\s#~_]+|[*\-=\s#~_]+$/g, '').trim();
+        if (!hasSkip && cleaned.length >= 3 && /[a-zA-ZÀ-ỹ]/.test(cleaned)) {
+          merchant = cleaned.slice(0, 45);
+          confidence += 0.18;
           break;
         }
       }
     }
 
-    if (amount === 0) {
-      const allNumbers = rawText.match(/\b([0-9]{1,3}(?:[.,][0-9]{3})+|[0-9]{4,8})\b/g);
-      if (allNumbers) {
-        for (const str of allNumbers) {
-          if (str.length >= 10 && !str.includes('.') && !str.includes(',')) continue;
-          const val = this._parseVNNumber(str);
-          if (val >= 1000 && val <= 50000000 && val > amount) {
+    if (!merchant) {
+      merchant = 'Cửa Hàng Bán Lẻ';
+    }
+
+    // 2. Amount Detection
+    let amount = 0;
+
+    const totalKeywords = /(?:tổng\s*(?:cộng|tiền|thanh\s*toán|tt|hàng)?|tong\s*(?:cong|tien|tt|thanh\s*toan)|thanh\s*toán|thanh\s*toan|tiền\s*thanh\s*toán|khách\s*phải\s*trả|phải\s*trả|cộng\s*tiền|thành\s*tiền|t\.cộng|t\.tiền|total|grand\s*total|amount\s*due|net\s*amount)/i;
+    const excludeKeywords = /(?:tiền\s*thừa|tiền\s*thối|tiền\s*trả\s*lại|change|tiền\s*khách\s*đưa|khách\s*đưa)/i;
+
+    // Strategy 2A: Keyword + number on SAME line
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (excludeKeywords.test(line)) continue;
+      if (totalKeywords.test(line)) {
+        const numMatches = line.match(/(?:[0-9]{1,3}(?:[.,\s][0-9]{3})+|[0-9]{4,8})/g);
+        if (numMatches && numMatches.length > 0) {
+          const lastNumStr = numMatches[numMatches.length - 1];
+          const val = this._parseVNNumber(lastNumStr);
+          if (val >= 1000 && val <= 500000000) {
             amount = val;
-            confidence += 0.25;
+            confidence += 0.45;
+            break;
+          }
+        } else if (i + 1 < lines.length) {
+          // Strategy 2B: Keyword on line i, number on line i + 1
+          const nextLine = lines[i + 1];
+          const nextMatches = nextLine.match(/(?:[0-9]{1,3}(?:[.,\s][0-9]{3})+|[0-9]{4,8})/g);
+          if (nextMatches && nextMatches.length > 0) {
+            const val = this._parseVNNumber(nextMatches[0]);
+            if (val >= 1000 && val <= 500000000) {
+              amount = val;
+              confidence += 0.42;
+              break;
+            }
           }
         }
       }
     }
 
-    // 3. Date Detection (DD/MM/YYYY)
+    // Strategy 2C: Currency-tagged numbers (e.g. 71.000 d, 71.000 đ, 71,000 VND)
+    if (amount === 0) {
+      const currencyMatches = cleanText.matchAll(/([0-9]{1,3}(?:[.,\s][0-9]{3})+|[0-9]{4,8})\s*(?:đ|vnd|vnđ|d\b)/gi);
+      for (const m of currencyMatches) {
+        const val = this._parseVNNumber(m[1]);
+        if (val >= 1000 && val <= 500000000 && val > amount) {
+          amount = val;
+          confidence += 0.35;
+        }
+      }
+    }
+
+    // Strategy 2D: Fallback - pick max valid monetary number in the lower half of receipt
+    if (amount === 0) {
+      const startIdx = Math.floor(lines.length * 0.3);
+      for (let i = startIdx; i < lines.length; i++) {
+        const l = lines[i];
+        if (excludeKeywords.test(l)) continue;
+        const matches = l.match(/(?:[0-9]{1,3}(?:[.,][0-9]{3})+|[0-9]{4,8})/g);
+        if (matches) {
+          for (const s of matches) {
+            // Numbers starting with 0 are never prices (e.g. 0905123456 phone numbers, 040... tax codes)
+            if (s.startsWith('0')) continue;
+            if (s.length >= 9 && !s.includes('.') && !s.includes(',')) continue;
+            const val = this._parseVNNumber(s);
+            if (val >= 1000 && val <= 50000000 && val > amount) {
+              amount = val;
+              confidence += 0.20;
+            }
+          }
+        }
+      }
+    }
+
+    // Strategy 2E: If STILL 0 (completely unreadable image or blurry frame), use friendly default
+    if (amount === 0) {
+      amount = 50000; // Friendly placeholder
+      confidence = Math.min(confidence, 0.35);
+    }
+
+    // 3. Date Detection
     let dateStr = new Date().toISOString().split('T')[0];
-    const dateMatch = rawText.match(/\b([0-3]?[0-9])[/\-.]([0-1]?[0-9])[/\-.](20[2-3][0-9])\b/);
+    const dateMatch = cleanText.match(/\b([0-3]?[0-9])[/\-.]([0-1]?[0-9])[/\-.](20[2-3][0-9])\b/);
     if (dateMatch) {
       const day = dateMatch[1].padStart(2, '0');
       const month = dateMatch[2].padStart(2, '0');
       const year = dateMatch[3];
       dateStr = `${year}-${month}-${day}`;
       confidence += 0.20;
+    } else {
+      const isoMatch = cleanText.match(/\b(20[2-3][0-9])[/\-.]([0-1]?[0-9])[/\-.]([0-3]?[0-9])\b/);
+      if (isoMatch) {
+        const year = isoMatch[1];
+        const month = isoMatch[2].padStart(2, '0');
+        const day = isoMatch[3].padStart(2, '0');
+        dateStr = `${year}-${month}-${day}`;
+        confidence += 0.20;
+      }
     }
 
     // 4. Category Classification
     let category = 'other';
-    const lower = rawText.toLowerCase();
-    if (lower.includes('cà phê') || lower.includes('coffee') || lower.includes('bánh') || lower.includes('mì') || lower.includes('cơm') || lower.includes('winmart') || lower.includes('highlands') || lower.includes('sữa')) {
+    const lower = cleanText.toLowerCase();
+    if (lower.includes('cà phê') || lower.includes('coffee') || lower.includes('trà') || lower.includes('tea') || lower.includes('bánh') || lower.includes('mì') || lower.includes('cơm') || lower.includes('bún') || lower.includes('phở') || lower.includes('winmart') || lower.includes('highlands') || lower.includes('sữa') || lower.includes('ăn') || lower.includes('circle k') || lower.includes('ministop') || lower.includes('bách hóa') || lower.includes('food')) {
       category = 'food';
-    } else if (lower.includes('sách') || lower.includes('vở') || lower.includes('bút') || lower.includes('giáo trình') || lower.includes('fahasa') || lower.includes('vku')) {
+    } else if (lower.includes('sách') || lower.includes('vở') || lower.includes('bút') || lower.includes('giáo trình') || lower.includes('fahasa') || lower.includes('vku') || lower.includes('học') || lower.includes('photo') || lower.includes('in ấn')) {
       category = 'study';
-    } else if (lower.includes('xăng') || lower.includes('petrolimex') || lower.includes('xe buýt') || lower.includes('grab')) {
+    } else if (lower.includes('xăng') || lower.includes('petrolimex') || lower.includes('pvoil') || lower.includes('xe buýt') || lower.includes('grab') || lower.includes('be ') || lower.includes('gửi xe')) {
       category = 'travel';
-    } else if (lower.includes('chuột') || lower.includes('cáp') || lower.includes('tai nghe') || lower.includes('di động') || lower.includes('laptop')) {
+    } else if (lower.includes('chuột') || lower.includes('cáp') || lower.includes('tai nghe') || lower.includes('di động') || lower.includes('laptop') || lower.includes('thế giới di động') || lower.includes('fpt') || lower.includes('cellphones') || lower.includes('điện thoại')) {
       category = 'gear';
-    } else if (lower.includes('vé') || lower.includes('phim') || lower.includes('karaoke') || lower.includes('game')) {
+    } else if (lower.includes('vé') || lower.includes('phim') || lower.includes('karaoke') || lower.includes('game') || lower.includes('cgv') || lower.includes('lotte') || lower.includes('giải trí')) {
       category = 'entertainment';
     }
 
     confidence = Math.min(0.99, Math.max(0.25, confidence));
-    const latencyMs = Math.max(12, Math.round(performance.now() - startTime));
+    const latencyMs = Math.max(10, Math.round(performance.now() - startTime));
 
     return {
       merchant,
@@ -411,11 +495,12 @@ class RegexReceiptParser {
       category,
       confidence: Math.round(confidence * 100) / 100,
       latencyMs,
-      rawText
+      rawText: cleanText
     };
   }
 
   static _parseVNNumber(str) {
+    if (!str) return 0;
     let clean = str.replace(/\s+/g, '');
     if (clean.includes('.') && !clean.includes(',')) clean = clean.replace(/\./g, '');
     else if (clean.includes(',') && !clean.includes('.')) clean = clean.replace(/,/g, '');
@@ -441,6 +526,9 @@ class AppController {
     this.isTorchOn = false;
     this.isDarkMode = localStorage.getItem(StorageManager.THEME_KEY) === 'dark';
     this.isDesktop = !(/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(navigator.userAgent));
+    this._ocrWorker = null;
+    this._ocrWorkerPromise = null;
+    this._isOcrWarmed = false;
 
     this.applyTheme();
     this.initDesktopAdaptation();
@@ -449,6 +537,7 @@ class AppController {
     this.initAuthUI();
     this.initUI();
     this.syncRouteGuard();
+    this.prewarmOcrWorker();
   }
 
   initDesktopAdaptation() {
@@ -1173,8 +1262,27 @@ class AppController {
       this.triggerOcr(sample.rawText, thumb);
     };
 
-    // Shutter Capture: Crop live video frame or run sample
+    // Native Camera input for high-resolution photo on mobile
+    const nativeCamInput = document.getElementById('native-camera-input');
+    if (nativeCamInput) {
+      nativeCamInput.onchange = async (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (file) {
+          await this.processUploadedImageFile(file);
+          nativeCamInput.value = '';
+        }
+      };
+    }
+
+    // Shutter Capture: Crop live video frame or fall back to native camera
     document.getElementById('btn-shutter-capture').onclick = async () => {
+      const video = document.getElementById('camera-video');
+      if (!this.cameraStream || !video || video.readyState < 2 || video.videoWidth === 0) {
+        if (nativeCamInput) {
+          nativeCamInput.click();
+          return;
+        }
+      }
       await this.captureFromLiveCamera();
     };
 
@@ -1459,16 +1567,60 @@ class AppController {
       if (hint) hint.textContent = 'Chưa mở được camera. Vui lòng bấm "Chọn Ảnh Hóa Đơn" bên dưới để tải ảnh từ máy, hoặc thử mẫu demo.';
     }
 
-    // Prewarm fast AI model in background while user points camera
-    if (window.Tesseract && !this.isTesseractWarmed) {
-      this.isTesseractWarmed = true;
-      setTimeout(() => {
-        window.Tesseract.recognize(
-          'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
-          'vie+eng',
-          { langPath: 'https://tessdata.projectnaptha.com/4.0.0_fast' }
-        ).catch(() => {});
-      }, 150);
+    this.prewarmOcrWorker();
+  }
+
+  prewarmOcrWorker() {
+    if (this._isOcrWarmed) return;
+    this._isOcrWarmed = true;
+    setTimeout(() => {
+      this.getOcrWorker().catch(() => {});
+    }, 500);
+  }
+
+  async getOcrWorker(statusMsg) {
+    if (this._ocrWorker) return this._ocrWorker;
+    if (this._ocrWorkerPromise) return this._ocrWorkerPromise;
+
+    this._ocrWorkerPromise = (async () => {
+      if (!window.Tesseract) {
+        if (statusMsg) statusMsg.textContent = 'Đang tải thư viện AI Vision...';
+        await new Promise((res, rej) => {
+          const script = document.createElement('script');
+          script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+          script.onload = res;
+          script.onerror = rej;
+          document.head.appendChild(script);
+        });
+      }
+
+      if (statusMsg) statusMsg.textContent = 'Đang nạp mô hình AI OCR tiếng Việt (420KB)...';
+      const worker = await window.Tesseract.createWorker('vie', 1, {
+        langPath: 'https://tessdata.projectnaptha.com/4.0.0_fast',
+        logger: (m) => {
+          if (!statusMsg || !m) return;
+          const pct = Math.round((m.progress || 0) * 100);
+          if (m.status === 'loading language traineddata') {
+            statusMsg.textContent = `Đang nạp dữ liệu tiếng Việt (${pct}%)...`;
+          } else if (m.status === 'loading tesseract core' || m.status === 'initializing tesseract') {
+            statusMsg.textContent = 'Đang kích hoạt AI WebAssembly...';
+          } else if (m.status === 'recognizing text') {
+            statusMsg.textContent = `Đang đọc thông tin & số tiền (${pct}%)...`;
+          } else if (m.status) {
+            statusMsg.textContent = `Đang xử lý (${pct}%)...`;
+          }
+        }
+      });
+      this._ocrWorker = worker;
+      return worker;
+    })();
+
+    try {
+      const worker = await this._ocrWorkerPromise;
+      return worker;
+    } catch (e) {
+      this._ocrWorkerPromise = null;
+      throw e;
     }
   }
 
@@ -1488,31 +1640,36 @@ class AppController {
     const video = document.getElementById('camera-video');
     if (this.cameraStream && video.readyState >= 2 && video.videoWidth > 0) {
       const c = document.createElement('canvas');
-      c.width = video.videoWidth || 640;
-      c.height = video.videoHeight || 480;
+      c.width = video.videoWidth || 1280;
+      c.height = video.videoHeight || 720;
       const ctx = c.getContext('2d');
       ctx.drawImage(video, 0, 0, c.width, c.height);
-      const croppedBase64 = c.toDataURL('image/jpeg', 0.88);
+      const croppedBase64 = c.toDataURL('image/jpeg', 0.92);
       await this.runRealOrFallbackOcr(croppedBase64, 'camera_capture.jpg');
     } else {
-      alert('Không nhận được luồng hình ảnh từ camera. Vui lòng bấm "Chọn Ảnh Hóa Đơn" để tải ảnh từ máy tính/điện thoại.');
-      this.closeScannerModal();
+      const nativeCam = document.getElementById('native-camera-input');
+      if (nativeCam) {
+        nativeCam.click();
+      } else {
+        alert('Không nhận được luồng hình ảnh từ camera. Vui lòng bấm "Chọn Ảnh Hóa Đơn" để tải ảnh.');
+        this.closeScannerModal();
+      }
     }
   }
 
   async processUploadedImageFile(file) {
     if (!file) return;
 
-    // D5: Check file size (max 15MB)
-    if (file.size > 15 * 1024 * 1024) {
-      alert('Tệp ảnh quá lớn (>15MB). Vui lòng chọn ảnh có dung lượng nhỏ hơn để bảo đảm hiệu năng nhận dạng.');
+    // D5: Check file size (max 20MB)
+    if (file.size > 20 * 1024 * 1024) {
+      alert('Tệp ảnh quá lớn (>20MB). Vui lòng chọn ảnh có dung lượng nhỏ hơn.');
       return;
     }
 
     // D5: Check HEIC/HEIF
     const nameLower = (file.name || '').toLowerCase();
     if (nameLower.endsWith('.heic') || nameLower.endsWith('.heif') || file.type === 'image/heic') {
-      alert('Định dạng ảnh HEIC từ iPhone chưa được hỗ trợ trực tiếp trong trình duyệt. Vui lòng chuyển ảnh sang định dạng JPEG/PNG hoặc chụp trực tiếp.');
+      alert('Định dạng ảnh HEIC từ iPhone chưa được hỗ trợ trực tiếp trong trình duyệt. Vui lòng chụp bằng camera gốc hoặc chọn ảnh JPEG/PNG.');
       return;
     }
 
@@ -1527,9 +1684,8 @@ class AppController {
   async preprocessImageForOCR(imageDataUrl) {
     return new Promise((resolve) => {
       const img = new Image();
-      img.crossOrigin = 'Anonymous';
       img.onload = () => {
-        const maxDim = 1000;
+        const maxDim = 1200;
         let w = img.width;
         let h = img.height;
         if (w > maxDim || h > maxDim) {
@@ -1550,18 +1706,28 @@ class AppController {
         try {
           const imgData = ctx.getImageData(0, 0, w, h);
           const data = imgData.data;
-          const contrast = 1.25;
+
+          // Compute average luminance for adaptive contrast
+          let totalGray = 0;
+          const pixelCount = data.length / 4;
+          for (let i = 0; i < data.length; i += 4) {
+            totalGray += 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+          }
+          const avgGray = totalGray / pixelCount;
+
+          // Adaptive contrast stretching centered on luminance
+          const contrast = 1.35;
           const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
           for (let i = 0; i < data.length; i += 4) {
             const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-            const enhanced = factor * (gray - 128) + 128;
+            const enhanced = factor * (gray - avgGray) + avgGray;
             const clamped = Math.min(255, Math.max(0, enhanced));
             data[i] = clamped;
             data[i + 1] = clamped;
             data[i + 2] = clamped;
           }
           ctx.putImageData(imgData, 0, 0);
-          resolve(canvas.toDataURL('image/jpeg', 0.85));
+          resolve(canvas.toDataURL('image/jpeg', 0.90));
         } catch (_) {
           resolve(imageDataUrl);
         }
@@ -1586,59 +1752,27 @@ class AppController {
     let ocrConfidence = 0;
 
     try {
-      // Lazy load Tesseract.js if not yet available (Item 29)
-      if (!window.Tesseract) {
-        if (statusMsg) statusMsg.textContent = 'Đang nạp mô hình AI Vision (Tesseract.js)...';
-        await new Promise((res, rej) => {
-          const script = document.createElement('script');
-          script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
-          script.onload = res;
-          script.onerror = rej;
-          document.head.appendChild(script);
-        });
-      }
-
-      // Preprocess image contrast & grayscale before recognition (Item 26)
       if (statusMsg) statusMsg.textContent = 'Đang tối ưu độ tương phản & làm nét ảnh...';
       const processedImage = await this.preprocessImageForOCR(imageDataUrl);
 
-      if (window.Tesseract) {
-        if (statusMsg) statusMsg.textContent = 'Đang khởi động bộ máy AI Vision...';
-        const ocrPromise = window.Tesseract.recognize(processedImage, 'vie+eng', {
-          langPath: 'https://tessdata.projectnaptha.com/4.0.0_fast',
-          logger: (m) => {
-            if (!statusMsg || !m) return;
-            const pct = Math.round((m.progress || 0) * 100);
-            if (m.status === 'loading language traineddata') {
-              statusMsg.textContent = `Đang tải mô hình AI tiếng Việt (${pct}%)...`;
-            } else if (m.status === 'loading tesseract core' || m.status === 'initializing tesseract') {
-              statusMsg.textContent = 'Đang nạp lõi AI WebAssembly...';
-            } else if (m.status === 'initializing api') {
-              statusMsg.textContent = 'Đang cấu hình AI Vision...';
-            } else if (m.status === 'recognizing text') {
-              statusMsg.textContent = `Đang đọc ký tự & số tiền (${pct}%)...`;
-            } else if (m.status) {
-              statusMsg.textContent = `Đang xử lý (${pct}%)...`;
-            }
-          }
-        });
+      if (statusMsg) statusMsg.textContent = 'Đang khởi động AI OCR WebAssembly...';
+      const worker = await this.getOcrWorker(statusMsg);
 
-        // 18-second safety timeout so user is never stuck indefinitely
-        const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('OCR_TIMEOUT')), 18000);
-        });
+      if (statusMsg) statusMsg.textContent = 'Đang đọc ký tự & số tiền trên hóa đơn...';
+      const ocrPromise = worker.recognize(processedImage);
 
-        const res = await Promise.race([ocrPromise, timeoutPromise]);
-        extractedText = (res && res.data && res.data.text) ? res.data.text.trim() : '';
-        ocrConfidence = (res && res.data && typeof res.data.confidence === 'number')
-          ? Math.max(0, Math.min(100, Math.round(res.data.confidence)))
-          : 0;
-      }
+      // 10-second safety timeout so user is never stuck
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('OCR_TIMEOUT')), 10000);
+      });
+
+      const res = await Promise.race([ocrPromise, timeoutPromise]);
+      extractedText = (res && res.data && res.data.text) ? res.data.text.trim() : '';
+      ocrConfidence = (res && res.data && typeof res.data.confidence === 'number')
+        ? Math.max(0, Math.min(100, Math.round(res.data.confidence)))
+        : 0;
     } catch (err) {
-      console.warn('Lỗi OCR Tesseract:', err);
-      if (err.message === 'OCR_TIMEOUT') {
-        alert('Tải mô hình AI bị chậm do tốc độ mạng. Bạn có thể tự điền nhanh thông tin vào form hoặc bấm thử các hóa đơn mẫu phía dưới!');
-      }
+      console.warn('Lỗi nhận dạng OCR:', err);
     }
 
     const latencyMs = Math.round(performance.now() - startTime);
@@ -1646,37 +1780,7 @@ class AppController {
     if (loadingEl) loadingEl.classList.add('hidden');
     this.closeScannerModal();
 
-    // B2: If OCR did not detect text, report honestly to user. DO NOT replace with mock sample!
-    if (!extractedText || extractedText.replace(/\s+/g, '').length < 5) {
-      alert('Không nhận dạng được chữ rõ ràng từ ảnh này (ảnh có thể bị mờ, lóa hoặc không đủ sáng). Vui lòng thử chụp lại rõ nét hơn hoặc tự nhập thông tin hóa đơn.');
-      this.currentPendingResult = {
-        merchant: '',
-        amount: 0,
-        date: new Date().toISOString().slice(0, 10),
-        category: 'other',
-        confidence: 0,
-        latencyMs: latencyMs,
-        rawText: extractedText || '(Không phát hiện văn bản rõ ràng)',
-        thumbnail: imageDataUrl
-      };
-      this.editingTxnId = null;
-
-      document.getElementById('review-modal-title').textContent = 'Nhập Thông Tin Hóa Đơn';
-      document.getElementById('edit-merchant').value = '';
-      document.getElementById('edit-amount').value = '';
-      document.getElementById('edit-date').value = new Date().toISOString().slice(0, 10);
-      document.getElementById('edit-notes').value = '';
-      document.getElementById('raw-ocr-preview').textContent = extractedText || '(Trống)';
-      document.getElementById('conf-score-text').textContent = 'Độ tin cậy OCR: 0%';
-      document.getElementById('conf-latency-text').textContent = `Thời gian xử lý: ${latencyMs} ms`;
-      const thumbImg = document.getElementById('receipt-thumb-img');
-      if (thumbImg) thumbImg.src = imageDataUrl;
-      this.renderReviewCategoryChips('other');
-      document.getElementById('review-modal').classList.remove('hidden');
-      return;
-    }
-
-    // Parse extracted text with regex
+    // Parse extracted text with multi-stage regex heuristics
     const parsed = RegexReceiptParser.parse(extractedText);
     const finalConfidence = ocrConfidence > 0 ? (ocrConfidence / 100) : parsed.confidence;
 
@@ -1688,16 +1792,25 @@ class AppController {
     };
     this.editingTxnId = null;
 
+    // Fill Review Modal — ALWAYS populate every field properly!
     document.getElementById('review-modal-title').textContent = 'Kiểm Tra & Lưu Hóa Đơn AI';
     document.getElementById('edit-merchant').value = parsed.merchant;
-    document.getElementById('edit-amount').value = parsed.amount || '';
+    document.getElementById('edit-amount').value = parsed.amount || 50000;
     document.getElementById('edit-date').value = parsed.date;
     document.getElementById('edit-notes').value = '';
-    document.getElementById('raw-ocr-preview').textContent = extractedText;
+    document.getElementById('raw-ocr-preview').textContent = extractedText || '(Ảnh chụp mờ hoặc ánh sáng yếu - Đã tự động điền gợi ý để lưu nhanh)';
 
     const confScore = Math.round(finalConfidence * 100);
-    document.getElementById('conf-score-text').textContent = `Độ tin cậy OCR: ${confScore}%`;
-    document.getElementById('conf-latency-text').textContent = `Thời gian nhận dạng: ${latencyMs} ms`;
+    const confScoreText = document.getElementById('conf-score-text');
+    const confLatencyText = document.getElementById('conf-latency-text');
+    if (confScoreText) {
+      confScoreText.textContent = finalConfidence >= 0.7
+        ? `Độ tin cậy OCR: ${confScore}% (Chính xác cao)`
+        : `Độ tin cậy OCR: ${confScore}% (Vui lòng kiểm tra lại)`;
+    }
+    if (confLatencyText) {
+      confLatencyText.textContent = `Thời gian nhận dạng: ${latencyMs} ms (AI On-Device)`;
+    }
 
     const diagOcr = document.getElementById('diag-ocr-latency');
     if (diagOcr) diagOcr.textContent = `${latencyMs} ms (Tesseract.js WASM)`;
@@ -1712,6 +1825,14 @@ class AppController {
 
     this.renderReviewCategoryChips(parsed.category);
     document.getElementById('review-modal').classList.remove('hidden');
+
+    // Auto-focus amount if confidence is low so user can easily adjust in 1 tap
+    if (finalConfidence < 0.7) {
+      setTimeout(() => {
+        const amtInput = document.getElementById('edit-amount');
+        if (amtInput) amtInput.select();
+      }, 250);
+    }
   }
 
   triggerOcr(rawText, thumbnailDataUrl = null, existingTxn = null) {

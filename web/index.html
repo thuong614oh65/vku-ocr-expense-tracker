@@ -16,13 +16,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=18.0">
+  <link rel="stylesheet" href="style.css?v=21.0">
   <!-- Google Identity Services (OAuth 2.0 @vku.udn.vn) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <!-- On-Device Tesseract.js WebAssembly OCR for uploaded photos -->
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js" defer></script>
   <script>
-    const APP_VERSION = '18.0';
+    const APP_VERSION = '21.0';
     if (localStorage.getItem('vku_app_cache_v') !== APP_VERSION) {
       if ('caches' in window) {
         caches.keys().then(function(names) {
@@ -693,6 +693,14 @@
           <button class="mini-sample-btn" data-index="4">TGDĐ</button>
         </div>
 
+        <!-- Native camera option for mobile devices -->
+        <div class="scanner-sub-actions">
+          <label class="native-cam-pill-btn" title="Mở máy ảnh điện thoại chụp sắc nét">
+            📸 Chụp Bằng Camera Gốc (Khuyên Dùng Siêu Nét)
+            <input type="file" id="native-camera-input" accept="image/*" capture="environment" style="display:none;">
+          </label>
+        </div>
+
         <div class="scanner-bottom-bar">
           <label class="gallery-btn-label">
             📁 Chọn Ảnh Hóa Đơn
@@ -957,6 +965,6 @@ flutter build apk --release</code></pre>
     </div>
   </div>
 
-  <script src="app.js?v=20.0"></script>
+  <script src="app.js?v=21.0"></script>
 </body>
 </html>
