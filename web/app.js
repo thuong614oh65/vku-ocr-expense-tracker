@@ -2277,6 +2277,32 @@ class AppController {
     switchTab(initialTab);
 
     // Category input controls
+    const formatVNDWords = (num) => {
+      if (!num || num <= 0) return '';
+      const n = Math.round(num);
+      if (n >= 1000000000) {
+        const ty = Math.floor(n / 1000000000);
+        const trieu = Math.floor((n % 1000000000) / 1000000);
+        const nghin = Math.floor((n % 1000000) / 1000);
+        let str = `≈ ${ty} tỷ`;
+        if (trieu > 0) str += ` ${trieu} tr`;
+        if (nghin > 0 && ty < 10) str += ` ${nghin}k`;
+        return str + ' ₫';
+      }
+      if (n >= 1000000) {
+        const trieu = n / 1000000;
+        if (n % 1000000 === 0) return `≈ ${trieu} triệu ₫`;
+        if (n % 100000 === 0) return `≈ ${trieu.toFixed(1).replace('.0', '')} triệu ₫`;
+        const tr = Math.floor(n / 1000000);
+        const ngh = Math.round((n % 1000000) / 1000);
+        return ngh > 0 ? `≈ ${tr} tr ${ngh}k ₫` : `≈ ${tr} triệu ₫`;
+      }
+      if (n >= 1000) {
+        return `≈ ${Math.round(n / 1000)} nghìn ₫`;
+      }
+      return `≈ ${n} ₫`;
+    };
+
     const formatNumberWithDots = (num) => {
       if (num === null || num === undefined || num === '') return '';
       const n = typeof num === 'number' ? num : parseInt(String(num).replace(/\D/g, ''), 10);
@@ -2289,24 +2315,57 @@ class AppController {
       return parseInt(digits, 10) || 0;
     };
 
-    const bindDotFormatter = (inputEl, onUpdate) => {
+    const bindDotFormatter = (inputEl, hintEl, onUpdate) => {
       if (!inputEl) return;
-      inputEl.addEventListener('input', () => {
+      const update = () => {
         const raw = parseNumberFromDots(inputEl.value);
         if (!inputEl.value) {
           inputEl.value = '';
+          if (hintEl) hintEl.textContent = '';
         } else if (raw === 0) {
           inputEl.value = '0';
+          if (hintEl) hintEl.textContent = '0 ₫';
         } else {
-          inputEl.value = raw.toLocaleString('vi-VN');
+          const formatted = raw.toLocaleString('vi-VN');
+          const oldVal = inputEl.value;
+          const oldCursor = inputEl.selectionEnd || oldVal.length;
+          const digitsBeforeCursor = oldVal.slice(0, oldCursor).replace(/\D/g, '').length;
+          
+          inputEl.value = formatted;
+          
+          let newCursor = formatted.length;
+          let digitsCount = 0;
+          for (let i = 0; i < formatted.length; i++) {
+            if (/\d/.test(formatted[i])) {
+              digitsCount++;
+            }
+            if (digitsCount === digitsBeforeCursor) {
+              newCursor = i + 1;
+              break;
+            }
+          }
+          try {
+            inputEl.setSelectionRange(newCursor, newCursor);
+          } catch (_) {}
+          
+          if (hintEl) hintEl.textContent = formatVNDWords(raw);
         }
         if (typeof onUpdate === 'function') onUpdate();
-      });
+      };
+
+      inputEl.oninput = update;
+      inputEl.onblur = update;
+
+      const initVal = parseNumberFromDots(inputEl.value);
+      if (hintEl && initVal > 0) {
+        hintEl.textContent = formatVNDWords(initVal);
+      }
     };
 
     // Category input controls
     const catKeys = ['food', 'travel', 'study', 'gear', 'entertainment', 'other'];
     const catInputs = {};
+    const catHints = {};
 
     const updateCatSumPreview = () => {
       let sum = 0;
@@ -2317,18 +2376,19 @@ class AppController {
       const previewEl = document.getElementById('cat-budgets-sum-preview');
       if (previewEl) {
         const tot = parseNumberFromDots(input?.value) || cur;
-        const sumWord = sum >= 1000000 ? ` (~${(sum / 1000000).toFixed(1).replace('.0', '')} triệu)` : (sum >= 1000 ? ` (~${Math.round(sum / 1000)}k)` : '');
-        const totWord = tot >= 1000000 ? ` (~${(tot / 1000000).toFixed(1).replace('.0', '')} triệu)` : '';
+        const sumWord = sum > 0 ? ` (${formatVNDWords(sum)})` : '';
+        const totWord = tot > 0 ? ` (${formatVNDWords(tot)})` : '';
         previewEl.innerHTML = `${this.formatVND(sum)} <span style="font-size:11px;color:var(--text-muted);font-weight:normal;">${sumWord} / Ngân sách: ${this.formatVND(tot)}${totWord}</span>`;
       }
     };
 
     catKeys.forEach(k => {
       catInputs[k] = document.getElementById(`input-cat-budget-${k}`);
+      catHints[k] = document.getElementById(`hint-cat-budget-${k}`);
       if (catInputs[k]) {
         const initialVal = catBudgets[k] !== undefined ? catBudgets[k] : 0;
         catInputs[k].value = formatNumberWithDots(initialVal);
-        bindDotFormatter(catInputs[k], () => updateCatSumPreview());
+        bindDotFormatter(catInputs[k], catHints[k], () => updateCatSumPreview());
       }
     });
 
@@ -2346,7 +2406,10 @@ class AppController {
           other: Math.round(tot * 0.05)
         };
         catKeys.forEach(k => {
-          if (catInputs[k]) catInputs[k].value = formatNumberWithDots(autoMap[k]);
+          if (catInputs[k]) {
+            catInputs[k].value = formatNumberWithDots(autoMap[k]);
+            if (catHints[k]) catHints[k].textContent = formatVNDWords(autoMap[k]);
+          }
         });
         updateCatSumPreview();
       };
@@ -2354,13 +2417,17 @@ class AppController {
 
     updateCatSumPreview();
 
+    const hintTotal = document.getElementById('hint-budget-amount');
+
     const updateDaily = () => {
       const val = parseNumberFromDots(input.value);
+      if (hintTotal) {
+        hintTotal.textContent = val > 0 ? `Bằng chữ: ${formatVNDWords(val).replace('≈ ', '')}` : '';
+      }
       if (dailyPreview) {
         if (val > 0) {
           const perDay = Math.round(val / 30);
-          const valWord = val >= 1000000 ? ` (~${(val / 1000000).toFixed(1).replace('.0', '')} triệu VNĐ)` : '';
-          dailyPreview.innerHTML = `Mức chi trung bình dự kiến: <strong>${this.formatVND(perDay)} / ngày</strong> <small style="color:var(--text-muted);">${valWord}</small>`;
+          dailyPreview.innerHTML = `Mức chi trung bình dự kiến: <strong>${this.formatVND(perDay)} / ngày</strong> (tháng 30 ngày)`;
         } else {
           dailyPreview.textContent = '-- ₫ / ngày';
         }
@@ -2370,7 +2437,7 @@ class AppController {
 
     if (input) {
       input.value = formatNumberWithDots(cur);
-      bindDotFormatter(input, () => updateDaily());
+      bindDotFormatter(input, hintTotal, () => updateDaily());
       updateDaily();
     }
     if (err) err.classList.add('hidden');
@@ -2386,7 +2453,9 @@ class AppController {
     modal.querySelectorAll('.budget-preset-btn').forEach(btn => {
       btn.onclick = () => {
         if (input) {
-          input.value = formatNumberWithDots(btn.dataset.amount);
+          const amt = parseInt(btn.dataset.amount, 10);
+          input.value = formatNumberWithDots(amt);
+          if (hintTotal) hintTotal.textContent = `Bằng chữ: ${formatVNDWords(amt).replace('≈ ', '')}`;
           updateDaily();
         }
         if (err) err.classList.add('hidden');
