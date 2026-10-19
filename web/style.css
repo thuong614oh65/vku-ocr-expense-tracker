@@ -4235,9 +4235,21 @@ body.dark-mode .ai-advisor-card {
 }
 
 .cat-budget-list {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr;
   gap: 12px;
+}
+
+@media (min-width: 640px) {
+  .cat-budget-list {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .cat-budget-list {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 .cat-budget-item {
