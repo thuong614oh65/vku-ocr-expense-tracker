@@ -363,20 +363,7 @@ class StorageManager {
       const key = this.getUserKey(userEmail, 'expenses');
       let data = localStorage.getItem(key);
 
-      // Migration fallback from global key for demo user
-      if (!data && (!userEmail || userEmail === 'demo@example.com')) {
-        data = localStorage.getItem('vku_ocr_expenses_web_v2');
-      }
-
       if (!data) {
-        // If guest or demo account, return seed sample transactions for instant exploration
-        if (!userEmail || userEmail === 'demo@example.com') {
-          return SEED_TRANSACTIONS.map(t => ({
-            ...t,
-            thumbnail: generateReceiptImageBase64(t.merchant, t.amount, t.date, t.rawText)
-          }));
-        }
-        // New real user starts with a clean slate (0 transactions)
         return [];
       }
 
@@ -1266,16 +1253,11 @@ class AppController {
       };
     }
 
-    // Forgot password (Auto-fills demo seed 23IT.B219 & 123456 - identical to MP2)
+    // Forgot password
     const btnForgot = document.getElementById('btn-forgot-pwd');
-    const idInput = document.getElementById('auth-identifier');
-    if (btnForgot && idInput && pwdInput) {
+    if (btnForgot) {
       btnForgot.onclick = () => {
-        if (!idInput.value.trim()) {
-          idInput.value = '23IT.B219';
-        }
-        pwdInput.value = '123456';
-        hideError();
+        alert('Nếu bạn quên mật khẩu, vui lòng sử dụng tính năng "Tiếp tục với Google" để đăng nhập an toàn vào tài khoản của bạn.');
       };
     }
 
@@ -1852,24 +1834,6 @@ class AppController {
       }
     };
 
-    // Quick sample buttons inside scanner
-    document.querySelectorAll('.mini-sample-btn').forEach(btn => {
-      btn.onclick = () => {
-        const idx = parseInt(btn.dataset.index, 10);
-        this.closeScannerModal();
-        const sample = SAMPLE_RECEIPTS[idx];
-        const thumb = generateReceiptImageBase64(sample.merchant, sample.amount, sample.date, sample.rawText);
-        this.triggerOcr(sample.rawText, thumb);
-      };
-    });
-
-    document.getElementById('btn-sample-fast').onclick = () => {
-      this.closeScannerModal();
-      const sample = SAMPLE_RECEIPTS[0];
-      const thumb = generateReceiptImageBase64(sample.merchant, sample.amount, sample.date, sample.rawText);
-      this.triggerOcr(sample.rawText, thumb);
-    };
-
     // Instant Skip OCR Button
     const btnSkipOcr = document.getElementById('btn-skip-ocr');
     if (btnSkipOcr) {
@@ -1933,16 +1897,6 @@ class AppController {
         fileInput.value = '';
       }
     };
-
-    // Sample Chips on Dashboard
-    document.querySelectorAll('.sample-chip').forEach(chip => {
-      chip.onclick = () => {
-        const idx = parseInt(chip.dataset.index, 10);
-        const sample = SAMPLE_RECEIPTS[idx];
-        const thumb = generateReceiptImageBase64(sample.merchant, sample.amount, sample.date, sample.rawText);
-        this.triggerOcr(sample.rawText, thumb);
-      };
-    });
 
     // Dynamic Route /expense/:id Detail Modal
     const detailModal = document.getElementById('detail-modal');
@@ -2222,11 +2176,11 @@ class AppController {
         if (hint) hint.textContent = 'Đặt hóa đơn vào khung cắt • Chạm màn hình để lấy nét';
       } else {
         video.style.display = 'none';
-        if (hint) hint.textContent = 'Chưa mở được camera. Vui lòng bấm "Chọn Ảnh Hóa Đơn" bên dưới để tải ảnh từ máy, hoặc thử mẫu demo.';
+        if (hint) hint.textContent = 'Chưa mở được camera trực tiếp. Vui lòng bấm "Chọn Ảnh Hóa Đơn" bên dưới để tải ảnh hóa đơn từ thiết bị của bạn.';
       }
     } catch (_) {
       video.style.display = 'none';
-      if (hint) hint.textContent = 'Chưa mở được camera. Vui lòng bấm "Chọn Ảnh Hóa Đơn" bên dưới để tải ảnh từ máy, hoặc thử mẫu demo.';
+      if (hint) hint.textContent = 'Chưa mở được camera trực tiếp. Vui lòng bấm "Chọn Ảnh Hóa Đơn" hoặc "Chụp Bằng Camera Gốc" bên dưới.';
     }
 
     this.prewarmOcrWorker();
@@ -2957,15 +2911,11 @@ class AppController {
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-8"/><path d="M16 12h-8"/><path d="M12 16h-4"/></svg>
           </div>
           <h4>Chưa có khoản chi tiêu nào</h4>
-          <p>Bắt đầu ghi chép bằng cách quét hóa đơn AI hoặc dùng thử dữ liệu mẫu</p>
+          <p>Bắt đầu ghi chép bằng cách chụp hoặc tải ảnh hóa đơn chi tiêu của bạn</p>
           <div class="empty-actions-row">
             <button type="button" class="btn-empty-scan" onclick="app.triggerImagePicker()">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
               Quét Hóa Đơn
-            </button>
-            <button type="button" class="btn-empty-sample" onclick="app.loadSampleReceipt(0)">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-              Thử Dữ Liệu Mẫu
             </button>
           </div>
         </div>

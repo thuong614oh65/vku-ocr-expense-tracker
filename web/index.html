@@ -16,13 +16,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=29.0">
+  <link rel="stylesheet" href="style.css?v=30.0">
   <!-- Google Identity Services (OAuth 2.0) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <!-- On-Device Tesseract.js WebAssembly OCR (Local Zero-Latency Engine) -->
   <script src="/tesseract/tesseract.min.js" defer></script>
   <script>
-    const APP_VERSION = '29.0';
+    const APP_VERSION = '30.0';
     if (localStorage.getItem('vku_app_cache_v') !== APP_VERSION) {
       if ('caches' in window) {
         caches.keys().then(function(names) {
@@ -38,7 +38,7 @@
     }
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
-        navigator.serviceWorker.register('/sw.js?v=29.0').then(function (reg) {
+        navigator.serviceWorker.register('/sw.js?v=30.0').then(function (reg) {
           reg.update();
         }).catch(function () {});
       });
@@ -202,32 +202,6 @@
             </button>
           </div>
 
-          <!-- Quick 1-Tap Chips (convenient for testing & phones) -->
-          <div class="quick-student-login-box">
-            <div class="quick-login-label">⚡ ĐĂNG NHẬP NHANH 1-CHẠM:</div>
-            <div class="quick-student-chips">
-              <button type="button" id="btn-quick-fill-thuong" class="student-chip active" style="width:100%;margin-top:6px;" title="Bấm để đăng nhập ngay tài khoản cá nhân">
-                <span class="chip-avatar" style="background: linear-gradient(135deg, #0284c7, #0369a1);">TT</span>
-                <div class="chip-info">
-                  <strong>Nguyễn Thị Thương</strong>
-                  <small>thanhnga01012011@gmail.com • Tài khoản cá nhân</small>
-                </div>
-                <span class="chip-arrow">➔</span>
-              </button>
-
-              <button type="button" id="btn-quick-fill-demo" class="student-chip" style="width:100%;margin-top:4px;" title="Bấm để trải nghiệm ngay với tư cách Khách">
-                <span class="chip-avatar" style="background:#10b981;">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-                </span>
-                <div class="chip-info">
-                  <strong>Vào Thử Ngay (Chế Độ Khách / Demo)</strong>
-                  <small>Trải nghiệm đầy đủ tính năng Quét OCR, Biểu đồ & Sổ chi tiêu</small>
-                </div>
-                <span class="chip-arrow">➔</span>
-              </button>
-            </div>
-          </div>
-
         </div>
       </div>
     </main>
@@ -313,23 +287,6 @@
           <div class="scanner-text-wrap">
             <h2 id="scanner-cta-title">Tải File Hoặc Kéo Thả Hóa Đơn</h2>
             <p id="scanner-cta-desc">Hỗ trợ ảnh chụp .JPG, .PNG • Trí tuệ nhân tạo OCR tự động nhận diện</p>
-          </div>
-        </section>
-
-        <!-- Quick Sample Receipts Tester -->
-        <section class="sample-tester-section">
-          <div class="section-title-row">
-            <span class="badge-accent">DỮ LIỆU MẪU THỬ NGHIỆM</span>
-            <span class="section-sub">Bấm chọn để nạp mẫu kiểm tra:</span>
-          </div>
-          <div class="chips-scroll-container">
-            <div class="sample-chips-row">
-              <button class="sample-chip" data-index="0">Siêu Thị WinMart+ (87.500₫)</button>
-              <button class="sample-chip" data-index="1">Highlands Coffee (115.000₫)</button>
-              <button class="sample-chip" data-index="2">Nhà Sách Fahasa (245.000₫)</button>
-              <button class="sample-chip" data-index="3">Cây Xăng Petrolimex (70.000₫)</button>
-              <button class="sample-chip" data-index="4">Thế Giới Di Động (350.000₫)</button>
-            </div>
           </div>
         </section>
 
@@ -696,20 +653,7 @@
           <div id="ocr-loading-overlay" class="ocr-loading-overlay hidden">
             <div class="spinner"></div>
             <div id="ocr-status-msg">Đang bóc tách hóa đơn bằng OCR...</div>
-            <button type="button" id="btn-skip-ocr" class="btn-skip-ocr-pill" style="margin-top:16px;background:rgba(255,255,255,0.18);color:#fff;border:1px solid rgba(255,255,255,0.35);padding:8px 16px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;backdrop-filter:blur(4px);">
-              ⚡ Bỏ qua chờ & Mở mẫu nhập ngay ➔
-            </button>
           </div>
-        </div>
-
-        <!-- Quick sample strip inside camera modal -->
-        <div class="scanner-sample-bar">
-          <span class="scanner-sample-label">Dữ liệu mẫu demo:</span>
-          <button class="mini-sample-btn" data-index="0">WinMart+</button>
-          <button class="mini-sample-btn" data-index="1">Highlands</button>
-          <button class="mini-sample-btn" data-index="2">Fahasa</button>
-          <button class="mini-sample-btn" data-index="3">Petrolimex</button>
-          <button class="mini-sample-btn" data-index="4">TGDĐ</button>
         </div>
 
         <!-- Native camera option for mobile devices -->
@@ -728,8 +672,8 @@
           <button id="btn-shutter-capture" class="shutter-btn" title="Chụp ảnh hóa đơn" aria-label="Chụp ảnh hóa đơn">
             <div class="shutter-btn-inner"></div>
           </button>
-          <button id="btn-sample-fast" class="sample-fast-btn" title="Thử hóa đơn mẫu" aria-label="Thử hóa đơn mẫu">
-            ⚡ Thử Mẫu Demo
+          <button type="button" class="gallery-btn-label" style="background:rgba(239,68,68,0.25);border:1px solid rgba(239,68,68,0.4);color:#fca5a5;cursor:pointer;" onclick="document.getElementById('btn-close-scanner').click()">
+            ✕ Đóng
           </button>
         </div>
       </div>
@@ -1003,6 +947,6 @@ flutter build apk --release</code></pre>
     <span id="sync-toast-msg">Đã đồng bộ với Đám Mây</span>
   </div>
 
-  <script src="app.js?v=29.0"></script>
+  <script src="app.js?v=30.0"></script>
 </body>
 </html>
