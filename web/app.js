@@ -844,8 +844,6 @@ class AppController {
     this._lastCapturedDataUrl = null;
     this.splitPeopleCount = 2;
     this.currentSplittingTxn = null;
-    this.selectedReportSubtab = 'overview';
-    this.selectedReportCatKey = 'food';
 
     this.applyTheme();
     this.initDesktopAdaptation();
@@ -1806,7 +1804,10 @@ class AppController {
       btnManageCats.onclick = () => this.openCategoryManagerModal();
     }
 
-    this.initReportSubtabs();
+    const btnConfigCatBudgetRep = document.getElementById('btn-config-cat-budget-rep');
+    if (btnConfigCatBudgetRep) {
+      btnConfigCatBudgetRep.onclick = () => this.openBudgetModal('categories');
+    }
 
     // Bottom NavigationBar (ShellRoute: /dash, /scanner, /reports)
     document.querySelectorAll('.nav-dest').forEach(btn => {
@@ -2960,313 +2961,200 @@ class AppController {
   }
 
   /**
-   * Initializes Sub-tabs and actions in Reports View (/reports)
+   * Directs user to the Category Chart inside /reports tab
    */
-  initReportSubtabs() {
-    const btnOverview = document.getElementById('rep-subtab-overview-btn');
-    const btnCategory = document.getElementById('rep-subtab-category-btn');
-    const btnGotoCats = document.getElementById('btn-rep-goto-cats');
-    const btnManageCats = document.getElementById('btn-rep-manage-cats');
-    const btnEditBudget = document.getElementById('btn-rep-cat-edit-budget');
-    const btnAddTxn = document.getElementById('btn-rep-cat-add-txn');
-    const btnExportCatCsv = document.getElementById('btn-rep-pane-export-cat-csv');
-
-    if (btnOverview) {
-      btnOverview.onclick = () => this.switchReportSubtab('overview');
-    }
-    if (btnCategory) {
-      btnCategory.onclick = () => this.switchReportSubtab('categories');
-    }
-    if (btnGotoCats) {
-      btnGotoCats.onclick = () => this.switchReportSubtab('categories');
-    }
-    if (btnManageCats) {
-      btnManageCats.onclick = () => this.openCategoryManagerModal();
-    }
-    if (btnEditBudget) {
-      btnEditBudget.onclick = () => this.openBudgetModal('categories');
-    }
-    if (btnAddTxn) {
-      btnAddTxn.onclick = () => {
-        this.openManualAddModal();
-        setTimeout(() => {
-          const catSelect = document.getElementById('review-category');
-          if (catSelect && this.selectedReportCatKey) {
-            catSelect.value = this.selectedReportCatKey;
-          }
-        }, 120);
-      };
-    }
-    if (btnExportCatCsv) {
-      btnExportCatCsv.onclick = () => {
-        const k = this.selectedReportCatKey || 'food';
-        const cat = CATEGORIES[k] || { name: k };
-        const now = new Date();
-        const thisMonthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-        const catTxns = this.transactions.filter(t => t.category === k && t.date && t.date.startsWith(thisMonthPrefix));
-        if (catTxns.length === 0) {
-          alert(`Danh mục ${cat.name} chưa có giao dịch nào trong tháng này để xuất.`);
-          return;
-        }
-        let csv = '\uFEFFMã GD,Ngày,Cửa Hàng,Danh Mục,Số Tiền (VND),Ghi Chú\n';
-        catTxns.forEach(t => {
-          csv += `"${t.id}","${t.date}","${(t.merchant||'').replace(/"/g, '""')}","${cat.name}","${t.amount}","${(t.notes||'').replace(/"/g, '""')}"\n`;
-        });
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `Bao_cao_danh_muc_${cat.name}_${thisMonthPrefix}.csv`;
-        a.click();
-        URL.revokeObjectURL(url);
-        this.showSyncToast(`✓ Đã tải báo cáo CSV danh mục "${cat.name}"!`);
-      };
-    }
+  openCategoryReportModal(targetCatKey = null) {
+    this.navigateShell('/reports');
+    setTimeout(() => {
+      const catCard = document.getElementById('category-chart-card');
+      if (catCard) {
+        catCard.scrollIntoView({ behavior: 'smooth' });
+      }
+    }, 150);
   }
 
   /**
-   * Switches between 'overview' and 'categories' inside /reports view
+   * Renders the Category Spending & Budget Canvas Bar Chart
+   * (Positioned directly below the Donut Chart and Weekly Bar Chart)
    */
-  switchReportSubtab(subtab = 'overview', catKey = null) {
-    this.selectedReportSubtab = subtab;
-    if (catKey && CATEGORIES[catKey]) {
-      this.selectedReportCatKey = catKey;
-    }
+  renderCategoryChart(progress = 1.0) {
+    const canvas = document.getElementById('categoryChartCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
 
-    const btnOverview = document.getElementById('rep-subtab-overview-btn');
-    const btnCategory = document.getElementById('rep-subtab-category-btn');
-    const paneOverview = document.getElementById('rep-pane-overview');
-    const paneCategory = document.getElementById('rep-pane-categories');
-
-    const isCat = (subtab === 'categories');
-    if (btnOverview) {
-      btnOverview.classList.toggle('active', !isCat);
-      btnOverview.setAttribute('aria-selected', !isCat ? 'true' : 'false');
-    }
-    if (btnCategory) {
-      btnCategory.classList.toggle('active', isCat);
-      btnCategory.setAttribute('aria-selected', isCat ? 'true' : 'false');
-    }
-    if (paneOverview) paneOverview.classList.toggle('hidden', isCat);
-    if (paneCategory) paneCategory.classList.toggle('hidden', !isCat);
-
-    if (isCat) {
-      this.renderReportCategoryPane(this.selectedReportCatKey);
-    } else {
-      // Re-render overview canvas charts smoothly
-      const now = new Date();
-      const thisMonthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-      const totalAmount = this.transactions
-        .filter(t => t.date && t.date.startsWith(thisMonthPrefix))
-        .reduce((s, t) => s + (Number(t.amount) || 0), 0);
-      this.renderDonutChart(totalAmount, 1.0);
-      this.renderBarChart(1.0);
-    }
-  }
-
-  /**
-   * Renders the native Category Detailed Report Pane inside /reports
-   */
-  renderReportCategoryPane(targetCatKey = null) {
     this.loadCategories();
     const catKeys = Object.keys(CATEGORIES);
     if (catKeys.length === 0) return;
 
-    if (targetCatKey && CATEGORIES[targetCatKey]) {
-      this.selectedReportCatKey = targetCatKey;
-    } else if (!this.selectedReportCatKey || !CATEGORIES[this.selectedReportCatKey]) {
-      this.selectedReportCatKey = catKeys[0];
-    }
-    const k = this.selectedReportCatKey;
-    const cat = CATEGORIES[k] || { name: k, icon: '🏷️', color: '#6366f1' };
-
-    // 1. Update subtab counter badge
-    const badgeCounter = document.getElementById('rep-subtab-cat-badge');
-    if (badgeCounter) badgeCounter.textContent = catKeys.length;
-
-    // 2. Render category selector chips
-    const chipsWrap = document.getElementById('rep-pane-cat-chips');
-    if (chipsWrap) {
-      chipsWrap.innerHTML = '';
-      const now = new Date();
-      const thisMonthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-
-      catKeys.forEach(ck => {
-        const c = CATEGORIES[ck] || { name: ck, icon: '🏷️', color: '#6366f1' };
-        const ckSpent = this.transactions
-          .filter(t => t.category === ck && t.date && t.date.startsWith(thisMonthPrefix))
-          .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-        const compactSpent = ckSpent >= 1000000 ? (ckSpent / 1000000).toFixed(1) + 'tr' : (ckSpent > 0 ? Math.round(ckSpent / 1000) + 'k' : '0₫');
-
-        const chip = document.createElement('button');
-        chip.type = 'button';
-        chip.className = `cat-rep-chip ${ck === k ? 'active' : ''}`;
-        if (ck === k) {
-          chip.style.borderColor = c.color;
-          chip.style.boxShadow = `0 2px 8px ${c.color}40`;
-        }
-        chip.innerHTML = `<span>${c.icon}</span> <span>${c.name}</span> <small style="opacity:0.85; font-weight:800; font-family:'JetBrains Mono', monospace;">${compactSpent}</small>`;
-        chip.onclick = () => {
-          this.renderReportCategoryPane(ck);
-        };
-        chipsWrap.appendChild(chip);
-      });
-    }
-
-    // 3. Calculate category monthly data
+    // Filter transactions for the current month
     const now = new Date();
-    const thisMonthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    const catTxns = this.transactions
-      .filter(t => t.category === k && t.date && t.date.startsWith(thisMonthPrefix))
-      .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+    const curMonthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const catTotals = {};
+    const catCounts = {};
+    catKeys.forEach(k => {
+      catTotals[k] = 0;
+      catCounts[k] = 0;
+    });
 
-    const spent = catTxns.reduce((s, t) => s + (Number(t.amount) || 0), 0);
-    const count = catTxns.length;
+    this.transactions.forEach(t => {
+      if (t.date && t.date.startsWith(curMonthPrefix) && catTotals[t.category] !== undefined) {
+        catTotals[t.category] += Number(t.amount) || 0;
+        catCounts[t.category] += 1;
+      }
+    });
+
     const catBudgets = StorageManager.getCategoryBudgets(this.currentUser?.email);
-    const limit = Number(catBudgets[k]) || 0;
-    const diff = limit > 0 ? limit - spent : 0;
-    const avg = count > 0 ? Math.round(spent / count) : 0;
-    const max = count > 0 ? Math.max(...catTxns.map(t => Number(t.amount) || 0)) : 0;
 
-    const totalMonthSpent = this.transactions
-      .filter(t => t.date && t.date.startsWith(thisMonthPrefix))
-      .reduce((s, t) => s + (Number(t.amount) || 0), 0);
-    const sharePct = totalMonthSpent > 0 ? ((spent / totalMonthSpent) * 100).toFixed(1) : '0';
+    // Sort categories: categories with transactions first (descending), then the rest
+    const sortedKeys = [...catKeys].sort((a, b) => {
+      const diff = (catTotals[b] || 0) - (catTotals[a] || 0);
+      if (diff !== 0) return diff;
+      return (Number(catBudgets[b]) || 0) - (Number(catBudgets[a]) || 0);
+    });
 
-    // 4. Update Category Hero Card
-    const iconEl = document.getElementById('rep-pane-cat-icon');
-    if (iconEl) {
-      iconEl.textContent = cat.icon;
-      iconEl.style.background = `${cat.color}20`;
+    const rowH = 46;
+    const topPad = 16;
+    const bottomPad = 26;
+    const parentW = canvas.parentElement ? canvas.parentElement.clientWidth : 640;
+    const w = Math.min(Math.max(parentW - 16, 320), 720);
+    const h = topPad + sortedKeys.length * rowH + bottomPad;
+
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    canvas.style.width = w + 'px';
+    canvas.style.height = h + 'px';
+    ctx.scale(dpr, dpr);
+
+    ctx.clearRect(0, 0, w, h);
+
+    // Determine scale max
+    let maxVal = 100000;
+    sortedKeys.forEach(k => {
+      const s = catTotals[k] || 0;
+      const l = Number(catBudgets[k]) || 0;
+      if (s > maxVal) maxVal = s;
+      if (l > maxVal) maxVal = l;
+    });
+
+    const sidePad = 10;
+    const labelW = Math.min(130, Math.round(w * 0.28));
+    const rightValW = Math.min(105, Math.round(w * 0.24));
+    const barX = sidePad + labelW + 6;
+    const barMaxW = Math.max(60, w - barX - rightValW - sidePad);
+
+    // Grid lines & Axis values at bottom
+    ctx.strokeStyle = this.isDarkMode ? '#334155' : '#E2E8F0';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 3; i++) {
+      const gx = barX + (barMaxW / 3) * i;
+      ctx.beginPath();
+      ctx.moveTo(gx, topPad);
+      ctx.lineTo(gx, topPad + sortedKeys.length * rowH);
+      ctx.stroke();
+
+      const gridVal = Math.round((maxVal / 3) * i);
+      const compact = gridVal >= 1000000 ? (gridVal / 1000000).toFixed(1) + 'M' : (gridVal > 0 ? Math.round(gridVal / 1000) + 'k' : '0');
+      ctx.fillStyle = this.isDarkMode ? '#64748B' : '#94A3B8';
+      ctx.font = '600 9.5px JetBrains Mono, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(compact, gx, h - 8);
     }
-    const titleEl = document.getElementById('rep-pane-cat-title');
-    if (titleEl) titleEl.textContent = cat.name;
 
-    const statusBadge = document.getElementById('rep-pane-cat-status-badge');
-    let pct = limit > 0 ? Math.round((spent / limit) * 100) : 0;
-    if (statusBadge) {
-      statusBadge.className = 'cat-rep-status-badge';
-      if (limit === 0) {
-        statusBadge.textContent = '⚪ Chưa đặt hạn mức';
-      } else if (pct >= 100) {
-        statusBadge.classList.add('danger');
-        statusBadge.textContent = `🔴 Vượt hạn mức (+${this.formatVND(Math.abs(diff))})`;
-      } else if (pct >= 80) {
-        statusBadge.classList.add('warning');
-        statusBadge.textContent = `🟡 Cảnh báo (${pct}%)`;
-      } else {
-        statusBadge.textContent = `🟢 An toàn (${pct}%)`;
-      }
-    }
+    sortedKeys.forEach((k, idx) => {
+      const cat = CATEGORIES[k] || { name: k, icon: '🏷️', color: '#6366f1' };
+      const spent = catTotals[k] || 0;
+      const limit = Number(catBudgets[k]) || 0;
+      const yCenter = topPad + idx * rowH + rowH / 2;
+      const barH = 12;
+      const barY = yCenter - barH / 2 + 2;
 
-    const subEl = document.getElementById('rep-pane-cat-sub');
-    if (subEl) {
-      subEl.textContent = `${count} giao dịch tháng này • Chi ${this.formatVND(spent)} (${sharePct}% toàn bộ ví)`;
-    }
+      // 1. Category Icon & Label
+      ctx.textAlign = 'left';
+      ctx.fillStyle = this.isDarkMode ? '#F1F5F9' : '#1E293B';
+      ctx.font = '700 12px Plus Jakarta Sans, sans-serif';
+      const truncatedName = cat.name.length > 11 ? cat.name.slice(0, 10) + '…' : cat.name;
+      ctx.fillText(`${cat.icon} ${truncatedName}`, sidePad, yCenter + 2);
 
-    // 5. Update Category 4-KPI Grid
-    const kpiSpent = document.getElementById('rep-pane-kpi-spent');
-    if (kpiSpent) kpiSpent.textContent = this.formatVND(spent);
-    const kpiSpentSub = document.getElementById('rep-pane-kpi-spent-sub');
-    if (kpiSpentSub) kpiSpentSub.textContent = `${count} giao dịch tháng này`;
+      // 2. Background Track
+      const trackBg = this.isDarkMode ? '#1e293b' : '#f1f5f9';
+      ctx.fillStyle = trackBg;
+      this._roundRect(ctx, barX, barY, barMaxW, barH, 6);
 
-    const kpiLimit = document.getElementById('rep-pane-kpi-limit');
-    if (kpiLimit) kpiLimit.textContent = limit > 0 ? this.formatVND(limit) : 'Chưa đặt';
-    const kpiLimitSub = document.getElementById('rep-pane-kpi-limit-sub');
-    if (kpiLimitSub) {
+      // 3. Budget limit indicator if set
       if (limit > 0) {
-        kpiLimitSub.textContent = diff >= 0 ? `Còn lại: ${this.formatVND(diff)}` : `VƯỢT: +${this.formatVND(Math.abs(diff))}`;
-        kpiLimitSub.style.color = diff >= 0 ? '#10b981' : '#ef4444';
-      } else {
-        kpiLimitSub.textContent = 'Bấm "Đổi hạn mức" để đặt';
-        kpiLimitSub.style.color = 'var(--text-muted)';
+        const limitW = Math.min(barMaxW, (limit / maxVal) * barMaxW);
+        ctx.fillStyle = this.isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)';
+        this._roundRect(ctx, barX, barY, limitW, barH, 6);
+
+        // Marker line
+        const limitX = barX + limitW;
+        ctx.strokeStyle = this.isDarkMode ? '#94A3B8' : '#64748B';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(limitX, barY - 2);
+        ctx.lineTo(limitX, barY + barH + 2);
+        ctx.stroke();
       }
-    }
 
-    const kpiPct = document.getElementById('rep-pane-kpi-pct');
-    if (kpiPct) kpiPct.textContent = limit > 0 ? `${pct}%` : '0%';
-    const kpiPctSub = document.getElementById('rep-pane-kpi-pct-sub');
-    if (kpiPctSub) {
-      kpiPctSub.textContent = limit > 0 ? (pct >= 100 ? 'Đã vượt hạn mức!' : (pct >= 80 ? 'Sắp hết ngân sách' : 'Ngân sách an toàn')) : 'Chưa có hạn mức';
-      kpiPctSub.style.color = limit > 0 ? (pct >= 100 ? '#ef4444' : (pct >= 80 ? '#f59e0b' : '#10b981')) : 'var(--text-muted)';
-    }
+      // 4. Progress fill
+      if (spent > 0) {
+        const isOver = (limit > 0 && spent > limit);
+        const currentBarW = Math.max(6, (spent / maxVal) * barMaxW * progress);
 
-    const kpiAvg = document.getElementById('rep-pane-kpi-avg');
-    if (kpiAvg) kpiAvg.textContent = this.formatVND(avg);
-    const kpiAvgSub = document.getElementById('rep-pane-kpi-avg-sub');
-    if (kpiAvgSub) kpiAvgSub.textContent = `Lớn nhất: ${this.formatVND(max)}`;
+        const grad = ctx.createLinearGradient(barX, barY, barX + currentBarW, barY);
+        if (isOver) {
+          grad.addColorStop(0, '#ef4444');
+          grad.addColorStop(1, '#f87171');
+        } else {
+          grad.addColorStop(0, cat.color || '#0284c7');
+          grad.addColorStop(1, (cat.color || '#0284c7') + 'cc');
+        }
 
-    // 6. Update Budget Progress Bar
-    const progPctBadge = document.getElementById('rep-pane-progress-pct-badge');
-    const progBar = document.getElementById('rep-pane-progress-bar');
-    const spentLbl = document.getElementById('rep-pane-spent-label');
-    const limitLbl = document.getElementById('rep-pane-limit-label');
-
-    if (progPctBadge) progPctBadge.textContent = limit > 0 ? `${pct}%` : '0%';
-    if (progBar) {
-      if (limit === 0) {
-        progBar.style.width = '0%';
-        progBar.style.background = 'var(--primary)';
-      } else if (pct >= 100) {
-        progBar.style.width = '100%';
-        progBar.style.background = '#ef4444';
-      } else if (pct >= 80) {
-        progBar.style.width = `${Math.min(100, pct)}%`;
-        progBar.style.background = '#f59e0b';
-      } else {
-        progBar.style.width = `${Math.min(100, pct)}%`;
-        progBar.style.background = '#10b981';
+        ctx.fillStyle = grad;
+        this._roundRect(ctx, barX, barY, Math.min(barMaxW, currentBarW), barH, 6);
       }
-    }
-    if (spentLbl) spentLbl.textContent = `Đã chi: ${this.formatVND(spent)}`;
-    if (limitLbl) limitLbl.textContent = limit > 0 ? `Hạn mức: ${this.formatVND(limit)}` : 'Hạn mức: Chưa đặt';
 
-    // 7. Update Category Transaction History List
-    const headerTitle = document.getElementById('rep-pane-txn-header-title');
-    const headerSub = document.getElementById('rep-pane-txn-header-sub');
-    if (headerTitle) headerTitle.textContent = `📋 Lịch Sử Giao Dịch ${cat.name} (${count})`;
-    if (headerSub) headerSub.textContent = `Tất cả hóa đơn & chi tiêu thuộc danh mục ${cat.name} trong tháng`;
+      // 5. Right values: Amount & Budget Status
+      ctx.textAlign = 'right';
+      ctx.font = '700 11px JetBrains Mono, monospace';
+      const isOver = (limit > 0 && spent > limit);
+      ctx.fillStyle = isOver ? '#ef4444' : (spent > 0 ? (this.isDarkMode ? '#f8fafc' : '#0f172a') : (this.isDarkMode ? '#64748b' : '#94a3b8'));
 
-    const txnListEl = document.getElementById('rep-pane-txn-list');
-    if (txnListEl) {
-      txnListEl.innerHTML = '';
-      if (catTxns.length === 0) {
-        txnListEl.innerHTML = `
-          <div style="text-align: center; padding: 32px 16px; color: var(--text-muted);">
-            <div style="font-size: 36px; margin-bottom: 8px;">🧾</div>
-            <strong style="display: block; font-size: 14px; color: var(--text-color); margin-bottom: 4px;">Chưa có giao dịch nào</strong>
-            <p style="font-size: 12px; margin: 0 0 12px;">Bạn chưa có khoản chi tiêu nào thuộc danh mục ${cat.name} trong tháng này.</p>
-            <button type="button" class="cat-rep-mini-btn" style="padding: 6px 14px; font-weight:700;" onclick="window.app?.openManualAddModal()">
-              ➕ Thêm Hóa Đơn Ngay
-            </button>
+      const compactAmount = spent >= 1000000 
+        ? (spent / 1000000).toFixed(1) + 'M' 
+        : (spent > 0 ? Math.round(spent / 1000) + 'k' : '0 ₫');
+
+      ctx.fillText(compactAmount, w - sidePad, yCenter + 2);
+
+      if (limit > 0 && progress > 0.6) {
+        ctx.font = '600 8.5px Plus Jakarta Sans, sans-serif';
+        ctx.fillStyle = isOver ? '#ef4444' : (this.isDarkMode ? '#94A3B8' : '#64748B');
+        const pct = Math.round((spent / limit) * 100);
+        ctx.fillText(`${pct}% h.mức`, w - sidePad, yCenter + 12);
+      }
+    });
+
+    // Legend at bottom of chart
+    const legendEl = document.getElementById('cat-chart-legend');
+    if (legendEl) {
+      legendEl.innerHTML = `
+        <div style="display:flex; justify-content:center; align-items:center; gap:16px; flex-wrap:wrap; font-size:11.5px; color:var(--text-muted); padding: 4px 0 2px;">
+          <div style="display:flex; align-items:center; gap:5px;">
+            <span style="display:inline-block; width:12px; height:6px; border-radius:3px; background:var(--primary);"></span>
+            <span>Đã chi</span>
           </div>
-        `;
-      } else {
-        catTxns.forEach(t => {
-          const item = document.createElement('div');
-          item.className = 'cat-rep-txn-item';
-          item.style.cursor = 'pointer';
-          item.title = 'Bấm để xem chi tiết giao dịch';
-          item.onclick = () => this.openExpenseDetailModal(t);
-          item.innerHTML = `
-            <div>
-              <div class="cat-rep-txn-merchant">${t.merchant || 'Khoản chi tiêu'}</div>
-              <div class="cat-rep-txn-date">📅 ${t.date || 'Hôm nay'} ${t.notes ? '• ' + t.notes : ''}</div>
-            </div>
-            <div class="cat-rep-txn-amount">${this.formatVND(t.amount)}</div>
-          `;
-          txnListEl.appendChild(item);
-        });
-      }
+          <div style="display:flex; align-items:center; gap:5px;">
+            <span style="display:inline-block; width:2px; height:10px; background:#64748b;"></span>
+            <span>Vạch hạn mức</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:5px;">
+            <span style="display:inline-block; width:12px; height:6px; border-radius:3px; background:#ef4444;"></span>
+            <span>Vượt hạn mức</span>
+          </div>
+        </div>
+      `;
     }
-  }
-
-  /**
-   * Directs user to the Category Detailed Report inside /reports tab
-   */
-  openCategoryReportModal(initialCatKey = null) {
-    this.navigateShell('/reports');
-    this.switchReportSubtab('categories', initialCatKey);
   }
 
   /**
@@ -4499,9 +4387,23 @@ class AppController {
           if (cnt > 0) {
             const cat = CATEGORIES[k];
             const p = totalAmount > 0 ? ((amt / totalAmount) * 100).toFixed(1) : 0;
+            const catBudgets = StorageManager.getCategoryBudgets(this.currentUser?.email);
+            const limit = Number(catBudgets[k]) || 0;
+            const pct = limit > 0 ? Math.round((amt / limit) * 100) : 0;
+            let statusPill = '';
+            if (limit === 0) {
+              statusPill = '<span style="font-size:11px; color:var(--text-muted); font-weight:600;">Tự do</span>';
+            } else if (pct >= 100) {
+              statusPill = `<span style="font-size:11px; color:#ef4444; font-weight:800;">🔴 Vượt (${pct}%)</span>`;
+            } else if (pct >= 80) {
+              statusPill = `<span style="font-size:11px; color:#f59e0b; font-weight:700;">🟡 ${pct}%</span>`;
+            } else {
+              statusPill = `<span style="font-size:11px; color:#10b981; font-weight:700;">🟢 ${pct}%</span>`;
+            }
+
             const tr = document.createElement('tr');
             tr.style.cursor = 'pointer';
-            tr.title = `Bấm để xem báo cáo chi tiết ${cat.name}`;
+            tr.title = `Bấm để cuộn đến biểu đồ ${cat.name}`;
             tr.onclick = () => this.openCategoryReportModal(k);
             tr.innerHTML = `
               <td>
@@ -4513,9 +4415,7 @@ class AppController {
               <td style="text-align:right;font-weight:800;color:var(--text-main);">${this.formatVND(amt)}</td>
               <td style="text-align:right;font-weight:700;color:var(--primary);">${p}%</td>
               <td style="text-align:center;">
-                <button type="button" class="cat-rep-pill-btn" onclick="event.stopPropagation(); window.app?.openCategoryReportModal('${k}')">
-                  📊 Chi tiết
-                </button>
+                ${statusPill}
               </td>
             `;
             repTbody.appendChild(tr);
@@ -4600,10 +4500,7 @@ class AppController {
     } else {
       this.renderDonutChart(totalAmount, 1.0);
       this.renderBarChart(1.0);
-    }
-
-    if (this.selectedReportSubtab === 'categories') {
-      this.renderReportCategoryPane(this.selectedReportCatKey);
+      this.renderCategoryChart(1.0);
     }
   }
 
@@ -4703,6 +4600,7 @@ class AppController {
       const easeOut = 1 - Math.pow(1 - t, 3);
       this.renderDonutChart(totalAmount, easeOut);
       this.renderBarChart(easeOut);
+      this.renderCategoryChart(easeOut);
       if (t < 1) requestAnimationFrame(step);
     };
     requestAnimationFrame(step);

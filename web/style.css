@@ -5111,3 +5111,21 @@ body.dark-mode .rep-subtab-badge {
   background: rgba(255, 255, 255, 0.12);
 }
 
+/* Category Canvas Chart Card (Below the 2 Charts) */
+#category-chart-card {
+  margin-top: 18px;
+}
+
+#categoryChartCanvas {
+  display: block;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.cat-chart-legend {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--border-color);
+}
+
+

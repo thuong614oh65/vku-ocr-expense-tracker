@@ -16,13 +16,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=36.5">
+  <link rel="stylesheet" href="style.css?v=36.6">
   <!-- Google Identity Services (OAuth 2.0) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <!-- On-Device Tesseract.js WebAssembly OCR (Local Zero-Latency Engine) -->
   <script src="/tesseract/tesseract.min.js" defer></script>
   <script>
-    const APP_VERSION = '36.5';
+    const APP_VERSION = '36.6';
     if (localStorage.getItem('vku_app_cache_v') !== APP_VERSION) {
       if ('caches' in window) {
         caches.keys().then(function(names) {
@@ -38,7 +38,7 @@
     }
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
-        navigator.serviceWorker.register('/sw.js?v=36.5').then(function (reg) {
+        navigator.serviceWorker.register('/sw.js?v=36.6').then(function (reg) {
           reg.update();
         }).catch(function () {});
       });
@@ -370,205 +370,105 @@
           </div>
         </section>
 
-        <!-- Reports Mode Switcher Segmented Control -->
-        <div class="reports-segmented-bar" role="tablist">
-          <button type="button" id="rep-subtab-overview-btn" class="rep-subtab-btn active" role="tab" aria-selected="true">
-            <span class="subtab-icon">📊</span>
-            <span class="subtab-title">Tổng Quan Toàn Ví</span>
-          </button>
-          <button type="button" id="rep-subtab-category-btn" class="rep-subtab-btn" role="tab" aria-selected="false">
-            <span class="subtab-icon">🎯</span>
-            <span class="subtab-title">Báo Cáo Từng Danh Mục</span>
-            <span id="rep-subtab-cat-badge" class="rep-subtab-badge">6</span>
-          </button>
-        </div>
-
-        <!-- ================= SUBPANE 1: TỔNG QUAN TOÀN VÍ ================= -->
-        <div id="rep-pane-overview" class="rep-subpane">
-          <!-- Reports KPI Quick Overview Grid -->
-          <section class="reports-kpi-grid">
-            <div class="report-kpi-box">
-              <span class="report-kpi-label">Tổng Chi Tiêu</span>
-              <strong id="rep-kpi-total" class="report-kpi-val text-primary">0 ₫</strong>
-              <small id="rep-kpi-count" class="report-kpi-sub">0 giao dịch</small>
-            </div>
-            <div class="report-kpi-box">
-              <span class="report-kpi-label">Hạn Mức Ngân Sách</span>
-              <strong id="rep-kpi-budget" class="report-kpi-val text-success">3.500.000 ₫</strong>
-              <small id="rep-kpi-remaining" class="report-kpi-sub">Còn lại: 3.500.000 ₫</small>
-            </div>
-            <div class="report-kpi-box">
-              <span class="report-kpi-label">Chi Tiêu Cao Nhất</span>
-              <strong id="rep-kpi-top-cat" class="report-kpi-val">--</strong>
-              <small id="rep-kpi-top-amount" class="report-kpi-sub">0 ₫</small>
-            </div>
-            <div class="report-kpi-box">
-              <span class="report-kpi-label">Tỷ Lệ Đã Dùng</span>
-              <strong id="rep-kpi-pct" class="report-kpi-val">0%</strong>
-              <small id="rep-kpi-status" class="report-kpi-sub text-success">Ngân sách an toàn</small>
-            </div>
-          </section>
-
-          <!-- Charts Grid (2 columns on desktop, 1 column on mobile) -->
-          <div class="reports-charts-grid">
-            <!-- Canvas Chart 1: Donut Pie Chart -->
-            <section class="chart-card">
-              <div class="chart-header">
-                <div>
-                  <h3>📊 Cơ Cấu Chi Tiêu</h3>
-                  <p class="chart-sub">Tỷ trọng phần trăm các khoản chi tiêu</p>
-                </div>
-                <span class="custom-painter-badge">Donut Chart</span>
-              </div>
-              <div class="canvas-wrap">
-                <canvas id="donutChartCanvas" width="240" height="240"></canvas>
-              </div>
-              <div id="pie-legend" class="pie-legend"></div>
-            </section>
-
-            <!-- Canvas Chart 2: Weekly Spending Bar Chart -->
-            <section class="chart-card">
-              <div class="chart-header">
-                <div>
-                  <h3>📈 Chi Tiêu 7 Ngày Gần Nhất</h3>
-                  <p class="chart-sub">Biến động số tiền tiêu dùng theo từng ngày</p>
-                </div>
-                <span class="custom-painter-badge">Bar Chart</span>
-              </div>
-              <div class="canvas-wrap">
-                <canvas id="barChartCanvas" width="340" height="190"></canvas>
-              </div>
-            </section>
+        <!-- Reports KPI Quick Overview Grid -->
+        <section class="reports-kpi-grid">
+          <div class="report-kpi-box">
+            <span class="report-kpi-label">Tổng Chi Tiêu</span>
+            <strong id="rep-kpi-total" class="report-kpi-val text-primary">0 ₫</strong>
+            <small id="rep-kpi-count" class="report-kpi-sub">0 giao dịch</small>
           </div>
+          <div class="report-kpi-box">
+            <span class="report-kpi-label">Hạn Mức Ngân Sách</span>
+            <strong id="rep-kpi-budget" class="report-kpi-val text-success">3.500.000 ₫</strong>
+            <small id="rep-kpi-remaining" class="report-kpi-sub">Còn lại: 3.500.000 ₫</small>
+          </div>
+          <div class="report-kpi-box">
+            <span class="report-kpi-label">Chi Tiêu Cao Nhất</span>
+            <strong id="rep-kpi-top-cat" class="report-kpi-val">--</strong>
+            <small id="rep-kpi-top-amount" class="report-kpi-sub">0 ₫</small>
+          </div>
+          <div class="report-kpi-box">
+            <span class="report-kpi-label">Tỷ Lệ Đã Dùng</span>
+            <strong id="rep-kpi-pct" class="report-kpi-val">0%</strong>
+            <small id="rep-kpi-status" class="report-kpi-sub text-success">Ngân sách an toàn</small>
+          </div>
+        </section>
 
-          <!-- Category Summary Breakdown Table -->
+        <!-- Charts Grid: 2 Charts (Hình tròn Donut Chart & Cột 7 ngày Bar Chart) -->
+        <div class="reports-charts-grid">
+          <!-- Canvas Chart 1: Donut Pie Chart (Hình Tròn) -->
           <section class="chart-card">
-            <div class="chart-header" style="display:flex; justify-content:space-between; align-items:center;">
+            <div class="chart-header">
               <div>
-                <h3>📑 Bảng Thống Kê Theo Danh Mục</h3>
-                <p class="chart-sub">Bấm vào bất kỳ danh mục nào để xem phân tích chuyên sâu</p>
+                <h3>📊 Cơ Cấu Chi Tiêu</h3>
+                <p class="chart-sub">Tỷ trọng phần trăm các khoản chi tiêu</p>
               </div>
-              <button type="button" id="btn-rep-goto-cats" class="cat-rep-mini-btn" style="font-weight:700;">
-                🎯 Báo Cáo Danh Mục ➔
-              </button>
+              <span class="custom-painter-badge">Donut Chart</span>
             </div>
-            <div class="table-responsive">
-              <table class="report-category-table">
-                <thead>
-                  <tr>
-                    <th>Danh mục</th>
-                    <th style="text-align:center;">Số GD</th>
-                    <th style="text-align:right;">Tổng tiền</th>
-                    <th style="text-align:right;">Tỷ trọng</th>
-                    <th style="text-align:center;">Báo Cáo</th>
-                  </tr>
-                </thead>
-                <tbody id="report-category-tbody">
-                  <!-- Dynamically populated -->
-                </tbody>
-              </table>
+            <div class="canvas-wrap">
+              <canvas id="donutChartCanvas" width="240" height="240"></canvas>
+            </div>
+            <div id="pie-legend" class="pie-legend"></div>
+          </section>
+
+          <!-- Canvas Chart 2: Weekly Spending Bar Chart (Hình Cột) -->
+          <section class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h3>📈 Chi Tiêu 7 Ngày Gần Nhất</h3>
+                <p class="chart-sub">Biến động số tiền tiêu dùng theo từng ngày</p>
+              </div>
+              <span class="custom-painter-badge">Bar Chart</span>
+            </div>
+            <div class="canvas-wrap">
+              <canvas id="barChartCanvas" width="340" height="190"></canvas>
             </div>
           </section>
         </div>
 
-        <!-- ================= SUBPANE 2: BÁO CÁO TỪNG DANH MỤC ================= -->
-        <div id="rep-pane-categories" class="rep-subpane hidden">
-          <!-- Category Selector Chips Bar -->
-          <section class="chart-card rep-cat-selector-card">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-              <span class="rep-section-label" style="font-size: 11.5px; font-weight: 800; color: var(--text-muted); letter-spacing: 0.5px;">
-                🏷️ CHỌN DANH MỤC ĐỂ XEM BÁO CÁO CHUYÊN SÂU:
-              </span>
-              <button type="button" id="btn-rep-manage-cats" class="cat-rep-mini-btn">
-                ⚙️ Quản lý danh mục
-              </button>
+        <!-- Biểu Đồ Thêm Bên Dưới 2 Hình Tròn Cột: Biểu Đồ Cho Phần Danh Mục -->
+        <section class="chart-card" id="category-chart-card">
+          <div class="chart-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+            <div>
+              <h3>🏷️ Biểu Đồ Chi Tiêu Theo Danh Mục</h3>
+              <p class="chart-sub">So sánh chi tiêu thực tế và hạn mức của tất cả danh mục</p>
             </div>
-            <div id="rep-pane-cat-chips" class="cat-rep-selector-chips">
-              <!-- Dynamically populated category chips -->
-            </div>
-          </section>
+            <button type="button" id="btn-config-cat-budget-rep" class="cat-rep-mini-btn" style="font-weight:700;">
+              ⚙️ Cài Đặt Hạn Mức
+            </button>
+          </div>
+          <div class="canvas-wrap" style="height: auto; min-height: 240px; padding: 6px 0; overflow-x: auto;">
+            <canvas id="categoryChartCanvas" width="680" height="320"></canvas>
+          </div>
+          <div id="cat-chart-legend" class="cat-chart-legend"></div>
+        </section>
 
-          <!-- Selected Category Hero & Summary Card -->
-          <section class="chart-card rep-cat-hero-card">
-            <div class="rep-cat-hero-header">
-              <div class="rep-cat-hero-left">
-                <span id="rep-pane-cat-icon" class="rep-cat-hero-icon">🍲</span>
-                <div>
-                  <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                    <h3 id="rep-pane-cat-title" style="margin: 0; font-size: 18px; font-weight: 800;">Ăn Uống</h3>
-                    <span id="rep-pane-cat-status-badge" class="cat-rep-status-badge">🟢 An toàn</span>
-                  </div>
-                  <p id="rep-pane-cat-sub" style="margin: 3px 0 0; font-size: 12px; color: var(--text-muted);">
-                    Phân tích chi tiêu, hạn mức & lịch sử giao dịch
-                  </p>
-                </div>
-              </div>
-              <div class="rep-cat-hero-actions">
-                <button type="button" id="btn-rep-cat-edit-budget" class="btn-report-action" title="Đổi hạn mức cho danh mục này">
-                  🎯 Đổi Hạn Mức
-                </button>
-                <button type="button" id="btn-rep-cat-add-txn" class="btn-report-action primary" title="Thêm chi tiêu cho mục này">
-                  ➕ Thêm Chi Tiêu
-                </button>
-              </div>
+        <!-- Category Summary Breakdown Table -->
+        <section class="chart-card">
+          <div class="chart-header">
+            <div>
+              <h3>📑 Bảng Thống Kê Chi Tiết Danh Mục</h3>
+              <p class="chart-sub">Chi tiết số lượng giao dịch và số tiền từng hạng mục</p>
             </div>
-
-            <!-- Category 4-KPI Grid -->
-            <div class="cat-rep-kpi-grid" style="margin-top: 16px;">
-              <div class="cat-rep-kpi-box">
-                <span class="cat-rep-kpi-label">ĐÃ CHI TIÊU</span>
-                <div id="rep-pane-kpi-spent" class="cat-rep-kpi-val text-primary">0 ₫</div>
-                <small id="rep-pane-kpi-spent-sub" class="cat-rep-kpi-sub">0 giao dịch tháng này</small>
-              </div>
-              <div class="cat-rep-kpi-box">
-                <span class="cat-rep-kpi-label">HẠN MỨC NGÂN SÁCH</span>
-                <div id="rep-pane-kpi-limit" class="cat-rep-kpi-val">0 ₫</div>
-                <small id="rep-pane-kpi-limit-sub" class="cat-rep-kpi-sub">Còn lại: 0 ₫</small>
-              </div>
-              <div class="cat-rep-kpi-box">
-                <span class="cat-rep-kpi-label">TỶ LỆ SỬ DỤNG</span>
-                <div id="rep-pane-kpi-pct" class="cat-rep-kpi-val">0%</div>
-                <small id="rep-pane-kpi-pct-sub" class="cat-rep-kpi-sub">Trạng thái an toàn</small>
-              </div>
-              <div class="cat-rep-kpi-box">
-                <span class="cat-rep-kpi-label">TRUNG BÌNH / HÓA ĐƠN</span>
-                <div id="rep-pane-kpi-avg" class="cat-rep-kpi-val">0 ₫</div>
-                <small id="rep-pane-kpi-avg-sub" class="cat-rep-kpi-sub">Lớn nhất: 0 ₫</small>
-              </div>
-            </div>
-
-            <!-- Budget Progress Bar -->
-            <div class="cat-rep-budget-progress-box" style="margin-top: 14px; margin-bottom: 0;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                <span style="font-size: 12.5px; font-weight: 700; color: var(--text-color);">Tiến độ sử dụng hạn mức</span>
-                <span id="rep-pane-progress-pct-badge" style="font-size: 12px; font-weight: 800; color: var(--primary);">0%</span>
-              </div>
-              <div class="progress-track" style="height: 10px; border-radius: 5px; background: rgba(0,0,0,0.06); overflow: hidden;">
-                <div id="rep-pane-progress-bar" class="progress-bar-fill" style="width: 0%; height: 100%; transition: width 0.35s ease;"></div>
-              </div>
-              <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-top: 5px;">
-                <span id="rep-pane-spent-label">Đã chi: 0 ₫</span>
-                <span id="rep-pane-limit-label">Hạn mức: 0 ₫</span>
-              </div>
-            </div>
-          </section>
-
-          <!-- Category Transactions History Section -->
-          <section class="chart-card">
-            <div class="chart-header" style="display: flex; justify-content: space-between; align-items: center;">
-              <div>
-                <h3 id="rep-pane-txn-header-title">📋 Lịch Sử Giao Dịch Tháng Này</h3>
-                <p id="rep-pane-txn-header-sub" class="chart-sub">Các hóa đơn thuộc danh mục này trong tháng</p>
-              </div>
-              <button type="button" id="btn-rep-pane-export-cat-csv" class="cat-rep-mini-btn" title="Xuất CSV cho danh mục này">
-                📥 Xuất CSV Danh Mục
-              </button>
-            </div>
-            <div id="rep-pane-txn-list" class="cat-rep-txn-list" style="max-height: 400px;">
-              <!-- Dynamically populated list of transactions -->
-            </div>
-          </section>
-        </div>
+            <span class="custom-painter-badge">Bảng Thống Kê</span>
+          </div>
+          <div class="table-responsive">
+            <table class="report-category-table">
+              <thead>
+                <tr>
+                  <th>Danh mục</th>
+                  <th style="text-align:center;">Số GD</th>
+                  <th style="text-align:right;">Tổng tiền</th>
+                  <th style="text-align:right;">Tỷ trọng</th>
+                  <th style="text-align:center;">Tiến độ</th>
+                </tr>
+              </thead>
+              <tbody id="report-category-tbody">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </section>
 
       </div>
 
@@ -1467,6 +1367,6 @@ flutter build apk --release</code></pre>
     <span id="sync-toast-msg">Đã đồng bộ với Đám Mây</span>
   </div>
 
-  <script src="app.js?v=36.5"></script>
+  <script src="app.js?v=36.6"></script>
 </body>
 </html>
