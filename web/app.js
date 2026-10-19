@@ -2691,16 +2691,110 @@ class AppController {
         const val = parseNumberFromDots(catInputs[k]?.value);
         if (val > 0) sum += val;
       });
+
+      const tot = parseNumberFromDots(input?.value) || cur || 0;
+      const diff = tot - sum; // > 0: còn dư, == 0: khớp 100%, < 0: vượt ngân sách
+
+      // 1. Cập nhật thẻ tổng quan phân bổ & cảnh báo trực quan ở đầu modal
+      const summaryCard = document.getElementById('cat-budget-summary-card');
+      const allocatedEl = document.getElementById('cat-summary-allocated');
+      const allocatedHint = document.getElementById('cat-summary-allocated-hint');
+      const totalEl = document.getElementById('cat-summary-total');
+      const totalHint = document.getElementById('cat-summary-total-hint');
+      const balanceEl = document.getElementById('cat-summary-balance');
+      const balanceLabel = document.getElementById('cat-summary-balance-label');
+      const balanceHint = document.getElementById('cat-summary-balance-hint');
+      const statusIcon = document.getElementById('cat-summary-status-icon');
+      const statusText = document.getElementById('cat-summary-status-text');
+
+      if (allocatedEl) allocatedEl.textContent = this.formatVND(sum);
+      if (allocatedHint) allocatedHint.textContent = sum > 0 ? formatVNDWords(sum) : '';
+
+      if (totalEl) totalEl.textContent = this.formatVND(tot);
+      if (totalHint) totalHint.textContent = tot > 0 ? formatVNDWords(tot) : '';
+
+      if (summaryCard) {
+        summaryCard.classList.remove('status-remaining', 'status-match', 'status-over');
+
+        if (tot === 0) {
+          summaryCard.classList.add('status-remaining');
+          if (balanceLabel) balanceLabel.textContent = 'SỐ DƯ CÒN LẠI';
+          if (balanceEl) balanceEl.textContent = '0 ₫';
+          if (balanceHint) balanceHint.textContent = '';
+          if (statusIcon) statusIcon.textContent = 'ℹ️';
+          if (statusText) statusText.textContent = 'Chưa cài đặt ngân sách tổng. Hãy cài đặt ở tab "Ngân Sách Tổng".';
+        } else if (diff < 0) {
+          // BÁO ĐỎ: Vượt quá ngân sách tổng!
+          const overAmt = Math.abs(diff);
+          summaryCard.classList.add('status-over');
+          if (balanceLabel) balanceLabel.textContent = 'VƯỢT QUÁ (BÁO ĐỎ)';
+          if (balanceEl) balanceEl.textContent = `+${this.formatVND(overAmt)}`;
+          if (balanceHint) balanceHint.textContent = `Vượt ${formatVNDWords(overAmt)}`;
+          if (statusIcon) statusIcon.textContent = '🔴';
+          if (statusText) statusText.innerHTML = `<strong>VƯỢT NGÂN SÁCH TỔNG: +${this.formatVND(overAmt)} (${formatVNDWords(overAmt)})!</strong> Vui lòng giảm bớt tiền ở các mục.`;
+        } else if (diff === 0) {
+          // KHỚP 100%: Màu xanh lá
+          summaryCard.classList.add('status-match');
+          if (balanceLabel) balanceLabel.textContent = 'SỐ DƯ CÒN LẠI';
+          if (balanceEl) balanceEl.textContent = '0 ₫';
+          if (balanceHint) balanceHint.textContent = 'Đã khớp 100%';
+          if (statusIcon) statusIcon.textContent = '🟢';
+          if (statusText) statusText.innerHTML = `<strong>Khớp 100%!</strong> Tổng hạn mức các mục đã bằng đúng ngân sách tổng (${this.formatVND(tot)}).`;
+        } else {
+          // CÒN DƯ ĐỂ TIẾP TỤC ĐIỀN: Màu xanh lam
+          summaryCard.classList.add('status-remaining');
+          if (balanceLabel) balanceLabel.textContent = 'SỐ DƯ CÒN LẠI';
+          if (balanceEl) balanceEl.textContent = this.formatVND(diff);
+          if (balanceHint) balanceHint.textContent = `Còn ${formatVNDWords(diff)}`;
+          if (statusIcon) statusIcon.textContent = '💡';
+          if (statusText) statusText.innerHTML = `Số dư còn lại: <strong>${this.formatVND(diff)}</strong> (${formatVNDWords(diff)}) để bạn tiếp tục phân bổ vào các mục.`;
+        }
+      }
+
+      // 2. Cập nhật dòng hiển thị phía dưới modal
       const previewEl = document.getElementById('cat-budgets-sum-preview');
       if (previewEl) {
-        const tot = parseNumberFromDots(input?.value) || cur;
-        const sumWord = sum > 0 ? ` (${formatVNDWords(sum)})` : '';
-        const totWord = tot > 0 ? ` (${formatVNDWords(tot)})` : '';
-        previewEl.innerHTML = `${this.formatVND(sum)} <span style="font-size:11px;color:var(--text-muted);font-weight:normal;">${sumWord} / Ngân sách: ${this.formatVND(tot)}${totWord}</span>`;
+        if (tot === 0) {
+          previewEl.innerHTML = `<span>${this.formatVND(sum)}</span> <span style="font-size:11px;color:var(--text-muted);font-weight:normal;">/ Ngân sách: 0 ₫</span>`;
+        } else if (diff < 0) {
+          const overAmt = Math.abs(diff);
+          previewEl.innerHTML = `<span style="color:#ef4444;font-weight:800;">🔴 ${this.formatVND(sum)} (VƯỢT +${this.formatVND(overAmt)})</span> <span style="font-size:11px;color:var(--text-muted);font-weight:normal;">/ Ngân sách: ${this.formatVND(tot)}</span>`;
+        } else if (diff === 0) {
+          previewEl.innerHTML = `<span style="color:#10b981;font-weight:800;">🟢 ${this.formatVND(sum)} (Khớp 100%)</span> <span style="font-size:11px;color:var(--text-muted);font-weight:normal;">/ Ngân sách: ${this.formatVND(tot)}</span>`;
+        } else {
+          previewEl.innerHTML = `<span style="color:var(--primary);font-weight:800;">${this.formatVND(sum)} (Còn dư: ${this.formatVND(diff)})</span> <span style="font-size:11px;color:var(--text-muted);font-weight:normal;">/ Ngân sách: ${this.formatVND(tot)}</span>`;
+        }
       }
     };
 
-    const gridEl = document.getElementById('cat-budget-input-grid');
+    const balanceBox = document.getElementById('cat-summary-balance-box');
+    if (balanceBox) {
+      balanceBox.onclick = () => {
+        let sum = 0;
+        catKeys.forEach(k => {
+          const val = parseNumberFromDots(catInputs[k]?.value);
+          if (val > 0) sum += val;
+        });
+        const tot = parseNumberFromDots(input?.value) || cur || 0;
+        const diff = tot - sum;
+        if (diff > 0) {
+          let targetInput = Object.values(catInputs).find(inp => document.activeElement === inp);
+          if (!targetInput) {
+            targetInput = Object.values(catInputs).find(inp => parseNumberFromDots(inp?.value) === 0);
+          }
+          if (targetInput) {
+            const currentInpVal = parseNumberFromDots(targetInput.value);
+            const fillAmt = currentInpVal + diff;
+            targetInput.value = formatNumberWithDots(fillAmt);
+            targetInput.dispatchEvent(new Event('input', { bubbles: true }));
+            targetInput.focus();
+            this.showSyncToast(`✓ Đã điền thêm ${this.formatVND(diff)} số dư còn lại vào mục!`);
+          }
+        }
+      };
+    }
+
+    const gridEl = document.getElementById('cat-budget-input-grid') || document.querySelector('.cat-budget-input-grid');
     if (gridEl) {
       gridEl.innerHTML = '';
       catKeys.forEach(k => {

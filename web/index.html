@@ -16,13 +16,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=36.0">
+  <link rel="stylesheet" href="style.css?v=36.1">
   <!-- Google Identity Services (OAuth 2.0) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <!-- On-Device Tesseract.js WebAssembly OCR (Local Zero-Latency Engine) -->
   <script src="/tesseract/tesseract.min.js" defer></script>
   <script>
-    const APP_VERSION = '36.0';
+    const APP_VERSION = '36.1';
     if (localStorage.getItem('vku_app_cache_v') !== APP_VERSION) {
       if ('caches' in window) {
         caches.keys().then(function(names) {
@@ -38,7 +38,7 @@
     }
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
-        navigator.serviceWorker.register('/sw.js?v=36.0').then(function (reg) {
+        navigator.serviceWorker.register('/sw.js?v=36.1').then(function (reg) {
           reg.update();
         }).catch(function () {});
       });
@@ -1133,7 +1133,40 @@ flutter build apk --release</code></pre>
               </button>
             </div>
 
-            <div class="cat-budget-input-grid">
+            <!-- BẢNG TỔNG QUAN PHÂN BỔ & SỐ DƯ CÒN LẠI (TỰ ĐỘNG BÁO ĐỎ KHI VƯỢT NGÂN SÁCH TỔNG) -->
+            <div id="cat-budget-summary-card" class="cat-budget-summary-card status-remaining">
+              <div class="cat-summary-stats-grid">
+                <div class="cat-summary-stat-box stat-allocated">
+                  <span class="cat-summary-stat-label">ĐÃ PHÂN BỔ</span>
+                  <div class="cat-summary-stat-val" id="cat-summary-allocated">0 ₫</div>
+                  <div class="cat-summary-stat-sub" id="cat-summary-allocated-hint"></div>
+                </div>
+
+                <div class="cat-summary-stat-divider">/</div>
+
+                <div class="cat-summary-stat-box stat-total">
+                  <span class="cat-summary-stat-label">NGÂN SÁCH TỔNG</span>
+                  <div class="cat-summary-stat-val" id="cat-summary-total">0 ₫</div>
+                  <div class="cat-summary-stat-sub" id="cat-summary-total-hint"></div>
+                </div>
+
+                <div class="cat-summary-stat-divider">=</div>
+
+                <div class="cat-summary-stat-box stat-balance" id="cat-summary-balance-box" title="Nhấn để tự động điền số dư còn lại vào ô đang nhập">
+                  <span class="cat-summary-stat-label" id="cat-summary-balance-label">SỐ DƯ CÒN LẠI</span>
+                  <div class="cat-summary-stat-val" id="cat-summary-balance">0 ₫</div>
+                  <div class="cat-summary-stat-sub" id="cat-summary-balance-hint"></div>
+                </div>
+              </div>
+
+              <!-- Dải thông báo trạng thái trực quan: Báo đỏ khi vượt, Xanh lá khi khớp 100%, Xanh lam khi còn dư -->
+              <div id="cat-summary-status-banner" class="cat-summary-status-banner">
+                <span id="cat-summary-status-icon">💡</span>
+                <span id="cat-summary-status-text">Số dư còn lại: 0 ₫ để phân bổ vào các mục.</span>
+              </div>
+            </div>
+
+            <div id="cat-budget-input-grid" class="cat-budget-input-grid">
               <div class="cat-budget-input-row">
                 <div class="cat-budget-input-label">
                   <span style="font-size: 18px;">🍲</span>
@@ -1309,6 +1342,6 @@ flutter build apk --release</code></pre>
     <span id="sync-toast-msg">Đã đồng bộ với Đám Mây</span>
   </div>
 
-  <script src="app.js?v=36.0"></script>
+  <script src="app.js?v=36.1"></script>
 </body>
 </html>
