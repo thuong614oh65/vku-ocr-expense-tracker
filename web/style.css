@@ -3749,50 +3749,101 @@ body.dark-mode .ai-advisor-card {
   background: var(--card-bg);
   border: 1px solid var(--border-color);
   border-radius: 12px;
-  padding: 14px 16px;
+  padding: 16px 18px;
 }
 
 .ai-advice-header {
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 800;
   color: #0284c7;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed var(--border-color);
+}
+
+.ai-section-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 14px 0 8px 0;
+  padding: 6px 10px;
+  background: rgba(2, 132, 199, 0.08);
+  border-left: 3px solid #0284c7;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--text-color);
+}
+
+.ai-section-heading:first-child {
+  margin-top: 0;
+}
+
+.ai-section-pill {
+  font-size: 14px;
+  line-height: 1;
 }
 
 .ai-advice-list {
   list-style: none;
   padding: 0;
-  margin: 0;
+  margin: 0 0 12px 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
+}
+
+.ai-advice-list:last-child {
+  margin-bottom: 0;
 }
 
 .ai-advice-list li {
   font-size: 12.5px;
-  line-height: 1.5;
+  line-height: 1.55;
   color: var(--text-color);
   display: flex;
   align-items: flex-start;
-  gap: 8px;
+  gap: 10px;
+  padding: 4px 6px;
+  border-radius: 8px;
+  transition: background 0.15s ease;
+}
+
+.ai-advice-list li:hover {
+  background: var(--bg-color);
 }
 
 .ai-advice-bullet {
-  background: rgba(2, 132, 199, 0.15);
+  background: rgba(2, 132, 199, 0.12);
   color: #0284c7;
   font-weight: 800;
-  font-size: 11px;
-  width: 20px;
-  height: 20px;
+  font-size: 10.5px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   margin-top: 2px;
+}
+
+.ai-advice-bullet.num {
+  background: #0284c7;
+  color: #ffffff;
+}
+
+.ai-advice-content {
+  flex: 1;
+  word-break: break-word;
+}
+
+.ai-advice-content strong {
+  color: var(--text-color);
+  font-weight: 700;
 }
 
 /* ==========================================================================

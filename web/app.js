@@ -3088,6 +3088,113 @@ class AppController {
     this.runAiFinancialAdvisor();
   }
 
+  static formatAiAdviceHtml(rawText) {
+    if (!rawText) {
+      return '<div style="color:var(--text-muted);padding:8px 0;font-size:12.5px;">Chưa có dữ liệu phân tích.</div>';
+    }
+
+    const lines = rawText
+      .split('\n')
+      .map(l => l.trim())
+      .filter(l => l.length > 0 && !/^[\*\-_=]{3,}$/.test(l));
+
+    let html = '';
+    let inList = false;
+    let listCounter = 1;
+
+    const closeListIfOpen = () => {
+      if (inList) {
+        html += '</ul>';
+        inList = false;
+      }
+    };
+
+    const openListIfClosed = () => {
+      if (!inList) {
+        html += '<ul class="ai-advice-list">';
+        inList = true;
+      }
+    };
+
+    for (let i = 0; i < lines.length; i++) {
+      let line = lines[i];
+
+      // Detect Section Heading:
+      // ### 1. Heading or ## Heading or # Heading
+      // **1. Heading:** or **Heading:** or **1. Heading**
+      // 1. **Heading:** or 1. **Heading**
+      const isMdHeading = /^#{1,4}\s+/.test(line);
+      const isPureBoldLine = /^\*\*[^*]+\*\*:?$/.test(line);
+      const isNumberedBoldHeading = /^[0-9]+[.)]\s*\*\*[^*]+\*\*:?$/.test(line);
+      const isColonHeading = /^[0-9]+[.)]\s*[^:]+:$/.test(line) && line.length < 60;
+
+      if (isMdHeading || isPureBoldLine || isNumberedBoldHeading || isColonHeading) {
+        closeListIfOpen();
+        let title = line
+          .replace(/^#{1,4}\s+/, '')
+          .replace(/^\*\*/, '')
+          .replace(/\*\*:?$/, '')
+          .replace(/^[0-9]+[.)]\s*\*\*/, '')
+          .replace(/\*\*:?$/, '')
+          .replace(/:$/, '')
+          .trim();
+
+        // Strip any residual asterisks
+        title = title.replace(/\*\*/g, '').trim();
+
+        // Extract emoji icon if exists at start
+        let icon = '📌';
+        const emojiMatch = title.match(/^([\uD800-\uDBFF][\uDC00-\uDFFF]|[\u2600-\u27BF]|\p{Emoji_Presentation})/u);
+        if (emojiMatch) {
+          icon = emojiMatch[0];
+          title = title.replace(emojiMatch[0], '').trim();
+        }
+
+        html += `
+          <div class="ai-section-heading">
+            <span class="ai-section-pill">${icon}</span>
+            <strong>${title}</strong>
+          </div>
+        `;
+        listCounter = 1;
+        continue;
+      }
+
+      // Check bullet/numbered item
+      const isNumberedItem = /^[0-9]+[.)]\s+/.test(line);
+      const isBulletItem = /^[•\-\*]\s+/.test(line);
+
+      let content = line;
+      let badgeHtml = '';
+
+      if (isNumberedItem) {
+        content = line.replace(/^[0-9]+[.)]\s+/, '');
+        badgeHtml = `<span class="ai-advice-bullet num">${listCounter++}</span>`;
+      } else if (isBulletItem) {
+        content = line.replace(/^[•\-\*]\s+/, '');
+        badgeHtml = `<span class="ai-advice-bullet">✓</span>`;
+      } else {
+        badgeHtml = `<span class="ai-advice-bullet">✓</span>`;
+      }
+
+      // Format bold: **word** -> <strong>word</strong>
+      content = content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      // Strip any unclosed or stray asterisks
+      content = content.replace(/\*\*/g, '');
+
+      openListIfClosed();
+      html += `
+        <li>
+          ${badgeHtml}
+          <div class="ai-advice-content">${content}</div>
+        </li>
+      `;
+    }
+
+    closeListIfOpen();
+    return html;
+  }
+
   async runAiFinancialAdvisor(customPrompt = '') {
     const bodyEl = document.getElementById('ai-advisor-modal-body') || document.getElementById('ai-advisor-body');
     const btn = document.getElementById('btn-run-ai-advisor-modal') || document.getElementById('btn-run-ai-advisor');
@@ -3212,54 +3319,58 @@ class AppController {
 
     // Heuristic Fallback Engine if AI server response is unavailable or offline
     if (!aiAdviceText) {
-      const tips = [];
+      const sec1 = [];
+      const sec2 = [];
+      const sec3 = [];
+
+      // Section 1: Hiện trạng & Ngân sách
       if (catAlerts.length > 0) {
         catAlerts.forEach(a => {
           if (a.pct >= 100) {
-            tips.push(`🚨 Hạng mục **${a.icon} ${a.name}** đã vượt trần ngân sách **${a.pct}%** (+${this.formatVND(a.over)}). Bạn nên tạm dừng chi tiêu phát sinh ở mục này.`);
+            sec1.push(`🚨 Hạng mục **${a.icon} ${a.name}** đã vượt trần ngân sách **${a.pct}%** (+${this.formatVND(a.over)}). Bạn nên tạm dừng chi tiêu phát sinh ở mục này.`);
           } else {
-            tips.push(`⚠️ Hạng mục **${a.icon} ${a.name}** sắp chạm hạn mức (**${a.pct}%**, đã chi ${this.formatVND(a.spent)} / ${this.formatVND(a.limit)}). Hãy cân nhắc trước các khoản chi tiếp theo.`);
+            sec1.push(`⚠️ Hạng mục **${a.icon} ${a.name}** sắp chạm hạn mức (**${a.pct}%**, đã chi ${this.formatVND(a.spent)} / ${this.formatVND(a.limit)}). Hãy cân nhắc trước các khoản chi tiếp theo.`);
           }
         });
       }
 
       if (topCatPct >= 40) {
-        tips.push(`Hạng mục **${topCatName}** đang chiếm tới **${topCatPct}%** tổng chi tiêu tháng này (${this.formatVND(topCatAmt)}). Bạn nên cân nhắc nấu ăn tại nhà hoặc ưu đãi theo combo để giảm bớt chi phí này.`);
+        sec1.push(`Hạng mục **${topCatName}** đang chiếm tới **${topCatPct}%** tổng chi tiêu tháng này (${this.formatVND(topCatAmt)}). Bạn nên cân nhắc tối ưu các khoản mua sắm này.`);
       } else {
-        tips.push(`Các danh mục chi tiêu phân bổ tương đối đồng đều. Hạng mục cao nhất là **${topCatName}** chiếm **${topCatPct}%** (${this.formatVND(topCatAmt)}).`);
+        sec1.push(`Các danh mục chi tiêu phân bổ tương đối đồng đều. Hạng mục cao nhất là **${topCatName}** chiếm **${topCatPct}%** (${this.formatVND(topCatAmt)}).`);
       }
 
+      // Section 2: Tốc độ tiêu & Dự báo
       if (riskLevel === 'danger') {
-        tips.push(`Bạn đã tiêu **${this.formatVND(totalSpent)}** trên ngân sách **${this.formatVND(budget)}**. Để không âm tiền tháng này, bạn chỉ nên chi tối đa **${this.formatVND(safeDailyLeft)}/ngày** trong **${daysLeft} ngày còn lại**.`);
+        sec2.push(`Bạn đã tiêu **${this.formatVND(totalSpent)}** trên ngân sách **${this.formatVND(budget)}**. Để không âm tiền tháng này, bạn chỉ nên chi tối đa **${this.formatVND(safeDailyLeft)}/ngày** trong **${daysLeft} ngày còn lại**.`);
       } else if (riskLevel === 'warn') {
-        tips.push(`Tốc độ tiêu hiện tại là **${this.formatVND(dailyAvg)}/ngày**. Dự kiến cuối tháng bạn sẽ tiêu khoảng **${this.formatVND(projectedTotal)}**. Hãy giữ hạn mức dưới **${this.formatVND(safeDailyLeft)}/ngày** để có dư tiết kiệm.`);
+        sec2.push(`Tốc độ tiêu hiện tại là **${this.formatVND(dailyAvg)}/ngày**. Dự kiến cuối tháng bạn sẽ tiêu khoảng **${this.formatVND(projectedTotal)}**. Hãy giữ hạn mức dưới **${this.formatVND(safeDailyLeft)}/ngày** để có dư tiết kiệm.`);
       } else {
-        tips.push(`Tình hình chi tiêu rất kỷ luật! Dự kiến cuối tháng bạn tiết kiệm được khoảng **${this.formatVND(Math.max(0, budget - projectedTotal))}**. Hạn mức an toàn còn lại là **${this.formatVND(safeDailyLeft)}/ngày**.`);
+        sec2.push(`Tình hình chi tiêu rất kỷ luật! Dự kiến cuối tháng bạn tiết kiệm được khoảng **${this.formatVND(Math.max(0, budget - projectedTotal))}**. Hạn mức an toàn còn lại là **${this.formatVND(safeDailyLeft)}/ngày**.`);
       }
 
-      tips.push('Áp dụng quy tắc tài chính **50/30/20**: 50% cho nhu cầu thiết yếu (ăn uống, đi lại), 30% cho mong muốn cá nhân (mua sắm, giải trí) và 20% lập tức gửi tiết kiệm hoặc dự phòng khẩn cấp.');
-      aiAdviceText = tips.map((t, idx) => `• ${t}`).join('\n\n');
+      // Section 3: Kế hoạch hành động
+      sec3.push('Duy trì việc chụp hóa đơn hoặc ghi chép chi tiêu tiền mặt mỗi ngày để số liệu luôn chính xác.');
+      sec3.push('Áp dụng quy tắc tài chính **50/30/20**: 50% nhu cầu thiết yếu, 30% mong muốn cá nhân và 20% tiết kiệm dự phòng.');
+      if (riskLevel !== 'good') {
+        sec3.push('Thắt chặt các khoản chi tiêu không cấp thiết cho đến hết tháng để đưa ngân sách về vùng an toàn.');
+      } else {
+        sec3.push(`Trích khoảng **${this.formatVND(Math.round(remainingBudget / 4))}** gửi vào tài khoản tiết kiệm tích lũy sinh lời.`);
+      }
+
+      aiAdviceText = [
+        '### 📊 1. Đánh Giá Hiện Trạng & Ngân Sách',
+        ...sec1.map(s => `• ${s}`),
+        '',
+        '### ⚡ 2. Tốc Độ Tiêu & Dự Báo',
+        ...sec2.map(s => `• ${s}`),
+        '',
+        '### 💡 3. Lời Khuyên Hành Động',
+        ...sec3.map((s, idx) => `${idx + 1}. ${s}`)
+      ].join('\n');
     }
 
-    // Format advice into bullets
-    const cleanLines = aiAdviceText
-      .split('\n')
-      .map(l => l.trim())
-      .filter(l => l.length > 0 && !/^[\*#-]+$/.test(l));
-
-    let adviceListHtml = '';
-    cleanLines.forEach((line, idx) => {
-      let content = line.replace(/^[•\-\*0-9.]+\s*/, '');
-      content = content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-      if (content) {
-        adviceListHtml += `
-          <li>
-            <span class="ai-advice-bullet">${idx + 1}</span>
-            <div>${content}</div>
-          </li>
-        `;
-      }
-    });
+    const formattedAdviceHtml = AppController.formatAiAdviceHtml(aiAdviceText);
 
     bodyEl.innerHTML = `
       <div class="ai-result-grid">
@@ -3290,11 +3401,11 @@ class AppController {
 
       <div class="ai-advice-box">
         <div class="ai-advice-header">
-          <span>💡 Lời Khuyên Tài Chính Cá Nhân ${isCloudAi ? '(Llama-3.2 AI)' : '(SmartSpend Intelligence)'}:</span>
+          <span>💡 Phân Tích & Lời Khuyên Tài Chính ${isCloudAi ? '(Llama-3.2 AI)' : '(SmartSpend Intelligence)'}:</span>
         </div>
-        <ul class="ai-advice-list">
-          ${adviceListHtml || '<li><span class="ai-advice-bullet">✓</span><div>Dữ liệu chi tiêu ổn định. Hãy tiếp tục duy trì thói quen ghi chép hóa đơn đều đặn.</div></li>'}
-        </ul>
+        <div class="ai-advice-body-content">
+          ${formattedAdviceHtml}
+        </div>
       </div>
     `;
 

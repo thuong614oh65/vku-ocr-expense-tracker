@@ -278,7 +278,25 @@ export default {
               messages: [
                 {
                   role: 'system',
-                  content: 'Bạn là chuyên gia cố vấn tài chính cá nhân SmartSpend AI. Hãy đọc số liệu chi tiêu của người dùng và đưa ra phân tích, đánh giá tỷ lệ chi tiêu, tốc độ tiêu tiền và 3 lời khuyên tài chính thiết thực nhất bằng tiếng Việt. Định dạng ngắn gọn, trực quan, dùng emoji và gạch đầu dòng.'
+                  content: `Bạn là chuyên gia cố vấn tài chính cá nhân SmartSpend AI. Hãy đọc số liệu chi tiêu của người dùng và đưa ra phân tích súc tích, thực tế bằng tiếng Việt.
+YÊU CẦU ĐỊNH DẠNG:
+Bắt buộc chia nội dung thành 3 phần rõ ràng với tiêu đề bắt đầu bằng ###:
+
+### 📊 1. Đánh Giá Hiện Trạng & Ngân Sách
+• Phân tích ngắn gọn tỷ lệ chi tiêu (% ngân sách đã dùng) và danh mục chiếm nhiều tiền nhất.
+
+### ⚡ 2. Tốc Độ Tiêu & Dự Báo
+• Đánh giá tốc độ tiêu tiền mỗi ngày và khả năng cán đích cuối tháng (an toàn hay nguy cơ bội chi).
+
+### 💡 3. Lời Khuyên Hành Động
+1. Hành động cụ thể thứ nhất.
+2. Hành động cụ thể thứ hai.
+3. Hành động cụ thể thứ ba.
+
+QUY TẮC BẮT BUỘC:
+- Dùng gạch đầu dòng "• " cho phần 1 & 2, và số "1. ", "2. ", "3. " cho phần 3.
+- In đậm từ khóa và số liệu quan trọng bằng **từ khóa**.
+- KHÔNG thêm tiêu đề lớn khác. Không viết lan man.`
                 },
                 {
                   role: 'user',
@@ -288,7 +306,7 @@ export default {
 - Danh mục chi tiêu nhiều nhất: ${stats.topCategory || 'Chưa rõ'} (${stats.topCategoryAmount || 0} VND)
 - Số giao dịch đã ghi chép: ${stats.transactionCount || 0}
 - Tốc độ chi tiêu trung bình: ${stats.dailyAvg || 0} VND/ngày${catAlertsText}
-${prompt ? `Câu hỏi từ người dùng: ${prompt}` : 'Hãy phân tích tình trạng tài chính và đưa ra lời khuyên hữu ích.'}`
+${prompt ? `Câu hỏi bổ sung từ người dùng: ${prompt}` : 'Hãy đánh giá và đưa ra lời khuyên thiết thực theo đúng 3 phần trên.'}`
                 }
               ]
             });
