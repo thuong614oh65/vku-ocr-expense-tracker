@@ -857,6 +857,15 @@ class AppController {
     this.prewarmOcrWorker();
   }
 
+  loadCategories() {
+    try {
+      const customCats = StorageManager.getCustomCategories(this.currentUser?.email);
+      refreshCategories(customCats);
+    } catch (e) {
+      console.warn('loadCategories notice:', e);
+    }
+  }
+
   checkUrlForOAuthCallback() {
     try {
       const params = new URLSearchParams(window.location.search);
