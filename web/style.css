@@ -5006,3 +5006,108 @@ body.dark-mode .cat-rep-txn-item {
 body.dark-mode .cat-rep-txn-item:hover {
   background: rgba(2, 132, 199, 0.15);
 }
+
+/* Reports Segmented Control Bar */
+.reports-segmented-bar {
+  display: flex;
+  gap: 8px;
+  background: var(--card-bg);
+  padding: 6px;
+  border-radius: 14px;
+  border: 1px solid var(--border-color);
+  margin-bottom: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.rep-subtab-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.rep-subtab-btn:hover {
+  color: var(--text-color);
+  background: rgba(2, 132, 199, 0.06);
+}
+
+.rep-subtab-btn.active {
+  background: var(--primary);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.28);
+}
+
+.rep-subtab-badge {
+  background: rgba(0, 0, 0, 0.08);
+  color: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 1px 7px;
+  border-radius: 10px;
+}
+
+.rep-subtab-btn.active .rep-subtab-badge {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+/* Category Hero Card in Reports */
+.rep-cat-hero-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.rep-cat-hero-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.rep-cat-hero-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  background: rgba(2, 132, 199, 0.1);
+  flex-shrink: 0;
+}
+
+.rep-cat-hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Dark mode for Reports Segmented Bar & Hero */
+body.dark-mode .reports-segmented-bar {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+body.dark-mode .rep-subtab-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #f1f5f9;
+}
+
+body.dark-mode .rep-subtab-badge {
+  background: rgba(255, 255, 255, 0.12);
+}
+
