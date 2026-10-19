@@ -16,13 +16,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=34.0">
+  <link rel="stylesheet" href="style.css?v=35.0">
   <!-- Google Identity Services (OAuth 2.0) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <!-- On-Device Tesseract.js WebAssembly OCR (Local Zero-Latency Engine) -->
   <script src="/tesseract/tesseract.min.js" defer></script>
   <script>
-    const APP_VERSION = '34.0';
+    const APP_VERSION = '35.0';
     if (localStorage.getItem('vku_app_cache_v') !== APP_VERSION) {
       if ('caches' in window) {
         caches.keys().then(function(names) {
@@ -254,6 +254,22 @@
           <div class="wallet-footer-row">
             <span id="kpi-total-count" class="wallet-meta-sub">🧾 0 giao dịch đã lưu</span>
             <span id="kpi-health-status" class="wallet-status-badge">🟢 Ngân sách an toàn</span>
+          </div>
+        </section>
+
+        <!-- Category Budgets Tracker Section (Category Budgeting) -->
+        <section class="category-budget-section" id="category-budget-section">
+          <div class="cat-budget-header">
+            <div>
+              <h3>🎯 Hạn Mức Từng Danh Mục</h3>
+              <p class="cat-budget-sub">Cảnh báo chi tiêu và giới hạn theo từng danh mục</p>
+            </div>
+            <button type="button" id="btn-config-cat-budget" class="btn-cat-config-pill" title="Cài đặt hạn mức danh mục">
+              ⚙️ Cài Đặt
+            </button>
+          </div>
+          <div id="cat-budget-list" class="cat-budget-list">
+            <!-- Dynamically populated by renderCategoryBudgets() -->
           </div>
         </section>
 
@@ -1055,39 +1071,127 @@ flutter build apk --release</code></pre>
           <button id="btn-close-budget" class="icon-btn-close" aria-label="Đóng cửa sổ">✕</button>
         </div>
 
-        <div class="modal-body-scroll" style="padding: 16px 20px;">
-          <!-- Custom Budget Explanation Banner -->
-          <div class="budget-info-banner">
-            <span class="info-icon">💡</span>
-            <div>
-              <strong>Hạn mức chi tiêu là của riêng bạn (Tùy chỉnh tự do)</strong>
-              <p>Mỗi cá nhân / sinh viên có nhu cầu tài chính khác nhau. Bạn có thể tự do đặt hạn mức ngân sách tháng theo ý muốn. Hệ thống sẽ tự động <strong>đồng bộ hạn mức này lên tất cả thiết bị (điện thoại & máy tính)</strong> qua tài khoản của bạn.</p>
+        <div class="modal-body-scroll" style="padding: 14px 18px;">
+          <!-- Budget Modal Tabs -->
+          <div class="budget-modal-tabs">
+            <button type="button" id="tab-budget-total" class="budget-tab-btn active">🎯 Ngân Sách Tổng</button>
+            <button type="button" id="tab-budget-categories" class="budget-tab-btn">📊 Hạn Mức Từng Mục</button>
+          </div>
+
+          <!-- PANE 1: Total Monthly Budget -->
+          <div id="budget-pane-total">
+            <div class="budget-info-banner">
+              <span class="info-icon">💡</span>
+              <div>
+                <strong>Hạn mức chi tiêu tổng tháng</strong>
+                <p>Đặt tổng số tiền dự kiến tiêu trong tháng này. Tự động đồng bộ trên điện thoại & máy tính.</p>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>SỐ TIỀN NGÂN SÁCH THÁNG (VNĐ) *</label>
+              <div class="currency-input-wrap">
+                <input type="number" id="input-budget-amount" class="text-input font-bold text-blue" placeholder="VD: 3500000" min="200000" step="100000">
+                <span class="currency-symbol">₫</span>
+              </div>
+              <div id="budget-daily-preview" class="budget-daily-preview">
+                Mức chi trung bình dự kiến: <strong id="budget-daily-amount">116.000 ₫ / ngày</strong> (tháng 30 ngày)
+              </div>
+              <small id="err-budget-amount" class="field-error hidden">Vui lòng nhập số tiền ngân sách hợp lệ (> 0 VNĐ).</small>
+            </div>
+
+            <div style="margin-top: 14px;">
+              <label style="font-size: 11px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 8px;">
+                GỢI Ý HẠN MỨC PHỔ BIẾN:
+              </label>
+              <div class="sample-chips-row" style="flex-wrap: wrap; gap: 8px;">
+                <button type="button" class="sample-chip budget-preset-btn" data-amount="1500000">1.500.000 ₫ (Tiết kiệm)</button>
+                <button type="button" class="sample-chip budget-preset-btn" data-amount="2500000">2.500.000 ₫ (Cơ bản)</button>
+                <button type="button" class="sample-chip budget-preset-btn" data-amount="3500000">3.500.000 ₫ (Tiêu chuẩn)</button>
+                <button type="button" class="sample-chip budget-preset-btn" data-amount="5000000">5.000.000 ₫ (Trung bình)</button>
+                <button type="button" class="sample-chip budget-preset-btn" data-amount="8000000">8.000.000 ₫ (Thoải mái)</button>
+                <button type="button" class="sample-chip budget-preset-btn" data-amount="12000000">12.000.000 ₫ (Đi làm)</button>
+              </div>
             </div>
           </div>
 
-          <div class="form-group">
-            <label>SỐ TIỀN NGÂN SÁCH THÁNG (VNĐ) *</label>
-            <div class="currency-input-wrap">
-              <input type="number" id="input-budget-amount" class="text-input font-bold text-blue" placeholder="VD: 3500000" min="200000" step="100000">
-              <span class="currency-symbol">₫</span>
-            </div>
-            <div id="budget-daily-preview" class="budget-daily-preview">
-              Mức chi trung bình dự kiến: <strong id="budget-daily-amount">116.000 ₫ / ngày</strong> (tháng 30 ngày)
-            </div>
-            <small id="err-budget-amount" class="field-error hidden">Vui lòng nhập số tiền ngân sách hợp lệ (> 0 VNĐ).</small>
-          </div>
+          <!-- PANE 2: Category Budgets -->
+          <div id="budget-pane-categories" class="hidden">
+            <button type="button" id="btn-auto-split-cat-budgets" class="btn-auto-split" title="Tự động tính hạn mức theo tỷ lệ">
+              ⚡ Tự động chia theo ngân sách tổng (45% Ăn uống, 15% Đi lại...)
+            </button>
 
-          <div style="margin-top: 14px;">
-            <label style="font-size: 11px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 8px;">
-              GỢI Ý HẠN MỨC PHỔ BIẾN:
-            </label>
-            <div class="sample-chips-row" style="flex-wrap: wrap; gap: 8px;">
-              <button type="button" class="sample-chip budget-preset-btn" data-amount="1500000">1.500.000 ₫ (Tiết kiệm)</button>
-              <button type="button" class="sample-chip budget-preset-btn" data-amount="2500000">2.500.000 ₫ (Cơ bản)</button>
-              <button type="button" class="sample-chip budget-preset-btn" data-amount="3500000">3.500.000 ₫ (Tiêu chuẩn)</button>
-              <button type="button" class="sample-chip budget-preset-btn" data-amount="5000000">5.000.000 ₫ (Trung bình)</button>
-              <button type="button" class="sample-chip budget-preset-btn" data-amount="8000000">8.000.000 ₫ (Thoải mái)</button>
-              <button type="button" class="sample-chip budget-preset-btn" data-amount="12000000">12.000.000 ₫ (Đi làm)</button>
+            <div class="cat-budget-input-grid">
+              <div class="cat-budget-input-row">
+                <div class="cat-budget-input-label">
+                  <span>🍲</span>
+                  <span>Ăn Uống</span>
+                </div>
+                <div class="currency-input-wrap" style="flex:1;">
+                  <input type="number" id="input-cat-budget-food" class="cat-budget-number-input" placeholder="2000000" min="0" step="50000">
+                  <span class="currency-symbol" style="font-size:12px;right:8px;">₫</span>
+                </div>
+              </div>
+
+              <div class="cat-budget-input-row">
+                <div class="cat-budget-input-label">
+                  <span>🛵</span>
+                  <span>Di Chuyển</span>
+                </div>
+                <div class="currency-input-wrap" style="flex:1;">
+                  <input type="number" id="input-cat-budget-travel" class="cat-budget-number-input" placeholder="500000" min="0" step="50000">
+                  <span class="currency-symbol" style="font-size:12px;right:8px;">₫</span>
+                </div>
+              </div>
+
+              <div class="cat-budget-input-row">
+                <div class="cat-budget-input-label">
+                  <span>📚</span>
+                  <span>Học Tập</span>
+                </div>
+                <div class="currency-input-wrap" style="flex:1;">
+                  <input type="number" id="input-cat-budget-study" class="cat-budget-number-input" placeholder="500000" min="0" step="50000">
+                  <span class="currency-symbol" style="font-size:12px;right:8px;">₫</span>
+                </div>
+              </div>
+
+              <div class="cat-budget-input-row">
+                <div class="cat-budget-input-label">
+                  <span>💻</span>
+                  <span>Thiết Bị</span>
+                </div>
+                <div class="currency-input-wrap" style="flex:1;">
+                  <input type="number" id="input-cat-budget-gear" class="cat-budget-number-input" placeholder="300000" min="0" step="50000">
+                  <span class="currency-symbol" style="font-size:12px;right:8px;">₫</span>
+                </div>
+              </div>
+
+              <div class="cat-budget-input-row">
+                <div class="cat-budget-input-label">
+                  <span>🎮</span>
+                  <span>Giải Trí</span>
+                </div>
+                <div class="currency-input-wrap" style="flex:1;">
+                  <input type="number" id="input-cat-budget-entertainment" class="cat-budget-number-input" placeholder="300000" min="0" step="50000">
+                  <span class="currency-symbol" style="font-size:12px;right:8px;">₫</span>
+                </div>
+              </div>
+
+              <div class="cat-budget-input-row">
+                <div class="cat-budget-input-label">
+                  <span>🧾</span>
+                  <span>Khác</span>
+                </div>
+                <div class="currency-input-wrap" style="flex:1;">
+                  <input type="number" id="input-cat-budget-other" class="cat-budget-number-input" placeholder="200000" min="0" step="50000">
+                  <span class="currency-symbol" style="font-size:12px;right:8px;">₫</span>
+                </div>
+              </div>
+            </div>
+
+            <div style="margin-top:12px;font-size:11.5px;color:var(--text-muted);display:flex;justify-content:space-between;align-items:center;background:var(--bg-color);padding:8px 12px;border-radius:8px;">
+              <span>Tổng hạn mức các mục:</span>
+              <strong id="cat-budgets-sum-preview" style="color:var(--primary);font-size:13px;">0 ₫</strong>
             </div>
           </div>
         </div>
@@ -1109,6 +1213,6 @@ flutter build apk --release</code></pre>
     <span id="sync-toast-msg">Đã đồng bộ với Đám Mây</span>
   </div>
 
-  <script src="app.js?v=34.0"></script>
+  <script src="app.js?v=35.0"></script>
 </body>
 </html>

@@ -415,6 +415,35 @@ class StorageManager {
       localStorage.setItem(timeKey, String(timestamp || Date.now()));
     } catch (_) {}
   }
+
+  static getCategoryBudgets(userEmail) {
+    try {
+      const key = this.getUserKey(userEmail, 'category_budgets');
+      const val = localStorage.getItem(key);
+      if (val) {
+        const parsed = JSON.parse(val);
+        if (parsed && typeof parsed === 'object') return parsed;
+      }
+    } catch (_) {}
+    const total = this.getMonthlyBudget(userEmail);
+    return {
+      food: Math.round(total * 0.45),
+      travel: Math.round(total * 0.15),
+      study: Math.round(total * 0.15),
+      gear: Math.round(total * 0.10),
+      entertainment: Math.round(total * 0.10),
+      other: Math.round(total * 0.05)
+    };
+  }
+
+  static setCategoryBudgets(budgetsObj, userEmail, timestamp = null) {
+    try {
+      const key = this.getUserKey(userEmail, 'category_budgets');
+      localStorage.setItem(key, JSON.stringify(budgetsObj));
+      const timeKey = this.getUserKey(userEmail, 'category_budgets_time');
+      localStorage.setItem(timeKey, String(timestamp || Date.now()));
+    } catch (_) {}
+  }
 }
 
 class CloudSyncService {
@@ -973,6 +1002,11 @@ class AppController {
             hasChanges = true;
           }
 
+          if (cloudData.categoryBudgets && typeof cloudData.categoryBudgets === 'object') {
+            StorageManager.setCategoryBudgets(cloudData.categoryBudgets, this.currentUser.email);
+            hasChanges = true;
+          }
+
           // 2. Merge transactions by id
           const txnMap = new Map();
           localTxns.forEach(t => txnMap.set(t.id, t));
@@ -1003,7 +1037,8 @@ class AppController {
 
       // Push latest state to cloud to keep Cloudflare KV perfectly synchronized
       const curBudget = StorageManager.getMonthlyBudget(this.currentUser.email);
-      const pushRes = await CloudSyncService.pushToCloud(this.currentUser.email, this.transactions, curBudget);
+      const curCatBudgets = StorageManager.getCategoryBudgets(this.currentUser.email);
+      const pushRes = await CloudSyncService.pushToCloud(this.currentUser.email, this.transactions, curBudget, curCatBudgets);
       if (pushRes) {
         if (userTriggered) {
           this.showSyncToast('✓ Đã đồng bộ hoàn toàn giữa Điện thoại & Máy tính!');
@@ -1687,7 +1722,12 @@ class AppController {
     // Edit Monthly Budget via dedicated Budget Setting Modal
     const btnEditBudget = document.getElementById('btn-edit-budget');
     if (btnEditBudget) {
-      btnEditBudget.onclick = () => this.openBudgetModal();
+      btnEditBudget.onclick = () => this.openBudgetModal('total');
+    }
+
+    const btnConfigCatBudget = document.getElementById('btn-config-cat-budget');
+    if (btnConfigCatBudget) {
+      btnConfigCatBudget.onclick = () => this.openBudgetModal('categories');
     }
 
     // Bottom NavigationBar (ShellRoute: /dash, /scanner, /reports)
@@ -2203,13 +2243,89 @@ class AppController {
   /**
    * Opens Dedicated Budget Setting Modal
    */
-  openBudgetModal() {
+  openBudgetModal(initialTab = 'total') {
     const modal = document.getElementById('budget-modal');
     if (!modal) return;
     const cur = StorageManager.getMonthlyBudget(this.currentUser?.email);
+    const catBudgets = StorageManager.getCategoryBudgets(this.currentUser?.email);
     const input = document.getElementById('input-budget-amount');
     const err = document.getElementById('err-budget-amount');
     const dailyPreview = document.getElementById('budget-daily-amount');
+
+    // Tab switching controls
+    const tabTotal = document.getElementById('tab-budget-total');
+    const tabCats = document.getElementById('tab-budget-categories');
+    const paneTotal = document.getElementById('budget-pane-total');
+    const paneCats = document.getElementById('budget-pane-categories');
+
+    const switchTab = (tab) => {
+      if (tab === 'categories') {
+        if (tabTotal) tabTotal.classList.remove('active');
+        if (tabCats) tabCats.classList.add('active');
+        if (paneTotal) paneTotal.classList.add('hidden');
+        if (paneCats) paneCats.classList.remove('hidden');
+      } else {
+        if (tabTotal) tabTotal.classList.add('active');
+        if (tabCats) tabCats.classList.remove('active');
+        if (paneTotal) paneTotal.classList.remove('hidden');
+        if (paneCats) paneCats.classList.add('hidden');
+      }
+    };
+
+    if (tabTotal) tabTotal.onclick = () => switchTab('total');
+    if (tabCats) tabCats.onclick = () => switchTab('categories');
+    switchTab(initialTab);
+
+    // Category input controls
+    const catKeys = ['food', 'travel', 'study', 'gear', 'entertainment', 'other'];
+    const catInputs = {};
+    catKeys.forEach(k => {
+      catInputs[k] = document.getElementById(`input-cat-budget-${k}`);
+      if (catInputs[k]) {
+        catInputs[k].value = catBudgets[k] !== undefined ? catBudgets[k] : 0;
+      }
+    });
+
+    const updateCatSumPreview = () => {
+      let sum = 0;
+      catKeys.forEach(k => {
+        const val = parseInt(catInputs[k]?.value, 10);
+        if (!isNaN(val) && val > 0) sum += val;
+      });
+      const previewEl = document.getElementById('cat-budgets-sum-preview');
+      if (previewEl) {
+        const tot = parseInt(input?.value, 10) || cur;
+        previewEl.innerHTML = `${this.formatVND(sum)} <span style="font-size:11px;color:var(--text-muted);font-weight:normal;">/ Ngân sách: ${this.formatVND(tot)}</span>`;
+      }
+    };
+
+    catKeys.forEach(k => {
+      if (catInputs[k]) {
+        catInputs[k].oninput = updateCatSumPreview;
+      }
+    });
+
+    // Auto split button (45% food, 15% travel, 15% study, 10% gear, 10% entertainment, 5% other)
+    const btnAutoSplit = document.getElementById('btn-auto-split-cat-budgets');
+    if (btnAutoSplit) {
+      btnAutoSplit.onclick = () => {
+        const tot = parseInt(input?.value, 10) || cur;
+        const autoMap = {
+          food: Math.round(tot * 0.45),
+          travel: Math.round(tot * 0.15),
+          study: Math.round(tot * 0.15),
+          gear: Math.round(tot * 0.10),
+          entertainment: Math.round(tot * 0.10),
+          other: Math.round(tot * 0.05)
+        };
+        catKeys.forEach(k => {
+          if (catInputs[k]) catInputs[k].value = autoMap[k];
+        });
+        updateCatSumPreview();
+      };
+    }
+
+    updateCatSumPreview();
 
     const updateDaily = () => {
       const val = parseInt(input.value, 10);
@@ -2221,6 +2337,7 @@ class AppController {
           dailyPreview.textContent = '-- ₫ / ngày';
         }
       }
+      updateCatSumPreview();
     };
 
     if (input) {
@@ -2253,20 +2370,31 @@ class AppController {
         const val = parseInt(input.value, 10);
         if (!isNaN(val) && val > 0) {
           StorageManager.setMonthlyBudget(val, this.currentUser?.email);
+
+          // Read and save category budgets
+          const newCatBudgets = {};
+          catKeys.forEach(k => {
+            const cVal = parseInt(catInputs[k]?.value, 10);
+            newCatBudgets[k] = !isNaN(cVal) && cVal >= 0 ? cVal : 0;
+          });
+          StorageManager.setCategoryBudgets(newCatBudgets, this.currentUser?.email);
+
           closeModal();
           this.render(false);
+
           // Sync immediately to cloud across all devices!
-          CloudSyncService.pushToCloud(this.currentUser?.email, this.transactions, val);
-          this.showSyncToast(`✓ Đã lưu & đồng bộ hạn mức ${this.formatVND(val)} lên Đám Mây!`);
+          CloudSyncService.pushToCloud(this.currentUser?.email, this.transactions, val, newCatBudgets);
+          this.showSyncToast(`✓ Đã lưu & đồng bộ hạn mức các danh mục lên Đám Mây!`);
         } else {
           if (err) err.classList.remove('hidden');
+          switchTab('total');
         }
       };
     }
 
     modal.classList.remove('hidden');
     setTimeout(() => {
-      if (input) {
+      if (initialTab === 'total' && input) {
         input.focus();
         input.select();
       }
@@ -3027,6 +3155,22 @@ class AppController {
       riskDesc = `Tốc độ tiêu tiền ${this.formatVND(dailyAvg)}/ngày có thể chạm trần ngân sách cuối tháng.`;
     }
 
+    // Category budget alerts
+    const catBudgets = StorageManager.getCategoryBudgets(this.currentUser?.email);
+    const catAlerts = [];
+    Object.keys(CATEGORIES).forEach(k => {
+      const l = Number(catBudgets[k]) || 0;
+      const s = Number(catTotals[k]) || 0;
+      if (l > 0) {
+        const p = Math.round((s / l) * 100);
+        if (p >= 100) {
+          catAlerts.push({ key: k, name: CATEGORIES[k].name, icon: CATEGORIES[k].icon, spent: s, limit: l, pct: p, over: s - l });
+        } else if (p >= 80) {
+          catAlerts.push({ key: k, name: CATEGORIES[k].name, icon: CATEGORIES[k].icon, spent: s, limit: l, pct: p, over: 0 });
+        }
+      }
+    });
+
     const payload = {
       stats: {
         budget: budget,
@@ -3038,7 +3182,8 @@ class AppController {
         dailyAvg: dailyAvg,
         projectedTotal: projectedTotal,
         daysLeft: daysLeft,
-        safeDailyLeft: safeDailyLeft
+        safeDailyLeft: safeDailyLeft,
+        categoryAlerts: catAlerts
       },
       prompt: customPrompt || ''
     };
@@ -3068,6 +3213,16 @@ class AppController {
     // Heuristic Fallback Engine if AI server response is unavailable or offline
     if (!aiAdviceText) {
       const tips = [];
+      if (catAlerts.length > 0) {
+        catAlerts.forEach(a => {
+          if (a.pct >= 100) {
+            tips.push(`🚨 Hạng mục **${a.icon} ${a.name}** đã vượt trần ngân sách **${a.pct}%** (+${this.formatVND(a.over)}). Bạn nên tạm dừng chi tiêu phát sinh ở mục này.`);
+          } else {
+            tips.push(`⚠️ Hạng mục **${a.icon} ${a.name}** sắp chạm hạn mức (**${a.pct}%**, đã chi ${this.formatVND(a.spent)} / ${this.formatVND(a.limit)}). Hãy cân nhắc trước các khoản chi tiếp theo.`);
+          }
+        });
+      }
+
       if (topCatPct >= 40) {
         tips.push(`Hạng mục **${topCatName}** đang chiếm tới **${topCatPct}%** tổng chi tiêu tháng này (${this.formatVND(topCatAmt)}). Bạn nên cân nhắc nấu ăn tại nhà hoặc ưu đãi theo combo để giảm bớt chi phí này.`);
       } else {
@@ -3226,6 +3381,9 @@ class AppController {
       }
     }
 
+    // Render Category Budgets tracker section
+    this.renderCategoryBudgets();
+
     // AI Financial Insights Engine
     const insightsEl = document.getElementById('insights-text');
     if (insightsEl) {
@@ -3256,6 +3414,21 @@ class AppController {
         } else {
           advice += `• 🎯 Kiểm soát chi tiêu rất tốt! Bạn còn dư <strong>${this.formatVND(remainingBudget)}</strong> trong hạn mức dự kiến.`;
         }
+
+        // Category budget warnings in insights
+        const overCats = [];
+        const catBudgets = StorageManager.getCategoryBudgets(this.currentUser?.email);
+        Object.keys(CATEGORIES).forEach(k => {
+          const l = Number(catBudgets[k]) || 0;
+          const s = catTotals[k] || 0;
+          if (l > 0 && s > l) {
+            overCats.push(`${CATEGORIES[k].icon} ${CATEGORIES[k].name} (+${this.formatVND(s - l)})`);
+          }
+        });
+        if (overCats.length > 0) {
+          advice += `<br>• 🚨 <strong>Vượt trần danh mục:</strong> ${overCats.join(', ')}.`;
+        }
+
         insightsEl.innerHTML = advice;
       }
     }
@@ -3412,6 +3585,93 @@ class AppController {
       this.renderDonutChart(totalAmount, 1.0);
       this.renderBarChart(1.0);
     }
+  }
+
+  renderCategoryBudgets() {
+    const container = document.getElementById('cat-budget-list');
+    if (!container) return;
+
+    const now = new Date();
+    const curMonthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+    // Calculate monthly spent and count per category
+    const catSpent = {};
+    const catTxnCount = {};
+    Object.keys(CATEGORIES).forEach(k => {
+      catSpent[k] = 0;
+      catTxnCount[k] = 0;
+    });
+
+    this.transactions.forEach(t => {
+      if (t.date && t.date.startsWith(curMonthPrefix)) {
+        const catKey = CATEGORIES[t.category] ? t.category : 'other';
+        catSpent[catKey] = (catSpent[catKey] || 0) + (Number(t.amount) || 0);
+        catTxnCount[catKey] = (catTxnCount[catKey] || 0) + 1;
+      }
+    });
+
+    const catBudgets = StorageManager.getCategoryBudgets(this.currentUser?.email);
+    container.innerHTML = '';
+
+    const catKeys = ['food', 'travel', 'study', 'gear', 'entertainment', 'other'];
+
+    catKeys.forEach(k => {
+      const cat = CATEGORIES[k] || { name: k, icon: '🏷️', color: '#6366f1' };
+      const spent = catSpent[k] || 0;
+      const limit = Number(catBudgets[k]) || 0;
+      const count = catTxnCount[k] || 0;
+
+      let pct = 0;
+      let statusClass = 'safe';
+      let statusText = '🟢 An toàn';
+
+      if (limit > 0) {
+        pct = Math.round((spent / limit) * 100);
+        if (pct >= 100) {
+          statusClass = 'danger';
+          const overAmt = spent - limit;
+          statusText = overAmt > 0 ? `🔴 Vượt +${this.formatVND(overAmt)}` : `🔴 Chạm trần 100%`;
+        } else if (pct >= 80) {
+          statusClass = 'warning';
+          statusText = `🟡 Sắp chạm trần (${pct}%)`;
+        } else {
+          statusClass = 'safe';
+          statusText = `🟢 An toàn (${pct}%)`;
+        }
+      } else {
+        statusClass = 'safe';
+        statusText = '⚪ Chưa đặt hạn mức';
+      }
+
+      const itemEl = document.createElement('div');
+      itemEl.className = `cat-budget-item ${statusClass}`;
+      itemEl.style.cursor = 'pointer';
+      itemEl.title = `Bấm để điều chỉnh hạn mức danh mục ${cat.name}`;
+      itemEl.onclick = () => this.openBudgetModal('categories');
+      itemEl.innerHTML = `
+        <div class="cat-budget-item-top">
+          <div class="cat-budget-item-name">
+            <span class="cat-budget-icon">${cat.icon}</span>
+            <div>
+              <strong>${cat.name}</strong>
+              <small>${count} giao dịch tháng này</small>
+            </div>
+          </div>
+          <div class="cat-budget-item-amounts">
+            <strong>${this.formatVND(spent)}</strong>
+            <div class="cat-budget-target">/ ${limit > 0 ? this.formatVND(limit) : 'Chưa đặt'}</div>
+          </div>
+        </div>
+        <div class="cat-budget-progress-track">
+          <div class="cat-budget-progress-fill ${statusClass}" style="width: ${limit > 0 ? Math.min(100, pct) : 0}%"></div>
+        </div>
+        <div class="cat-budget-item-bottom">
+          <span class="cat-status-badge ${statusClass}">${statusText}</span>
+          <span class="cat-budget-pct-text">${limit > 0 ? `${pct}% hạn mức` : 'Tùy chỉnh'}</span>
+        </div>
+      `;
+      container.appendChild(itemEl);
+    });
   }
 
   animateCustomPainterCharts(totalAmount) {

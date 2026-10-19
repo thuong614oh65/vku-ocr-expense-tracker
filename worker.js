@@ -267,6 +267,13 @@ export default {
           const prompt = body.prompt || '';
 
           if (env.AI) {
+            let catAlertsText = '';
+            if (Array.isArray(stats.categoryAlerts) && stats.categoryAlerts.length > 0) {
+              catAlertsText = '\n- Cảnh báo hạn mức danh mục:\n' + stats.categoryAlerts.map(a => 
+                `  + ${a.name}: Đã chi ${a.spent} VND / ${a.limit} VND (${a.pct}%), ${a.over > 0 ? `vượt trần ${a.over} VND` : 'sắp chạm trần'}`
+              ).join('\n');
+            }
+
             const aiResponse = await env.AI.run('@cf/meta/llama-3.2-3b-instruct', {
               messages: [
                 {
@@ -280,7 +287,7 @@ export default {
 - Đã chi tiêu: ${stats.totalSpent || 0} VND (${stats.spentPercent || 0}% ngân sách)
 - Danh mục chi tiêu nhiều nhất: ${stats.topCategory || 'Chưa rõ'} (${stats.topCategoryAmount || 0} VND)
 - Số giao dịch đã ghi chép: ${stats.transactionCount || 0}
-- Tốc độ chi tiêu trung bình: ${stats.dailyAvg || 0} VND/ngày
+- Tốc độ chi tiêu trung bình: ${stats.dailyAvg || 0} VND/ngày${catAlertsText}
 ${prompt ? `Câu hỏi từ người dùng: ${prompt}` : 'Hãy phân tích tình trạng tài chính và đưa ra lời khuyên hữu ích.'}`
                 }
               ]
