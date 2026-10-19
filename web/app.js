@@ -150,51 +150,32 @@ const SEED_TRANSACTIONS = [
 ];
 
 // ========================================================================
-// VKU IDENTITY & PROFILE DERIVATION (Identical to MP2 Room Booking)
+// USER IDENTITY & PROFILE MANAGEMENT
 // ========================================================================
 const GOOGLE_OAUTH_CLIENT_ID = '1003178768971-qn13952kqgsbbkqcdkebet5jblf748je.apps.googleusercontent.com';
 
 function deriveVkuProfileFromEmail(email) {
   const clean = (email || '').trim().toLowerCase();
-  const isVkuDomain = clean.endsWith('@vku.udn.vn');
-  const localPart = clean.split('@')[0] || 'sinhvien';
+  const localPart = clean.split('@')[0] || 'nguoidung';
 
-  if (localPart === 'thuongnt.23itb' || clean.includes('thuongnt')) {
+  if (localPart === 'thuongnt.23itb' || clean.includes('thuong') || clean.includes('thanhnga')) {
     return {
       suggestedName: 'Nguyễn Thị Thương',
-      suggestedStudentId: '23IT.B219',
-      suggestedMajor: 'Kỹ Thuật Phần Mềm (Lớp 23SE4)',
-      className: '23ITB',
+      suggestedStudentId: 'ID-THUONG',
+      suggestedMajor: 'Tài chính cá nhân',
+      className: 'Cá nhân',
       avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
-      isVkuDomain: true,
-    };
-  }
-
-  const vkuMatch = localPart.match(/^([a-z]+)\.(\d{2})([a-z]+)$/i);
-  if (vkuMatch) {
-    const nameSlug = vkuMatch[1];
-    const year = vkuMatch[2];
-    const dept = vkuMatch[3].toUpperCase();
-    const normalizedDept = dept.startsWith('IT') ? 'IT.B' : `${dept}.`;
-    const num = ((localPart.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) * 17) % 899) + 100;
-    const studentId = `${year}${normalizedDept}${num}`;
-    return {
-      suggestedName: nameSlug.charAt(0).toUpperCase() + nameSlug.slice(1),
-      suggestedStudentId: studentId,
-      suggestedMajor: `Công Nghệ Thông Tin & Truyền Thông (Khóa ${year}${dept})`,
-      className: `${year}${dept}`,
-      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=400&q=80',
-      isVkuDomain,
+      isVkuDomain: false,
     };
   }
 
   return {
     suggestedName: localPart.replace(/[._-]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-    suggestedStudentId: '23IT.B219',
-    suggestedMajor: 'Kỹ Thuật Phần Mềm (Lớp 23SE4)',
-    className: '23ITB',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
-    isVkuDomain,
+    suggestedStudentId: 'ID-' + Math.floor(1000 + Math.random() * 9000),
+    suggestedMajor: 'Tài chính cá nhân',
+    className: 'Cá nhân',
+    avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=400&q=80',
+    isVkuDomain: false,
   };
 }
 
@@ -221,7 +202,7 @@ function evaluatePasswordStrength(password) {
 }
 
 /**
- * AuthService (Week 8 Slide 4 "UserProfile, Logged-in user auth" & Slide 24 Route Guard "/login")
+ * AuthService (UserProfile, Logged-in user auth & Route Guard "/login")
  */
 class AuthService {
   static USERS_KEY = 'vku_ocr_users_db_v1';
@@ -238,24 +219,24 @@ class AuthService {
 
   static getUsers() {
     const defaultUsers = {
-      'thuongnt.23itb@vku.udn.vn': {
-        id: 'USR-VKU-23ITB-THUONG',
+      'thanhnga01012011@gmail.com': {
+        id: 'USR-THUONG-01',
         fullName: 'Nguyễn Thị Thương',
-        studentId: '23IT.B219',
-        className: 'Kỹ Thuật Phần Mềm (Lớp 23SE4)',
-        email: 'thuongnt.23itb@vku.udn.vn',
-        role: 'Sinh viên VKU (Google Verified)',
+        studentId: 'VIP-01',
+        className: 'Cá nhân',
+        email: 'thanhnga01012011@gmail.com',
+        role: 'Thành viên SmartSpend',
         avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
         passwordHash: this.hashPassword('123456')
       },
-      'namtv.23itb@vku.udn.vn': {
-        id: 'USR-VKU-23ITB-NAM',
-        fullName: 'Trần Văn Nam',
-        studentId: '23IT.B105',
-        className: 'Công Nghệ Thông Tin (Lớp 23ITB)',
-        email: 'namtv.23itb@vku.udn.vn',
-        role: 'Sinh viên VKU',
-        avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=400&q=80',
+      'thuongnt.23itb@vku.udn.vn': {
+        id: 'USR-THUONG-02',
+        fullName: 'Nguyễn Thị Thương',
+        studentId: 'VIP-02',
+        className: 'Cá nhân',
+        email: 'thuongnt.23itb@vku.udn.vn',
+        role: 'Thành viên SmartSpend',
+        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
         passwordHash: this.hashPassword('123456')
       },
       'demo@example.com': {
@@ -304,7 +285,7 @@ class AuthService {
   static login(identifier, password) {
     const q = (identifier || '').trim().toLowerCase();
     if (!q) {
-      return { success: false, message: 'Vui lòng nhập Mã sinh viên (MSSV) hoặc Email VKU.' };
+      return { success: false, message: 'Vui lòng nhập Email hoặc Tên đăng nhập.' };
     }
     if (!password) {
       return { success: false, message: 'Vui lòng nhập mật khẩu của bạn.' };
@@ -315,18 +296,19 @@ class AuthService {
     if (!user) {
       user = Object.values(users).find(u =>
         (u.email && u.email.toLowerCase() === q) ||
-        (u.studentId && u.studentId.toLowerCase().replace(/[^a-z0-9]/g, '') === q.replace(/[^a-z0-9]/g, ''))
+        (u.studentId && u.studentId.toLowerCase() === q) ||
+        (u.fullName && u.fullName.toLowerCase() === q)
       );
     }
 
     if (!user) {
       return {
         success: false,
-        message: 'Không tìm thấy tài khoản phù hợp. Vui lòng kiểm tra lại MSSV/Email hoặc bấm "Đăng Ký Mới".'
+        message: 'Không tìm thấy tài khoản. Vui lòng kiểm tra lại Email hoặc bấm "Đăng Ký Mới".'
       };
     }
 
-    // Allow 123456 as seed default password for student accounts
+    // Allow 123456 as seed default password
     const isSeedPass = (password === '123456' || password === 'Demo@2026');
     if (user.passwordHash !== this.hashPassword(password) && !isSeedPass) {
       return { success: false, message: 'Mật khẩu không chính xác. Vui lòng kiểm tra lại hoặc bấm "Quên mật khẩu?".' };
@@ -348,11 +330,11 @@ class AuthService {
 
     const newUser = {
       id: 'USR-' + Date.now(),
-      fullName: (fullName || '').trim(),
-      studentId: (studentId || '').trim().toUpperCase(),
-      className: (className || '').trim() || 'Kỹ Thuật Phần Mềm (Lớp 23SE4)',
+      fullName: (fullName || '').trim() || cleanEmail.split('@')[0],
+      studentId: (studentId || '').trim() || 'MEM-' + Math.floor(1000 + Math.random() * 9000),
+      className: (className || '').trim() || 'Cá nhân',
       email: cleanEmail,
-      role: cleanEmail.endsWith('@vku.udn.vn') ? 'Sinh viên VKU' : 'Thành viên SmartSpend',
+      role: 'Thành viên SmartSpend',
       avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
       passwordHash: this.hashPassword(password)
     };
@@ -541,7 +523,7 @@ class CloudSyncService {
 class RegexReceiptParser {
   static KNOWN_MERCHANTS = [
     'WinMart+', 'WinMart', 'Circle K', 'Co.opmart', 'Coopmart', 'Highlands Coffee', 'Highlands',
-    'Phúc Long Coffee & Tea', 'Phúc Long', 'Căn Tin VKU', 'Nhà Sách Fahasa', 'Fahasa',
+    'Phúc Long Coffee & Tea', 'Phúc Long', 'Căn Tin / Quán Ăn', 'Nhà Sách Fahasa', 'Fahasa',
     'Thế Giới Di Động', 'Điện Máy Xanh', 'Petrolimex', 'PVOIL', 'Lotteria', 'KFC Vietnam', 'KFC',
     'GrabFood', 'Grab', 'FPT Shop', 'CellphoneS', 'Bách Hóa Xanh', 'GS25', '7-Eleven', 'FamilyMart',
     'Ministop', 'The Coffee House', 'Katinat', 'Mixue', 'Trung Nguyên', 'Starbucks', 'Jollibee',
@@ -742,7 +724,7 @@ class RegexReceiptParser {
     const lower = cleanText.toLowerCase();
     if (lower.includes('cà phê') || lower.includes('coffee') || lower.includes('trà') || lower.includes('tea') || lower.includes('bánh') || lower.includes('mì') || lower.includes('cơm') || lower.includes('bún') || lower.includes('phở') || lower.includes('winmart') || lower.includes('highlands') || lower.includes('sữa') || lower.includes('ăn') || lower.includes('circle k') || lower.includes('ministop') || lower.includes('bách hóa') || lower.includes('food')) {
       category = 'food';
-    } else if (lower.includes('sách') || lower.includes('vở') || lower.includes('bút') || lower.includes('giáo trình') || lower.includes('fahasa') || lower.includes('vku') || lower.includes('học') || lower.includes('photo') || lower.includes('in ấn')) {
+    } else if (lower.includes('sách') || lower.includes('vở') || lower.includes('bút') || lower.includes('giáo trình') || lower.includes('fahasa') || lower.includes('học') || lower.includes('photo') || lower.includes('in ấn')) {
       category = 'study';
     } else if (lower.includes('xăng') || lower.includes('petrolimex') || lower.includes('pvoil') || lower.includes('xe buýt') || lower.includes('grab') || lower.includes('be ') || lower.includes('gửi xe')) {
       category = 'travel';
@@ -826,7 +808,7 @@ class AppController {
           className: derived.className || '23ITB',
           email: email,
           avatar: profile.picture || derived.avatar,
-          role: 'Sinh viên VKU (Google Verified)',
+          role: 'Thành viên SmartSpend',
           authProvider: 'GOOGLE_OAUTH2'
         };
 
@@ -1370,13 +1352,17 @@ class AppController {
         hideError();
         const name = (regNameInput?.value || '').trim();
         const studentId = (regIdInput?.value || '').trim();
-        const major = (regMajorInput?.value || '').trim() || 'Kỹ Thuật Phần Mềm (Lớp 23SE4)';
+        const major = (regMajorInput?.value || '').trim() || 'Cá nhân';
         const email = (regEmailInput?.value || '').trim();
         const password = regPwdInput?.value || '';
         const confirmPassword = regConfirmInput?.value || '';
 
-        if (!name || !studentId) {
-          showError('Vui lòng nhập đầy đủ Họ và tên và Mã số sinh viên (MSSV).');
+        if (!name) {
+          showError('Vui lòng nhập Họ và tên.');
+          return;
+        }
+        if (!email || !email.includes('@')) {
+          showError('Vui lòng nhập địa chỉ Email hợp lệ.');
           return;
         }
         if (!password || password.length < 6) {
@@ -1388,12 +1374,11 @@ class AppController {
           return;
         }
 
-        const fallbackEmail = email || `${studentId.toLowerCase().replace(/[^a-z0-9]/g, '')}@vku.udn.vn`;
         const res = AuthService.register({
           fullName: name,
-          studentId,
+          studentId: studentId || 'MEM-' + Math.floor(1000 + Math.random() * 9000),
           className: major,
-          email: fallbackEmail,
+          email: email,
           password
         });
 
@@ -1409,18 +1394,18 @@ class AppController {
       };
     }
 
-    // Quick VKU Student 1-Tap Login
+    // Quick 1-Tap Login
     const btnQuickThuong = document.getElementById('btn-quick-fill-thuong');
     if (btnQuickThuong) {
       btnQuickThuong.onclick = () => {
         const u = {
-          id: 'USR-VKU-23ITB-THUONG',
+          id: 'USR-THUONG-01',
           fullName: 'Nguyễn Thị Thương',
-          studentId: '23IT.B219',
-          className: 'Kỹ Thuật Phần Mềm (Lớp 23SE4)',
-          email: 'thuongnt.23itb@vku.udn.vn',
+          studentId: 'VIP-01',
+          className: 'Cá nhân',
+          email: 'thanhnga01012011@gmail.com',
           avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
-          role: 'Sinh viên VKU (Google Verified)',
+          role: 'Thành viên SmartSpend',
           passwordHash: AuthService.hashPassword('123456')
         };
         const users = AuthService.getUsers();
@@ -1516,7 +1501,7 @@ class AppController {
         openGoogleBtn.disabled = false;
         openGoogleBtn.style.opacity = '1';
         if (googleBtnText) {
-          googleBtnText.textContent = 'Tiếp tục với Google (@vku.udn.vn / Gmail)';
+          googleBtnText.textContent = 'Tiếp tục với Google';
         }
       }
     };
@@ -1530,10 +1515,10 @@ class AppController {
         id: 'USR-G-' + (profile.sub || Date.now()),
         fullName: profile.name || derived.suggestedName,
         studentId: derived.suggestedStudentId,
-        className: derived.className || '23ITB',
+        className: 'Cá nhân',
         email: email,
         avatar: profile.picture || derived.avatar,
-        role: 'Sinh viên VKU (Google Verified)',
+        role: 'Thành viên SmartSpend',
         authProvider: 'GOOGLE_OAUTH2'
       };
 
@@ -2072,7 +2057,7 @@ class AppController {
     const nameEl = document.getElementById('acc-modal-active-name');
     const metaEl = document.getElementById('acc-modal-active-meta');
     if (nameEl) nameEl.textContent = this.currentUser.fullName;
-    if (metaEl) metaEl.textContent = `${this.currentUser.studentId || ''} • Lớp ${this.currentUser.className || ''} • ${this.currentUser.email}`;
+    if (metaEl) metaEl.textContent = `${this.currentUser.role || 'Thành viên'} • ${this.currentUser.email}`;
 
     const list = document.getElementById('saved-accounts-list');
     if (list) {
@@ -2091,7 +2076,7 @@ class AppController {
           item.innerHTML = `
             <div class="acc-meta">
               <strong>${u.fullName}</strong>
-              <span>${u.studentId || ''} • ${u.email}</span>
+              <span>${u.role || 'Thành viên'} • ${u.email}</span>
             </div>
             <button class="btn-switch-to-acc" type="button">Chuyển sang ➔</button>
           `;
@@ -2740,7 +2725,7 @@ class AppController {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `VKU_OCR_Expenses_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `SmartSpend_Expenses_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   }
