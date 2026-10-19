@@ -42,11 +42,10 @@ export default {
         const payload = await verifyRes.json();
         const email = (payload.email || '').trim().toLowerCase();
 
-        // Extract user metadata (supports both VKU and personal Google accounts)
+        // Extract user metadata for SmartSpend
         const name = payload.name || email.split('@')[0];
-        const isVku = email.endsWith('@vku.udn.vn');
-        const studentId = isVku ? email.split('@')[0].toUpperCase() : 'MEM-' + Date.now().toString().slice(-4);
-        const role = isVku ? 'Thành viên VKU (Google Verified)' : 'Thành viên SmartSpend (Google Verified)';
+        const studentId = email.split('@')[0].toUpperCase();
+        const role = 'Thành viên SmartSpend (Google Verified)';
 
         return new Response(JSON.stringify({
           success: true,
@@ -55,7 +54,7 @@ export default {
             id: 'USR-G-' + (payload.sub || Date.now()),
             fullName: name,
             studentId: studentId,
-            className: isVku ? 'VKU-Member' : 'Cá nhân',
+            className: 'Cá nhân',
             email: email,
             avatar: payload.picture || '',
             role: role,

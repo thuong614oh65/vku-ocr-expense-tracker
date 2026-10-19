@@ -16,13 +16,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=28.0">
+  <link rel="stylesheet" href="style.css?v=29.0">
   <!-- Google Identity Services (OAuth 2.0) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <!-- On-Device Tesseract.js WebAssembly OCR (Local Zero-Latency Engine) -->
   <script src="/tesseract/tesseract.min.js" defer></script>
   <script>
-    const APP_VERSION = '28.0';
+    const APP_VERSION = '29.0';
     if (localStorage.getItem('vku_app_cache_v') !== APP_VERSION) {
       if ('caches' in window) {
         caches.keys().then(function(names) {
@@ -38,7 +38,7 @@
     }
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
-        navigator.serviceWorker.register('/sw.js?v=26.0').then(function (reg) {
+        navigator.serviceWorker.register('/sw.js?v=29.0').then(function (reg) {
           reg.update();
         }).catch(function () {});
       });
@@ -978,7 +978,7 @@ flutter build apk --release</code></pre>
             <div class="sample-chips-row" style="flex-wrap: wrap; gap: 8px;">
               <button type="button" class="sample-chip budget-preset-btn" data-amount="1500000">1.500.000 ₫ (Tiết kiệm)</button>
               <button type="button" class="sample-chip budget-preset-btn" data-amount="2500000">2.500.000 ₫ (Cơ bản)</button>
-              <button type="button" class="sample-chip budget-preset-btn" data-amount="3500000">3.500.000 ₫ (Sinh viên VKU)</button>
+              <button type="button" class="sample-chip budget-preset-btn" data-amount="3500000">3.500.000 ₫ (Tiêu chuẩn)</button>
               <button type="button" class="sample-chip budget-preset-btn" data-amount="5000000">5.000.000 ₫ (Trung bình)</button>
               <button type="button" class="sample-chip budget-preset-btn" data-amount="8000000">8.000.000 ₫ (Thoải mái)</button>
               <button type="button" class="sample-chip budget-preset-btn" data-amount="12000000">12.000.000 ₫ (Đi làm)</button>
@@ -1003,6 +1003,6 @@ flutter build apk --release</code></pre>
     <span id="sync-toast-msg">Đã đồng bộ với Đám Mây</span>
   </div>
 
-  <script src="app.js?v=28.0"></script>
+  <script src="app.js?v=29.0"></script>
 </body>
 </html>
