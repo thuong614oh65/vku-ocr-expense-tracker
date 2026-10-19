@@ -16,13 +16,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=35.1">
+  <link rel="stylesheet" href="style.css?v=35.2">
   <!-- Google Identity Services (OAuth 2.0) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <!-- On-Device Tesseract.js WebAssembly OCR (Local Zero-Latency Engine) -->
   <script src="/tesseract/tesseract.min.js" defer></script>
   <script>
-    const APP_VERSION = '35.1';
+    const APP_VERSION = '35.2';
     if (localStorage.getItem('vku_app_cache_v') !== APP_VERSION) {
       if ('caches' in window) {
         caches.keys().then(function(names) {
@@ -347,14 +347,15 @@
             <h2>Phân Tích & Cơ Cấu Chi Tiêu</h2>
             <p>Báo cáo tổng hợp số liệu, biểu đồ trực quan và đánh giá tài chính thông minh</p>
           </div>
-          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-            <button type="button" id="btn-open-advisor-report" class="btn-secondary-action" title="Mở Cố Vấn Tài Chính AI" style="background:linear-gradient(135deg, #6366f1, #8b5cf6); color:#fff; border:none; border-radius:10px; padding:9px 14px; font-weight:700; font-size:12.5px; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
+          <div class="reports-actions-group">
+            <button type="button" id="btn-open-advisor-report" class="btn-report-action ai" title="Mở Cố Vấn Tài Chính AI">
               <span>🤖 Cố Vấn AI</span>
             </button>
-            <button type="button" id="btn-print-report" class="btn-secondary-action" title="In hoặc Lưu Báo Cáo PDF" style="background:rgba(255,255,255,0.12); color:#fff; border:1px solid rgba(255,255,255,0.22); border-radius:10px; padding:9px 14px; font-weight:700; font-size:12.5px; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
-              <span>🖨️ Xuất PDF / In</span>
+            <button type="button" id="btn-print-report" class="btn-report-action" title="In hoặc Lưu Báo Cáo PDF">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+              <span>Xuất PDF</span>
             </button>
-            <button id="btn-reports-export-csv" class="btn-primary-action" title="Tải báo cáo CSV / Excel" aria-label="Tải báo cáo CSV">
+            <button type="button" id="btn-reports-export-csv" class="btn-report-action primary" title="Tải báo cáo CSV / Excel" aria-label="Tải báo cáo CSV">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               <span>Xuất CSV</span>
             </button>
@@ -1213,6 +1214,6 @@ flutter build apk --release</code></pre>
     <span id="sync-toast-msg">Đã đồng bộ với Đám Mây</span>
   </div>
 
-  <script src="app.js?v=35.1"></script>
+  <script src="app.js?v=35.2"></script>
 </body>
 </html>

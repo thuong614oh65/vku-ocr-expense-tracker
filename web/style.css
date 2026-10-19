@@ -2964,6 +2964,62 @@ body.dark-mode .btn-manual-entry {
   margin-top: 2px;
 }
 
+.reports-actions-group {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.btn-report-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 13px;
+  border-radius: 10px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid var(--border-color);
+  background: var(--bg-color);
+  color: var(--text-color);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  outline: none;
+}
+
+.btn-report-action:hover {
+  background: var(--card-bg);
+  border-color: var(--primary);
+  color: var(--primary);
+  transform: translateY(-1px);
+}
+
+.btn-report-action.ai {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  border: 1px solid transparent;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(99, 102, 241, 0.25);
+}
+
+.btn-report-action.ai:hover {
+  opacity: 0.95;
+  color: #ffffff;
+}
+
+.btn-report-action.primary {
+  background: var(--primary);
+  border: 1px solid var(--primary);
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(2, 132, 199, 0.25);
+}
+
+.btn-report-action.primary:hover {
+  background: var(--primary-dark);
+  color: #ffffff;
+}
+
 .btn-primary-action {
   background: var(--primary);
   color: #ffffff;
@@ -4092,6 +4148,7 @@ body.dark-mode .ai-advisor-card {
   .top-app-bar,
   .bottom-nav,
   .fab-circle-56,
+  #btn-open-advisor-report,
   #btn-print-report,
   #btn-reports-export-csv,
   .btn-ai-analyze,
