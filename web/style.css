@@ -460,7 +460,8 @@ body {
 }
 
 .review-modal-card,
-.install-modal-card {
+.install-modal-card,
+.modal-card-category-manager {
   background: #ffffff;
   border-radius: 18px;
   width: 100%;
@@ -1694,6 +1695,7 @@ body.dark-mode .chart-card,
 body.dark-mode .txn-card,
 body.dark-mode .review-modal-card,
 body.dark-mode .install-modal-card,
+body.dark-mode .modal-card-category-manager,
 body.dark-mode .install-option-card,
 body.dark-mode .filter-bar-card,
 body.dark-mode .auth-form-card,
@@ -4501,32 +4503,95 @@ input[type=number] {
 }
 
 /* Category Manager Modal & Custom Categories Styles */
+.modal-card-category-manager {
+  background: var(--card-bg, #ffffff) !important;
+  color: var(--text-color, #0f172a);
+  border-radius: 18px;
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.28);
+  border: 1px solid var(--border-color);
+  position: relative;
+}
+
+.cat-manager-modal-body {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.cat-manager-modal-body::-webkit-scrollbar,
+.emoji-picker-grid::-webkit-scrollbar {
+  width: 6px;
+}
+
+.cat-manager-modal-body::-webkit-scrollbar-track,
+.emoji-picker-grid::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.cat-manager-modal-body::-webkit-scrollbar-thumb,
+.emoji-picker-grid::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.35);
+  border-radius: 4px;
+}
+
+.cat-manager-modal-body::-webkit-scrollbar-thumb:hover,
+.emoji-picker-grid::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.65);
+}
+
+.cat-manager-modal-body,
+.emoji-picker-grid {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
+}
+
+.emoji-preview-tile {
+  font-size: 26px;
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(16, 185, 129, 0.12);
+  border: 2px solid #10b981;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
 .new-category-box {
   background: var(--bg-color);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
-  padding: 14px 16px;
+  border-radius: 14px;
+  padding: 16px 18px;
 }
 
 .emoji-picker-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(36px, 1fr));
+  grid-template-columns: repeat(7, 1fr);
   gap: 6px;
-  max-height: 110px;
+  max-height: 124px;
   overflow-y: auto;
-  padding: 4px;
+  padding: 6px;
   background: var(--card-bg);
-  border-radius: 8px;
+  border-radius: 10px;
   border: 1px solid var(--border-color);
 }
 
 .emoji-btn {
-  width: 36px;
-  height: 36px;
+  width: 100%;
+  height: 38px;
   border: 1px solid var(--border-color);
   background: var(--card-bg);
   border-radius: 8px;
-  font-size: 18px;
+  font-size: 19px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -4552,7 +4617,7 @@ input[type=number] {
   flex-wrap: wrap;
   gap: 10px;
   align-items: center;
-  padding: 6px 0;
+  padding: 4px 0;
 }
 
 .color-swatch-btn {
@@ -4584,7 +4649,7 @@ input[type=number] {
   align-items: center;
   justify-content: space-between;
   padding: 10px 14px;
-  border-radius: 10px;
+  border-radius: 12px;
   background: var(--card-bg);
   border: 1px solid var(--border-color);
   transition: all 0.15s ease;
@@ -4632,6 +4697,50 @@ input[type=number] {
   background: #ef4444;
   color: #fff;
   border-color: #ef4444;
+}
+
+/* Dark mode for Category Manager Modal */
+body.dark-mode .modal-card-category-manager {
+  background: #1e293b !important;
+  color: #f8fafc;
+  border-color: #334155;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.5);
+}
+
+body.dark-mode .new-category-box {
+  background: #0f172a;
+  border-color: #334155;
+}
+
+body.dark-mode .emoji-picker-grid {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+body.dark-mode .emoji-btn {
+  background: #0f172a;
+  border-color: #334155;
+  color: #f8fafc;
+}
+
+body.dark-mode .emoji-btn:hover {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: #38bdf8;
+}
+
+body.dark-mode .emoji-btn.selected {
+  background: rgba(56, 189, 248, 0.25);
+  border-color: #38bdf8;
+}
+
+body.dark-mode .cat-manager-item {
+  background: #0f172a;
+  border-color: #334155;
+}
+
+body.dark-mode .cat-manager-badge-default {
+  background: rgba(148, 163, 184, 0.15);
+  color: #94a3b8;
 }
 
 .add-custom-cat-chip {

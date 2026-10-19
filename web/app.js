@@ -2344,7 +2344,7 @@ class AppController {
     let selectedEmoji = '🏠';
     let selectedColor = '#10B981';
 
-    if (iconInput) iconInput.value = selectedEmoji;
+    if (iconInput) iconInput.value = '';
     if (previewIcon) {
       previewIcon.textContent = selectedEmoji;
       previewIcon.style.borderColor = selectedColor;
@@ -2366,7 +2366,7 @@ class AppController {
         btn.textContent = emoji;
         btn.onclick = () => {
           selectedEmoji = emoji;
-          if (iconInput) iconInput.value = emoji;
+          if (iconInput) iconInput.value = '';
           if (previewIcon) previewIcon.textContent = emoji;
           emojiPicker.querySelectorAll('.emoji-btn').forEach(b => b.classList.remove('selected'));
           btn.classList.add('selected');
@@ -2381,6 +2381,7 @@ class AppController {
         if (val) {
           selectedEmoji = val;
           if (previewIcon) previewIcon.textContent = val;
+          emojiPicker.querySelectorAll('.emoji-btn').forEach(b => b.classList.remove('selected'));
         }
       };
     }
@@ -2531,9 +2532,10 @@ class AppController {
         }
 
         const newKey = `cat_${Date.now()}`;
+        const chosenIcon = (iconInput?.value || '').trim() || selectedEmoji || '🏷️';
         const newCat = {
           name: name,
-          icon: selectedEmoji || '🏷️',
+          icon: chosenIcon,
           color: selectedColor || '#6366f1',
           isCustom: true,
           createdAt: Date.now()
