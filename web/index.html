@@ -16,13 +16,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=36.3">
+  <link rel="stylesheet" href="style.css?v=36.4">
   <!-- Google Identity Services (OAuth 2.0) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <!-- On-Device Tesseract.js WebAssembly OCR (Local Zero-Latency Engine) -->
   <script src="/tesseract/tesseract.min.js" defer></script>
   <script>
-    const APP_VERSION = '36.3';
+    const APP_VERSION = '36.4';
     if (localStorage.getItem('vku_app_cache_v') !== APP_VERSION) {
       if ('caches' in window) {
         caches.keys().then(function(names) {
@@ -38,7 +38,7 @@
     }
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
-        navigator.serviceWorker.register('/sw.js?v=36.3').then(function (reg) {
+        navigator.serviceWorker.register('/sw.js?v=36.4').then(function (reg) {
           reg.update();
         }).catch(function () {});
       });
@@ -297,7 +297,10 @@
               <h3>🎯 Hạn Mức Từng Danh Mục</h3>
               <p class="cat-budget-sub">Cảnh báo chi tiêu và giới hạn theo từng danh mục</p>
             </div>
-            <div style="display: flex; gap: 8px;">
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <button type="button" id="btn-cat-report" class="btn-cat-config-pill" title="Xem báo cáo chi tiết theo danh mục" style="background: rgba(99, 102, 241, 0.1); border-color: #6366f1; color: #6366f1;">
+                📊 Báo Cáo
+              </button>
               <button type="button" id="btn-manage-categories" class="btn-cat-config-pill" title="Tự tạo & Quản lý danh mục chi tiêu">
                 🏷️ Danh Mục
               </button>
@@ -440,6 +443,7 @@
                   <th style="text-align:center;">Số GD</th>
                   <th style="text-align:right;">Tổng tiền</th>
                   <th style="text-align:right;">Tỷ trọng</th>
+                  <th style="text-align:center;">Báo Cáo</th>
                 </tr>
               </thead>
               <tbody id="report-category-tbody">
@@ -1270,6 +1274,97 @@ flutter build apk --release</code></pre>
       </div>
   </div>
 
+  <!-- Modal Báo Cáo Chi Tiết Danh Mục -->
+  <div id="category-report-modal" class="modal-overlay hidden">
+    <div class="review-modal-card category-report-card" style="max-width: 540px; border-radius: 16px; overflow: hidden;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span id="cat-rep-header-icon" class="modal-icon" style="font-size: 24px;">📊</span>
+          <div>
+            <h3 id="cat-rep-header-title" class="modal-title" style="margin: 0; font-size: 16px; font-weight: 800; color: var(--text-color);">Báo Cáo Danh Mục</h3>
+            <p id="cat-rep-header-sub" class="modal-sub" style="margin: 0; font-size: 11.5px; color: var(--text-muted);">Phân tích chi tiêu & hạn mức chi tiết</p>
+          </div>
+        </div>
+        <button type="button" id="btn-close-cat-report" class="icon-btn" aria-label="Đóng" style="font-size: 18px; width: 34px; height: 34px;">✕</button>
+      </div>
+
+      <div class="modal-body-scroll" style="padding: 16px 20px; max-height: 75vh; overflow-y: auto;">
+        <!-- Category Selector Chips Row -->
+        <div style="margin-bottom: 12px;">
+          <label style="font-size: 11px; font-weight: 800; color: var(--text-muted); display: block; margin-bottom: 6px;">
+            CHỌN DANH MỤC XEM BÁO CÁO:
+          </label>
+          <div id="cat-rep-selector-chips" class="cat-rep-selector-chips">
+            <!-- Dynamically populated chips -->
+          </div>
+        </div>
+
+        <!-- Category Overview KPI Summary 4-Card Grid -->
+        <div id="cat-rep-kpi-grid" class="cat-rep-kpi-grid">
+          <div class="cat-rep-kpi-box">
+            <span class="cat-rep-kpi-label">ĐÃ CHI TIÊU</span>
+            <div id="cat-rep-kpi-spent" class="cat-rep-kpi-val text-primary">0 ₫</div>
+            <small id="cat-rep-kpi-spent-sub" class="cat-rep-kpi-sub">0 giao dịch tháng này</small>
+          </div>
+          <div class="cat-rep-kpi-box">
+            <span class="cat-rep-kpi-label">HẠN MỨC NGÂN SÁCH</span>
+            <div id="cat-rep-kpi-limit" class="cat-rep-kpi-val">0 ₫</div>
+            <small id="cat-rep-kpi-limit-sub" class="cat-rep-kpi-sub">Còn lại: 0 ₫</small>
+          </div>
+          <div class="cat-rep-kpi-box">
+            <span class="cat-rep-kpi-label">TỶ LỆ ĐÃ DÙNG</span>
+            <div id="cat-rep-kpi-pct" class="cat-rep-kpi-val">0%</div>
+            <small id="cat-rep-kpi-pct-sub" class="cat-rep-kpi-sub">Trạng thái an toàn</small>
+          </div>
+          <div class="cat-rep-kpi-box">
+            <span class="cat-rep-kpi-label">TRUNG BÌNH / HÓA ĐƠN</span>
+            <div id="cat-rep-kpi-avg" class="cat-rep-kpi-val">0 ₫</div>
+            <small id="cat-rep-kpi-avg-sub" class="cat-rep-kpi-sub">Lớn nhất: 0 ₫</small>
+          </div>
+        </div>
+
+        <!-- Budget Progress Bar for Category -->
+        <div class="cat-rep-budget-progress-box">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <span style="font-size: 12px; font-weight: 700; color: var(--text-color);">Tiến độ sử dụng hạn mức</span>
+            <span id="cat-rep-progress-badge" class="cat-rep-status-badge">🟢 An toàn</span>
+          </div>
+          <div class="progress-track" style="height: 10px; border-radius: 5px; background: rgba(0,0,0,0.06); overflow: hidden;">
+            <div id="cat-rep-progress-bar" class="progress-bar-fill" style="width: 0%; height: 100%; transition: width 0.3s ease;"></div>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-top: 5px;">
+            <span id="cat-rep-spent-label">Đã chi: 0 ₫</span>
+            <span id="cat-rep-limit-label">Hạn mức: 0 ₫</span>
+          </div>
+        </div>
+
+        <!-- Transactions list for this category -->
+        <div style="margin-top: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <span style="font-size: 12px; font-weight: 800; color: var(--text-muted);">
+              CÁC GIAO DỊCH THÁNG NÀY (<span id="cat-rep-txn-count">0</span>)
+            </span>
+            <button type="button" id="btn-cat-rep-export-csv" class="cat-rep-mini-btn" title="Xuất CSV cho danh mục này">
+              📥 Xuất CSV Danh Mục
+            </button>
+          </div>
+          <div id="cat-rep-txn-list" class="cat-rep-txn-list">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="display: flex; gap: 10px; padding: 12px 20px 16px;">
+        <button type="button" id="btn-cat-rep-edit-budget" class="btn-secondary-full" style="flex: 1;">
+          🎯 Đổi Hạn Mức
+        </button>
+        <button type="button" id="btn-cat-rep-close-action" class="btn-save-primary" style="flex: 1;">
+          Đóng
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal Quản Lý & Tự Tạo Danh Mục Chi Tiêu -->
   <div id="category-manager-modal" class="modal-overlay hidden">
     <div class="modal-card modal-card-category-manager" style="max-width: 520px; border-radius: 16px; overflow: hidden;">
@@ -1344,6 +1439,6 @@ flutter build apk --release</code></pre>
     <span id="sync-toast-msg">Đã đồng bộ với Đám Mây</span>
   </div>
 
-  <script src="app.js?v=36.3"></script>
+  <script src="app.js?v=36.4"></script>
 </body>
 </html>

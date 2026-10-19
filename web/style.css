@@ -4826,3 +4826,183 @@ body.dark-mode .cat-budget-summary-card.status-over .cat-summary-status-banner {
   border-color: rgba(239, 68, 68, 0.5);
   color: #fca5a5;
 }
+
+/* Category Detailed Report Modal Styles */
+.cat-rep-selector-chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 4px 2px 8px;
+  scrollbar-width: none;
+}
+.cat-rep-selector-chips::-webkit-scrollbar {
+  display: none;
+}
+.cat-rep-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-color);
+  border: 1.5px solid var(--border-color);
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-color);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+.cat-rep-chip:hover {
+  border-color: var(--primary);
+  background: rgba(2, 132, 199, 0.08);
+}
+.cat-rep-chip.active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.3);
+}
+
+.cat-rep-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.cat-rep-kpi-box {
+  background: var(--bg-color);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+}
+.cat-rep-kpi-label {
+  font-size: 9.5px;
+  font-weight: 800;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+}
+.cat-rep-kpi-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14.5px;
+  font-weight: 800;
+  color: var(--text-color);
+}
+.cat-rep-kpi-sub {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.cat-rep-budget-progress-box {
+  background: var(--bg-color);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+}
+.cat-rep-status-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+}
+.cat-rep-status-badge.danger {
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+}
+.cat-rep-status-badge.warning {
+  background: rgba(245, 158, 11, 0.12);
+  color: #f59e0b;
+}
+
+.cat-rep-mini-btn {
+  background: rgba(2, 132, 199, 0.08);
+  border: 1px solid rgba(2, 132, 199, 0.25);
+  color: var(--primary);
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.cat-rep-mini-btn:hover {
+  background: var(--primary);
+  color: #fff;
+}
+
+.cat-rep-pill-btn {
+  background: rgba(99, 102, 241, 0.1);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  color: #6366f1;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+.cat-rep-pill-btn:hover {
+  background: #6366f1;
+  color: #fff;
+}
+
+.cat-rep-txn-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 220px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+.cat-rep-txn-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--bg-color);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  font-size: 12px;
+  transition: all 0.15s ease;
+}
+.cat-rep-txn-item:hover {
+  border-color: var(--primary);
+  transform: translateX(2px);
+  background: rgba(2, 132, 199, 0.04);
+}
+.cat-rep-txn-merchant {
+  font-weight: 700;
+  color: var(--text-color);
+  margin-bottom: 2px;
+}
+.cat-rep-txn-date {
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
+.cat-rep-txn-amount {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 800;
+  font-size: 13px;
+  color: #ef4444;
+}
+
+/* Dark mode for Category Report */
+body.dark-mode .cat-rep-kpi-box,
+body.dark-mode .cat-rep-budget-progress-box,
+body.dark-mode .cat-rep-txn-item {
+  background: rgba(30, 41, 59, 0.6);
+  border-color: var(--border-color);
+}
+body.dark-mode .cat-rep-txn-item:hover {
+  background: rgba(2, 132, 199, 0.15);
+}

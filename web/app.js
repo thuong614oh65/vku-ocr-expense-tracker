@@ -1789,6 +1789,11 @@ class AppController {
       btnEditBudget.onclick = () => this.openBudgetModal('total');
     }
 
+    const btnCatReport = document.getElementById('btn-cat-report');
+    if (btnCatReport) {
+      btnCatReport.onclick = () => this.openCategoryReportModal();
+    }
+
     const btnConfigCatBudget = document.getElementById('btn-config-cat-budget');
     if (btnConfigCatBudget) {
       btnConfigCatBudget.onclick = () => this.openBudgetModal('categories');
@@ -2948,6 +2953,203 @@ class AppController {
         input.select();
       }
     }, 100);
+  }
+
+  /**
+   * Opens Dedicated Category Detailed Report Modal
+   */
+  openCategoryReportModal(initialCatKey = null) {
+    const modal = document.getElementById('category-report-modal');
+    if (!modal) return;
+    this.loadCategories();
+    const catKeys = Object.keys(CATEGORIES);
+    if (catKeys.length === 0) return;
+
+    let selectedKey = (initialCatKey && CATEGORIES[initialCatKey]) ? initialCatKey : catKeys[0];
+
+    const chipsWrap = document.getElementById('cat-rep-selector-chips');
+    const headerIcon = document.getElementById('cat-rep-header-icon');
+    const headerTitle = document.getElementById('cat-rep-header-title');
+    const headerSub = document.getElementById('cat-rep-header-sub');
+    const kpiSpent = document.getElementById('cat-rep-kpi-spent');
+    const kpiSpentSub = document.getElementById('cat-rep-kpi-spent-sub');
+    const kpiLimit = document.getElementById('cat-rep-kpi-limit');
+    const kpiLimitSub = document.getElementById('cat-rep-kpi-limit-sub');
+    const kpiPct = document.getElementById('cat-rep-kpi-pct');
+    const kpiPctSub = document.getElementById('cat-rep-kpi-pct-sub');
+    const kpiAvg = document.getElementById('cat-rep-kpi-avg');
+    const kpiAvgSub = document.getElementById('cat-rep-kpi-avg-sub');
+    const progressBadge = document.getElementById('cat-rep-progress-badge');
+    const progressBar = document.getElementById('cat-rep-progress-bar');
+    const spentLabel = document.getElementById('cat-rep-spent-label');
+    const limitLabel = document.getElementById('cat-rep-limit-label');
+    const txnCountEl = document.getElementById('cat-rep-txn-count');
+    const txnListEl = document.getElementById('cat-rep-txn-list');
+
+    const renderReport = (k) => {
+      selectedKey = k;
+      const cat = CATEGORIES[k] || { name: k, icon: '🏷️', color: '#6366f1' };
+
+      // Update chips
+      if (chipsWrap) {
+        chipsWrap.innerHTML = '';
+        catKeys.forEach(ck => {
+          const c = CATEGORIES[ck] || { name: ck, icon: '🏷️' };
+          const chip = document.createElement('button');
+          chip.type = 'button';
+          chip.className = `cat-rep-chip ${ck === selectedKey ? 'active' : ''}`;
+          chip.innerHTML = `${c.icon} ${c.name}`;
+          chip.onclick = () => renderReport(ck);
+          chipsWrap.appendChild(chip);
+        });
+      }
+
+      // Filter transactions for this month
+      const now = new Date();
+      const thisMonthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      const catTxns = this.transactions
+        .filter(t => t.category === k && t.date && t.date.startsWith(thisMonthPrefix))
+        .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+
+      const spent = catTxns.reduce((s, t) => s + (Number(t.amount) || 0), 0);
+      const count = catTxns.length;
+      const catBudgets = StorageManager.getCategoryBudgets(this.currentUser?.email);
+      const limit = Number(catBudgets[k]) || 0;
+      const diff = limit > 0 ? limit - spent : 0;
+      const avg = count > 0 ? Math.round(spent / count) : 0;
+      const max = count > 0 ? Math.max(...catTxns.map(t => Number(t.amount) || 0)) : 0;
+
+      // Overall monthly spent
+      const totalMonthSpent = this.transactions
+        .filter(t => t.date && t.date.startsWith(thisMonthPrefix))
+        .reduce((s, t) => s + (Number(t.amount) || 0), 0);
+      const sharePct = totalMonthSpent > 0 ? ((spent / totalMonthSpent) * 100).toFixed(1) : '0';
+
+      if (headerIcon) headerIcon.textContent = cat.icon;
+      if (headerTitle) headerTitle.textContent = `Báo Cáo Danh Mục: ${cat.name}`;
+      if (headerSub) headerSub.textContent = `${count} giao dịch tháng này • Chi ${this.formatVND(spent)} (${sharePct}% toàn ví)`;
+
+      if (kpiSpent) kpiSpent.textContent = this.formatVND(spent);
+      if (kpiSpentSub) kpiSpentSub.textContent = `${count} giao dịch • Chiếm ${sharePct}% ví`;
+
+      if (kpiLimit) kpiLimit.textContent = limit > 0 ? this.formatVND(limit) : 'Chưa đặt';
+      if (kpiLimitSub) {
+        if (limit > 0) {
+          kpiLimitSub.textContent = diff >= 0 ? `Còn lại: ${this.formatVND(diff)}` : `VƯỢT: +${this.formatVND(Math.abs(diff))}`;
+          kpiLimitSub.style.color = diff >= 0 ? '#10b981' : '#ef4444';
+        } else {
+          kpiLimitSub.textContent = 'Bấm "Đổi hạn mức" để đặt';
+          kpiLimitSub.style.color = 'var(--text-muted)';
+        }
+      }
+
+      let pct = limit > 0 ? Math.round((spent / limit) * 100) : 0;
+      if (kpiPct) kpiPct.textContent = limit > 0 ? `${pct}%` : '0%';
+      if (progressBadge && progressBar) {
+        progressBadge.className = 'cat-rep-status-badge';
+        if (limit === 0) {
+          progressBadge.textContent = '⚪ Chưa đặt hạn mức';
+          progressBar.style.width = '0%';
+          progressBar.style.background = 'var(--primary)';
+        } else if (pct >= 100) {
+          progressBadge.classList.add('danger');
+          progressBadge.textContent = `🔴 Vượt hạn mức (${pct}%)`;
+          progressBar.style.width = '100%';
+          progressBar.style.background = '#ef4444';
+        } else if (pct >= 80) {
+          progressBadge.classList.add('warning');
+          progressBadge.textContent = `🟡 Sắp hết (${pct}%)`;
+          progressBar.style.width = `${pct}%`;
+          progressBar.style.background = '#f59e0b';
+        } else {
+          progressBadge.textContent = `🟢 An toàn (${pct}%)`;
+          progressBar.style.width = `${pct}%`;
+          progressBar.style.background = '#10b981';
+        }
+      }
+      if (kpiPctSub) {
+        kpiPctSub.textContent = limit > 0 ? (pct >= 100 ? 'Đã vượt ngân sách!' : `Đã dùng ${pct}% ngân sách`) : 'Chưa thiết lập giới hạn';
+      }
+
+      if (kpiAvg) kpiAvg.textContent = this.formatVND(avg);
+      if (kpiAvgSub) kpiAvgSub.textContent = count > 0 ? `Lớn nhất: ${this.formatVND(max)}` : 'Chưa có hóa đơn';
+
+      if (spentLabel) spentLabel.textContent = `Đã chi: ${this.formatVND(spent)}`;
+      if (limitLabel) limitLabel.textContent = `Hạn mức: ${limit > 0 ? this.formatVND(limit) : 'Chưa đặt'}`;
+      if (txnCountEl) txnCountEl.textContent = count;
+
+      // Transactions list
+      if (txnListEl) {
+        txnListEl.innerHTML = '';
+        if (catTxns.length === 0) {
+          txnListEl.innerHTML = `
+            <div style="text-align: center; padding: 24px 12px; color: var(--text-muted); font-size: 12.5px;">
+              <span>📭 Chưa có giao dịch nào thuộc danh mục ${cat.icon} <strong>${cat.name}</strong> trong tháng này.</span>
+            </div>
+          `;
+        } else {
+          catTxns.forEach(t => {
+            const item = document.createElement('div');
+            item.className = 'cat-rep-txn-item';
+            item.style.cursor = 'pointer';
+            item.title = 'Bấm để xem chi tiết giao dịch';
+            item.innerHTML = `
+              <div>
+                <div class="cat-rep-txn-merchant">${t.merchant || 'Khoản chi tiêu'}</div>
+                <div class="cat-rep-txn-date">📅 ${t.date || 'Hôm nay'} ${t.notes ? '• ' + t.notes : ''}</div>
+              </div>
+              <div class="cat-rep-txn-amount">${this.formatVND(t.amount)}</div>
+            `;
+            item.onclick = () => {
+              modal.classList.add('hidden');
+              this.openExpenseDetailModal(t);
+            };
+            txnListEl.appendChild(item);
+          });
+        }
+      }
+
+      // Export CSV for this category
+      const btnExport = document.getElementById('btn-cat-rep-export-csv');
+      if (btnExport) {
+        btnExport.onclick = () => {
+          if (catTxns.length === 0) {
+            alert(`Danh mục ${cat.name} chưa có giao dịch nào để xuất.`);
+            return;
+          }
+          let csv = '\uFEFFMã GD,Ngày,Cửa Hàng,Danh Mục,Số Tiền (VND),Ghi Chú\n';
+          catTxns.forEach(t => {
+            csv += `"${t.id}","${t.date}","${(t.merchant||'').replace(/"/g, '""')}","${cat.name}","${t.amount}","${(t.notes||'').replace(/"/g, '""')}"\n`;
+          });
+          const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `Bao_cao_danh_muc_${cat.name}_${thisMonthPrefix}.csv`;
+          a.click();
+          URL.revokeObjectURL(url);
+          this.showSyncToast(`✓ Đã tải báo cáo CSV danh mục "${cat.name}"!`);
+        };
+      }
+    };
+
+    renderReport(selectedKey);
+
+    const closeModal = () => modal.classList.add('hidden');
+    const closeBtn = document.getElementById('btn-close-cat-report');
+    const closeActionBtn = document.getElementById('btn-cat-rep-close-action');
+    if (closeBtn) closeBtn.onclick = closeModal;
+    if (closeActionBtn) closeActionBtn.onclick = closeModal;
+
+    const btnEditBudget = document.getElementById('btn-cat-rep-edit-budget');
+    if (btnEditBudget) {
+      btnEditBudget.onclick = () => {
+        closeModal();
+        this.openBudgetModal('categories');
+      };
+    }
+
+    modal.classList.remove('hidden');
   }
 
   /**
@@ -4167,7 +4369,7 @@ class AppController {
     if (repTbody) {
       repTbody.innerHTML = '';
       if (this.transactions.length === 0) {
-        repTbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:14px;">Chưa có dữ liệu giao dịch để phân loại.</td></tr>';
+        repTbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:14px;">Chưa có dữ liệu giao dịch để phân loại.</td></tr>';
       } else {
         Object.keys(CATEGORIES).forEach(k => {
           const amt = catTotals[k];
@@ -4176,6 +4378,9 @@ class AppController {
             const cat = CATEGORIES[k];
             const p = totalAmount > 0 ? ((amt / totalAmount) * 100).toFixed(1) : 0;
             const tr = document.createElement('tr');
+            tr.style.cursor = 'pointer';
+            tr.title = `Bấm để xem báo cáo chi tiết ${cat.name}`;
+            tr.onclick = () => this.openCategoryReportModal(k);
             tr.innerHTML = `
               <td>
                 <span class="table-cat-badge" style="background:${cat.color}18;color:${cat.color};">
@@ -4185,6 +4390,11 @@ class AppController {
               <td style="text-align:center;font-weight:700;">${cnt}</td>
               <td style="text-align:right;font-weight:800;color:var(--text-main);">${this.formatVND(amt)}</td>
               <td style="text-align:right;font-weight:700;color:var(--primary);">${p}%</td>
+              <td style="text-align:center;">
+                <button type="button" class="cat-rep-pill-btn" onclick="event.stopPropagation(); window.app?.openCategoryReportModal('${k}')">
+                  📊 Chi tiết
+                </button>
+              </td>
             `;
             repTbody.appendChild(tr);
           }
@@ -4331,8 +4541,8 @@ class AppController {
       const itemEl = document.createElement('div');
       itemEl.className = `cat-budget-item ${statusClass}`;
       itemEl.style.cursor = 'pointer';
-      itemEl.title = `Bấm để điều chỉnh hạn mức danh mục ${cat.name}`;
-      itemEl.onclick = () => this.openBudgetModal('categories');
+      itemEl.title = `Bấm để xem báo cáo chi tiết & lịch sử danh mục ${cat.name}`;
+      itemEl.onclick = () => this.openCategoryReportModal(k);
       itemEl.innerHTML = `
         <div class="cat-budget-item-top">
           <div class="cat-budget-item-name">
