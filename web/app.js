@@ -766,6 +766,8 @@ class AppController {
     this._ocrWorkerPromise = null;
     this._isOcrWarmed = false;
     this._lastCapturedDataUrl = null;
+    this.splitPeopleCount = 2;
+    this.currentSplittingTxn = null;
 
     this.applyTheme();
     this.initDesktopAdaptation();
@@ -1639,9 +1641,22 @@ class AppController {
     };
 
     // Export CSV
-    document.getElementById('btn-export-csv').onclick = () => this.exportCsv();
+    const btnExpCsv = document.getElementById('btn-export-csv');
+    if (btnExpCsv) btnExpCsv.onclick = () => this.exportCsv();
     const btnRepExport = document.getElementById('btn-reports-export-csv');
     if (btnRepExport) btnRepExport.onclick = () => this.exportCsv();
+
+    // Print / PDF Report
+    const btnPrint = document.getElementById('btn-print-report');
+    if (btnPrint) {
+      btnPrint.onclick = () => window.print();
+    }
+
+    // AI Financial Advisor
+    const btnAiAdvisor = document.getElementById('btn-run-ai-advisor');
+    if (btnAiAdvisor) {
+      btnAiAdvisor.onclick = () => this.runAiFinancialAdvisor();
+    }
 
     // Edit Monthly Budget via dedicated Budget Setting Modal
     const btnEditBudget = document.getElementById('btn-edit-budget');
@@ -1912,26 +1927,121 @@ class AppController {
 
     // Dynamic Route /expense/:id Detail Modal
     const detailModal = document.getElementById('detail-modal');
-    document.getElementById('btn-close-detail').onclick = () => {
-      this.viewingTxnId = null;
-      detailModal.classList.add('hidden');
-    };
-
-    document.getElementById('btn-detail-edit').onclick = () => {
-      const txn = this.transactions.find(t => t.id === this.viewingTxnId);
-      detailModal.classList.add('hidden');
-      if (txn) {
-        this.triggerOcr(txn.rawText, txn.thumbnail, txn);
+    if (detailModal) {
+      const btnCloseDetail = document.getElementById('btn-close-detail');
+      if (btnCloseDetail) {
+        btnCloseDetail.onclick = () => {
+          this.viewingTxnId = null;
+          detailModal.classList.add('hidden');
+        };
       }
-    };
 
-    document.getElementById('btn-detail-delete').onclick = () => {
-      if (this.viewingTxnId) {
-        const idToDelete = this.viewingTxnId;
-        detailModal.classList.add('hidden');
-        this.deleteTransaction(idToDelete);
+      const btnDetailEdit = document.getElementById('btn-detail-edit');
+      if (btnDetailEdit) {
+        btnDetailEdit.onclick = () => {
+          const txn = this.transactions.find(t => t.id === this.viewingTxnId);
+          detailModal.classList.add('hidden');
+          if (txn) {
+            this.triggerOcr(txn.rawText, txn.thumbnail, txn);
+          }
+        };
       }
-    };
+
+      const btnDetailSplit = document.getElementById('btn-detail-split');
+      if (btnDetailSplit) {
+        btnDetailSplit.onclick = () => {
+          const txn = this.transactions.find(t => t.id === this.viewingTxnId);
+          if (txn) {
+            this.openSplitBillModal(txn);
+          }
+        };
+      }
+
+      const btnDetailDelete = document.getElementById('btn-detail-delete');
+      if (btnDetailDelete) {
+        btnDetailDelete.onclick = () => {
+          if (this.viewingTxnId) {
+            const idToDelete = this.viewingTxnId;
+            detailModal.classList.add('hidden');
+            this.deleteTransaction(idToDelete);
+          }
+        };
+      }
+    }
+
+    // Split Bill & VietQR Modal Controls
+    const splitModal = document.getElementById('split-bill-modal');
+    if (splitModal) {
+      const btnCloseSplit = document.getElementById('btn-close-split');
+      if (btnCloseSplit) {
+        btnCloseSplit.onclick = () => {
+          splitModal.classList.add('hidden');
+        };
+      }
+
+      const btnMinus = document.getElementById('btn-split-minus');
+      const btnPlus = document.getElementById('btn-split-plus');
+      if (btnMinus) {
+        btnMinus.onclick = () => {
+          if (this.splitPeopleCount > 2) {
+            this.splitPeopleCount -= 1;
+            this.syncSplitChips();
+            this.updateVietQrCode();
+          }
+        };
+      }
+      if (btnPlus) {
+        btnPlus.onclick = () => {
+          if (this.splitPeopleCount < 20) {
+            this.splitPeopleCount += 1;
+            this.syncSplitChips();
+            this.updateVietQrCode();
+          }
+        };
+      }
+
+      document.querySelectorAll('.split-chip').forEach(chip => {
+        chip.onclick = () => {
+          const c = parseInt(chip.dataset.count, 10);
+          if (c) {
+            this.splitPeopleCount = c;
+            this.syncSplitChips();
+            this.updateVietQrCode();
+          }
+        };
+      });
+
+      const bankSelect = document.getElementById('split-bank-select');
+      const accNoInput = document.getElementById('split-account-no');
+      const accNameInput = document.getElementById('split-account-name');
+
+      if (bankSelect) bankSelect.onchange = () => this.updateVietQrCode();
+      if (accNoInput) accNoInput.oninput = () => this.updateVietQrCode();
+      if (accNameInput) accNameInput.oninput = () => this.updateVietQrCode();
+
+      const btnCopyInfo = document.getElementById('btn-copy-split-info');
+      if (btnCopyInfo) {
+        btnCopyInfo.onclick = () => {
+          if (!this.currentSplittingTxn) return;
+          const total = Number(this.currentSplittingTxn.amount) || 0;
+          const count = Math.max(1, this.splitPeopleCount || 2);
+          const perPerson = Math.round(total / count);
+          const bank = bankSelect?.value || 'MB';
+          const accNo = (accNoInput?.value || '').trim();
+          const accName = (accNameInput?.value || '').trim();
+          const merchant = this.currentSplittingTxn.merchant || 'Hóa đơn';
+
+          const text = `💸 Tiền ${merchant} chia ${count} người, mỗi người: ${this.formatVND(perPerson)}.\n👉 Chuyển vào: ${bank} - STK: ${accNo} (${accName})\nNội dung: Tra tien ${merchant}`;
+          if (navigator.clipboard) {
+            navigator.clipboard.writeText(text).then(() => {
+              this.showSyncToast('✓ Đã sao chép thông tin chuyển khoản!');
+            }).catch(() => {});
+          } else {
+            prompt('Sao chép thông tin chuyển khoản:', text);
+          }
+        };
+      }
+    }
 
     // Review Modal & Real-time Form Validators (Week 8 Slide 28)
     const reviewModal = document.getElementById('review-modal');
@@ -2698,6 +2808,313 @@ class AppController {
 
   formatVND(val) {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
+  }
+
+  syncSplitChips() {
+    const countDisplay = document.getElementById('split-count-display');
+    if (countDisplay) {
+      countDisplay.textContent = String(this.splitPeopleCount);
+    }
+    document.querySelectorAll('.split-chip').forEach(chip => {
+      const c = parseInt(chip.dataset.count, 10);
+      chip.classList.toggle('active', c === this.splitPeopleCount);
+    });
+  }
+
+  updateVietQrCode() {
+    if (!this.currentSplittingTxn) return;
+    const total = Number(this.currentSplittingTxn.amount) || 0;
+    const count = Math.max(1, this.splitPeopleCount || 2);
+    const perPerson = Math.round(total / count);
+
+    const bankSelect = document.getElementById('split-bank-select');
+    const accNoInput = document.getElementById('split-account-no');
+    const accNameInput = document.getElementById('split-account-name');
+
+    const bank = bankSelect ? bankSelect.value : 'MB';
+    const accNo = accNoInput ? accNoInput.value.trim() : '';
+    const accName = accNameInput ? accNameInput.value.trim().toUpperCase() : '';
+
+    if (accNo || accName) {
+      try {
+        localStorage.setItem('smartspend_vietqr_bank', bank);
+        localStorage.setItem('smartspend_vietqr_acc_no', accNo);
+        localStorage.setItem('smartspend_vietqr_acc_name', accName);
+      } catch (_) {}
+    }
+
+    const totalEl = document.getElementById('split-total-amount');
+    const perPersonEl = document.getElementById('split-per-person');
+    if (totalEl) totalEl.textContent = this.formatVND(total);
+    if (perPersonEl) perPersonEl.textContent = this.formatVND(perPerson);
+
+    const rawMerchant = this.currentSplittingTxn.merchant || 'Hoa don';
+    const cleanMerchant = rawMerchant
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-zA-Z0-9 ]/g, '')
+      .trim()
+      .slice(0, 20);
+
+    const desc = `Tra tien ${cleanMerchant || 'hoa don'}`;
+    const transferContentEl = document.getElementById('split-transfer-content');
+    if (transferContentEl) {
+      transferContentEl.textContent = `Nội dung chuyển khoản: ${desc}`;
+    }
+
+    const qrImg = document.getElementById('split-qr-img');
+    const qrDownloadBtn = document.getElementById('btn-download-qr');
+    const qrLoading = document.getElementById('split-qr-loading');
+
+    if (accNo) {
+      if (qrLoading) qrLoading.classList.remove('hidden');
+      const vietQrUrl = `https://img.vietqr.io/image/${encodeURIComponent(bank)}-${encodeURIComponent(accNo)}-compact2.png?amount=${perPerson}&addInfo=${encodeURIComponent(desc)}&accountName=${encodeURIComponent(accName)}`;
+
+      if (qrImg) {
+        qrImg.onload = () => {
+          if (qrLoading) qrLoading.classList.add('hidden');
+        };
+        qrImg.onerror = () => {
+          if (qrLoading) qrLoading.classList.add('hidden');
+        };
+        qrImg.src = vietQrUrl;
+      }
+      if (qrDownloadBtn) {
+        qrDownloadBtn.href = vietQrUrl;
+        qrDownloadBtn.target = '_blank';
+      }
+    } else {
+      if (qrLoading) qrLoading.classList.add('hidden');
+      if (qrImg) {
+        qrImg.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="220" height="220" viewBox="0 0 220 220"%3E%3Crect width="220" height="220" fill="%23f1f5f9" rx="12"/%3E%3Ctext x="110" y="105" text-anchor="middle" font-size="12" fill="%2364748b" font-family="sans-serif"%3EVui l%C3%B2ng nh%E1%BA%ADp S%E1%BB%91 t%C3%A0i kho%E1%BA%A3n%3C/text%3E%3Ctext x="110" y="130" text-anchor="middle" font-size="11" fill="%2394a3b8" font-family="sans-serif"%3E%C4%91%E1%BB%83 t%E1%BA%A1o m%C3%A3 VietQR Napas247%3C/text%3E%3C/svg%3E';
+      }
+      if (qrDownloadBtn) {
+        qrDownloadBtn.removeAttribute('href');
+      }
+    }
+  }
+
+  openSplitBillModal(txn) {
+    if (!txn) return;
+    this.currentSplittingTxn = txn;
+    this.splitPeopleCount = 2;
+
+    const modal = document.getElementById('split-bill-modal');
+    if (!modal) return;
+
+    const titleEl = document.getElementById('split-bill-merchant');
+    if (titleEl) {
+      titleEl.textContent = `Hóa đơn: ${txn.merchant || 'Chi tiêu'} (${txn.date || ''})`;
+    }
+
+    const savedBank = localStorage.getItem('smartspend_vietqr_bank') || 'MB';
+    const savedAccNo = localStorage.getItem('smartspend_vietqr_acc_no') || '';
+    let savedAccName = localStorage.getItem('smartspend_vietqr_acc_name') || '';
+    if (!savedAccName && this.currentUser?.fullName) {
+      savedAccName = this.currentUser.fullName.toUpperCase();
+    }
+
+    const bankSelect = document.getElementById('split-bank-select');
+    const accNoInput = document.getElementById('split-account-no');
+    const accNameInput = document.getElementById('split-account-name');
+
+    if (bankSelect && savedBank) bankSelect.value = savedBank;
+    if (accNoInput && savedAccNo) accNoInput.value = savedAccNo;
+    if (accNameInput && savedAccName) accNameInput.value = savedAccName;
+
+    this.syncSplitChips();
+    this.updateVietQrCode();
+    modal.classList.remove('hidden');
+  }
+
+  async runAiFinancialAdvisor(customPrompt = '') {
+    const bodyEl = document.getElementById('ai-advisor-body');
+    const btn = document.getElementById('btn-run-ai-advisor');
+    if (!bodyEl) return;
+
+    if (btn) {
+      btn.disabled = true;
+      btn.classList.add('loading');
+      btn.textContent = '⏳ Đang Phân Tích...';
+    }
+
+    bodyEl.innerHTML = `
+      <div class="ai-advisor-loading" style="padding:24px;text-align:center;">
+        <div class="spinner" style="margin:0 auto 12px;width:32px;height:32px;border:3px solid var(--border-color);border-top-color:#0284c7;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+        <strong style="color:var(--text-color);display:block;font-size:13.5px;">SmartSpend AI đang phân tích toàn diện dữ liệu chi tiêu...</strong>
+        <p style="color:var(--text-muted);font-size:12px;margin-top:4px;">Đang tính toán burn rate, dự báo cuối tháng và tổng hợp lời khuyên tài chính tối ưu.</p>
+      </div>
+    `;
+
+    // 1. Gather stats
+    const now = new Date();
+    const currentMonthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const budget = StorageManager.getMonthlyBudget(this.currentUser?.email) || 3500000;
+    const monthTxns = this.transactions.filter(t => (t.date || '').startsWith(currentMonthPrefix));
+    const totalSpent = monthTxns.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+    const spentPercent = budget > 0 ? Math.round((totalSpent / budget) * 100) : 0;
+
+    const catTotals = {};
+    monthTxns.forEach(t => {
+      const c = t.category || 'other';
+      catTotals[c] = (catTotals[c] || 0) + (Number(t.amount) || 0);
+    });
+
+    let topCatKey = 'food';
+    let topCatAmt = 0;
+    Object.keys(catTotals).forEach(k => {
+      if (catTotals[k] > topCatAmt) {
+        topCatAmt = catTotals[k];
+        topCatKey = k;
+      }
+    });
+    const topCatObj = CATEGORIES[topCatKey] || CATEGORIES.other;
+    const topCatName = `${topCatObj.icon} ${topCatObj.name}`;
+    const topCatPct = totalSpent > 0 ? Math.round((topCatAmt / totalSpent) * 100) : 0;
+
+    const dayOfMonth = Math.max(1, now.getDate());
+    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const daysLeft = Math.max(1, daysInMonth - dayOfMonth);
+    const dailyAvg = Math.round(totalSpent / dayOfMonth);
+    const projectedTotal = Math.round(dailyAvg * daysInMonth);
+    const remainingBudget = Math.max(0, budget - totalSpent);
+    const safeDailyLeft = Math.round(remainingBudget / daysLeft);
+
+    // Classification
+    let riskLevel = 'good';
+    let riskTitle = '🟢 Ngân Sách Kiểm Soát Tốt';
+    let riskDesc = `Chi tiêu đang trong tầm kiểm soát (${spentPercent}% ngân sách).`;
+    if (spentPercent >= 100 || projectedTotal > budget * 1.15) {
+      riskLevel = 'danger';
+      riskTitle = '🔴 Nguy Cơ Bội Chi Báo Động';
+      riskDesc = `Dự kiến chạm ${this.formatVND(projectedTotal)} (${Math.round((projectedTotal / budget) * 100)}% ngân sách). Cần thắt chặt chi tiêu ngay!`;
+    } else if (spentPercent >= 75 || projectedTotal > budget * 0.95) {
+      riskLevel = 'warn';
+      riskTitle = '🟡 Cảnh Báo Tiêu Tiền Nhanh';
+      riskDesc = `Tốc độ tiêu tiền ${this.formatVND(dailyAvg)}/ngày có thể chạm trần ngân sách cuối tháng.`;
+    }
+
+    const payload = {
+      stats: {
+        budget: budget,
+        totalSpent: totalSpent,
+        spentPercent: spentPercent,
+        topCategory: topCatName,
+        topCategoryAmount: topCatAmt,
+        transactionCount: monthTxns.length,
+        dailyAvg: dailyAvg,
+        projectedTotal: projectedTotal,
+        daysLeft: daysLeft,
+        safeDailyLeft: safeDailyLeft
+      },
+      prompt: customPrompt || ''
+    };
+
+    let aiAdviceText = '';
+    let isCloudAi = false;
+
+    try {
+      if (navigator.onLine) {
+        const res = await fetch('/api/advisor', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.success && data.advice) {
+            aiAdviceText = data.advice;
+            isCloudAi = true;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('AI Advisor API notice:', e);
+    }
+
+    // Heuristic Fallback Engine if AI server response is unavailable or offline
+    if (!aiAdviceText) {
+      const tips = [];
+      if (topCatPct >= 40) {
+        tips.push(`Hạng mục **${topCatName}** đang chiếm tới **${topCatPct}%** tổng chi tiêu tháng này (${this.formatVND(topCatAmt)}). Bạn nên cân nhắc nấu ăn tại nhà hoặc ưu đãi theo combo để giảm bớt chi phí này.`);
+      } else {
+        tips.push(`Các danh mục chi tiêu phân bổ tương đối đồng đều. Hạng mục cao nhất là **${topCatName}** chiếm **${topCatPct}%** (${this.formatVND(topCatAmt)}).`);
+      }
+
+      if (riskLevel === 'danger') {
+        tips.push(`Bạn đã tiêu **${this.formatVND(totalSpent)}** trên ngân sách **${this.formatVND(budget)}**. Để không âm tiền tháng này, bạn chỉ nên chi tối đa **${this.formatVND(safeDailyLeft)}/ngày** trong **${daysLeft} ngày còn lại**.`);
+      } else if (riskLevel === 'warn') {
+        tips.push(`Tốc độ tiêu hiện tại là **${this.formatVND(dailyAvg)}/ngày**. Dự kiến cuối tháng bạn sẽ tiêu khoảng **${this.formatVND(projectedTotal)}**. Hãy giữ hạn mức dưới **${this.formatVND(safeDailyLeft)}/ngày** để có dư tiết kiệm.`);
+      } else {
+        tips.push(`Tình hình chi tiêu rất kỷ luật! Dự kiến cuối tháng bạn tiết kiệm được khoảng **${this.formatVND(Math.max(0, budget - projectedTotal))}**. Hạn mức an toàn còn lại là **${this.formatVND(safeDailyLeft)}/ngày**.`);
+      }
+
+      tips.push('Áp dụng quy tắc tài chính **50/30/20**: 50% cho nhu cầu thiết yếu (ăn uống, đi lại), 30% cho mong muốn cá nhân (mua sắm, giải trí) và 20% lập tức gửi tiết kiệm hoặc dự phòng khẩn cấp.');
+      aiAdviceText = tips.map((t, idx) => `• ${t}`).join('\n\n');
+    }
+
+    // Format advice into bullets
+    const cleanLines = aiAdviceText
+      .split('\n')
+      .map(l => l.trim())
+      .filter(l => l.length > 0 && !/^[\*#-]+$/.test(l));
+
+    let adviceListHtml = '';
+    cleanLines.forEach((line, idx) => {
+      let content = line.replace(/^[•\-\*0-9.]+\s*/, '');
+      content = content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      if (content) {
+        adviceListHtml += `
+          <li>
+            <span class="ai-advice-bullet">${idx + 1}</span>
+            <div>${content}</div>
+          </li>
+        `;
+      }
+    });
+
+    bodyEl.innerHTML = `
+      <div class="ai-result-grid">
+        <div class="ai-stat-card ${riskLevel}">
+          <span class="ai-stat-label">Tình Trạng Ngân Sách</span>
+          <strong class="ai-stat-val">${riskTitle}</strong>
+          <span class="ai-stat-sub">${riskDesc}</span>
+        </div>
+
+        <div class="ai-stat-card ${dailyAvg > (budget / daysInMonth) * 1.2 ? 'warn' : 'good'}">
+          <span class="ai-stat-label">Tốc Độ Tiêu Dùng (Burn Rate)</span>
+          <strong class="ai-stat-val">${this.formatVND(dailyAvg)} / ngày</strong>
+          <span class="ai-stat-sub">Dự báo hết tháng: ${this.formatVND(projectedTotal)}</span>
+        </div>
+
+        <div class="ai-stat-card">
+          <span class="ai-stat-label">Khoản Chi Chiếm Ưu Thế</span>
+          <strong class="ai-stat-val">${topCatName} (${topCatPct}%)</strong>
+          <span class="ai-stat-sub">Đã chi: ${this.formatVND(topCatAmt)} • ${monthTxns.filter(t => t.category === topCatKey).length} giao dịch</span>
+        </div>
+
+        <div class="ai-stat-card ${safeDailyLeft < 30000 ? 'danger' : 'good'}">
+          <span class="ai-stat-label">Hạn Mức An Toàn Còn Lại</span>
+          <strong class="ai-stat-val">${this.formatVND(safeDailyLeft)} / ngày</strong>
+          <span class="ai-stat-sub">Áp dụng cho ${daysLeft} ngày tiếp theo trong tháng</span>
+        </div>
+      </div>
+
+      <div class="ai-advice-box">
+        <div class="ai-advice-header">
+          <span>💡 Lời Khuyên Tài Chính Cá Nhân ${isCloudAi ? '(Llama-3.2 AI)' : '(SmartSpend Intelligence)'}:</span>
+        </div>
+        <ul class="ai-advice-list">
+          ${adviceListHtml || '<li><span class="ai-advice-bullet">✓</span><div>Dữ liệu chi tiêu ổn định. Hãy tiếp tục duy trì thói quen ghi chép hóa đơn đều đặn.</div></li>'}
+        </ul>
+      </div>
+    `;
+
+    if (btn) {
+      btn.disabled = false;
+      btn.classList.remove('loading');
+      btn.textContent = '🔄 Phân Tích Lại Bằng AI';
+    }
   }
 
   renderFilterCategoryChips() {

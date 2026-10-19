@@ -16,5 +16,8 @@
       "binding": "EXPENSE_SYNC_KV",
       "id": "44361761f78e478182ec88cc867f7157"
     }
-  ]
+  ],
+  "ai": {
+    "binding": "AI"
+  }
 }

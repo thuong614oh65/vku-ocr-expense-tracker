@@ -240,6 +240,73 @@ export default {
     }
 
     // ========================================================================
+    // 1C. API: AI FINANCIAL ADVISOR (Cloudflare Workers AI Llama-3.2)
+    // ========================================================================
+    if (url.pathname === '/api/advisor' || url.pathname.startsWith('/api/advisor/')) {
+      if (request.method === 'OPTIONS') {
+        return new Response(null, {
+          status: 204,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+          }
+        });
+      }
+
+      const corsHeaders = {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Access-Control-Allow-Origin': '*',
+        'Cache-Control': 'no-cache, no-store, must-revalidate'
+      };
+
+      if (request.method === 'POST') {
+        try {
+          const body = await request.json();
+          const stats = body.stats || {};
+          const prompt = body.prompt || '';
+
+          if (env.AI) {
+            const aiResponse = await env.AI.run('@cf/meta/llama-3.2-3b-instruct', {
+              messages: [
+                {
+                  role: 'system',
+                  content: 'Bạn là chuyên gia cố vấn tài chính cá nhân SmartSpend AI. Hãy đọc số liệu chi tiêu của người dùng và đưa ra phân tích, đánh giá tỷ lệ chi tiêu, tốc độ tiêu tiền và 3 lời khuyên tài chính thiết thực nhất bằng tiếng Việt. Định dạng ngắn gọn, trực quan, dùng emoji và gạch đầu dòng.'
+                },
+                {
+                  role: 'user',
+                  content: `Dữ liệu chi tiêu tháng này:
+- Tổng ngân sách: ${stats.budget || 'Chưa đặt'} VND
+- Đã chi tiêu: ${stats.totalSpent || 0} VND (${stats.spentPercent || 0}% ngân sách)
+- Danh mục chi tiêu nhiều nhất: ${stats.topCategory || 'Chưa rõ'} (${stats.topCategoryAmount || 0} VND)
+- Số giao dịch đã ghi chép: ${stats.transactionCount || 0}
+- Tốc độ chi tiêu trung bình: ${stats.dailyAvg || 0} VND/ngày
+${prompt ? `Câu hỏi từ người dùng: ${prompt}` : 'Hãy phân tích tình trạng tài chính và đưa ra lời khuyên hữu ích.'}`
+                }
+              ]
+            });
+
+            return new Response(JSON.stringify({
+              success: true,
+              advice: aiResponse.response,
+              model: '@cf/meta/llama-3.2-3b-instruct'
+            }), { status: 200, headers: corsHeaders });
+          }
+
+          return new Response(JSON.stringify({
+            success: false,
+            message: 'Workers AI chưa được kích hoạt trên môi trường này.'
+          }), { status: 503, headers: corsHeaders });
+        } catch (err) {
+          return new Response(JSON.stringify({
+            success: false,
+            message: 'Lỗi AI: ' + err.message
+          }), { status: 500, headers: corsHeaders });
+        }
+      }
+    }
+
+    // ========================================================================
     // 2. SERVE STATIC ASSETS WITH ENFORCED SECURITY HEADERS (A6)
     // ========================================================================
     const response = await env.ASSETS.fetch(request);

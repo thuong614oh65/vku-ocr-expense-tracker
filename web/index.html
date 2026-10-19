@@ -16,13 +16,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=32.0">
+  <link rel="stylesheet" href="style.css?v=33.0">
   <!-- Google Identity Services (OAuth 2.0) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <!-- On-Device Tesseract.js WebAssembly OCR (Local Zero-Latency Engine) -->
   <script src="/tesseract/tesseract.min.js" defer></script>
   <script>
-    const APP_VERSION = '32.0';
+    const APP_VERSION = '33.0';
     if (localStorage.getItem('vku_app_cache_v') !== APP_VERSION) {
       if ('caches' in window) {
         caches.keys().then(function(names) {
@@ -38,7 +38,7 @@
     }
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
-        navigator.serviceWorker.register('/sw.js?v=32.0').then(function (reg) {
+        navigator.serviceWorker.register('/sw.js?v=33.0').then(function (reg) {
           reg.update();
         }).catch(function () {});
       });
@@ -331,10 +331,15 @@
             <h2>Phân Tích & Cơ Cấu Chi Tiêu</h2>
             <p>Báo cáo tổng hợp số liệu, biểu đồ trực quan và đánh giá tài chính thông minh</p>
           </div>
-          <button id="btn-reports-export-csv" class="btn-primary-action" title="Tải báo cáo CSV / Excel" aria-label="Tải báo cáo CSV">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            <span>Xuất Báo Cáo</span>
-          </button>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+            <button type="button" id="btn-print-report" class="btn-secondary-action" title="In hoặc Lưu Báo Cáo PDF" style="background:rgba(255,255,255,0.12); color:#fff; border:1px solid rgba(255,255,255,0.22); border-radius:10px; padding:9px 14px; font-weight:700; font-size:12.5px; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
+              <span>🖨️ Xuất PDF / In</span>
+            </button>
+            <button id="btn-reports-export-csv" class="btn-primary-action" title="Tải báo cáo CSV / Excel" aria-label="Tải báo cáo CSV">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <span>Xuất CSV</span>
+            </button>
+          </div>
         </section>
 
         <!-- Reports KPI Quick Overview Grid -->
@@ -358,6 +363,32 @@
             <span class="report-kpi-label">Tỷ Lệ Đã Dùng</span>
             <strong id="rep-kpi-pct" class="report-kpi-val">0%</strong>
             <small id="rep-kpi-status" class="report-kpi-sub text-success">Ngân sách an toàn</small>
+          </div>
+        </section>
+
+        <!-- AI Financial Advisor Section -->
+        <section class="ai-advisor-card">
+          <div class="ai-advisor-header">
+            <div class="ai-advisor-title-wrap">
+              <span class="ai-advisor-icon">🤖</span>
+              <div>
+                <h3>Cố Vấn Tài Chính AI (SmartSpend Advisor)</h3>
+                <p>Đánh giá tốc độ chi tiêu, dự báo ngân sách & tư vấn tiết kiệm thông minh</p>
+              </div>
+            </div>
+            <button type="button" id="btn-run-ai-advisor" class="btn-ai-analyze">
+              ✨ Phân Tích Bằng AI
+            </button>
+          </div>
+
+          <div id="ai-advisor-body" class="ai-advisor-body">
+            <div class="ai-advisor-placeholder">
+              <div class="placeholder-icon">💡</div>
+              <div class="placeholder-text">
+                <strong>Chưa có phân tích cho kỳ này</strong>
+                <p>Bấm nút <strong>"Phân Tích Bằng AI"</strong> để trợ lý đọc số liệu hóa đơn, dự báo nguy cơ bội chi và đưa ra 3 lời khuyên tài chính tối ưu cho bạn.</p>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -618,12 +649,125 @@
         </div>
 
         <div class="modal-footer detail-actions-row">
+          <button type="button" id="btn-detail-split" class="btn-split-bill-action" title="Chia tiền nhóm & Tạo mã QR nhận tiền" style="background:linear-gradient(135deg, #10b981, #059669); color:#fff; border:none; padding:10px 14px; border-radius:10px; font-weight:700; font-size:13px; cursor:pointer; display:flex; align-items:center; gap:6px;">
+            👥 Chia Tiền (VietQR)
+          </button>
           <button id="btn-detail-edit" class="btn-save-primary" style="flex:1;">
-            ✏️ Chỉnh Sửa Hóa Đơn
+            ✏️ Chỉnh Sửa
           </button>
           <button id="btn-detail-delete" class="btn-delete-danger">
             🗑️ Xóa
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================================================================
+         MODAL: SPLIT BILL & DYNAMIC VIETQR (Napas247)
+         ==================================================================== -->
+    <div id="split-bill-modal" class="modal-overlay hidden">
+      <div class="review-modal-card split-bill-card">
+        <div class="modal-header">
+          <div class="header-title-wrap">
+            <span class="modal-icon">👥</span>
+            <div>
+              <h3>Chia Hóa Đơn & Tạo VietQR</h3>
+              <p id="split-bill-merchant">Hóa đơn: --</p>
+            </div>
+          </div>
+          <button id="btn-close-split" class="icon-btn-close" aria-label="Đóng chia tiền">✕</button>
+        </div>
+
+        <div class="modal-body-scroll">
+          <!-- Total and Amount Per Person Display -->
+          <div class="split-hero-card">
+            <div class="split-hero-row">
+              <span class="split-hero-label">Tổng tiền hóa đơn:</span>
+              <strong id="split-total-amount" class="split-total-val">0 ₫</strong>
+            </div>
+            <div class="split-divider"></div>
+            <div class="split-hero-row highlight">
+              <span class="split-hero-label">Mỗi người chuyển:</span>
+              <strong id="split-per-person" class="split-per-person-val">0 ₫</strong>
+            </div>
+          </div>
+
+          <!-- Stepper: Select Number of People -->
+          <div class="split-config-section">
+            <label class="form-field-label">SỐ NGƯỜI CHIA:</label>
+            <div class="split-stepper-wrap">
+              <button type="button" id="btn-split-minus" class="stepper-btn">−</button>
+              <span id="split-count-display" class="stepper-count">2</span>
+              <span style="font-size:13px;color:var(--text-muted);font-weight:600;">người</span>
+              <button type="button" id="btn-split-plus" class="stepper-btn">+</button>
+            </div>
+            <!-- Quick chips -->
+            <div class="split-chips-row">
+              <button type="button" class="split-chip active" data-count="2">2 người</button>
+              <button type="button" class="split-chip" data-count="3">3 người</button>
+              <button type="button" class="split-chip" data-count="4">4 người</button>
+              <button type="button" class="split-chip" data-count="5">5 người</button>
+              <button type="button" class="split-chip" data-count="6">6 người</button>
+            </div>
+          </div>
+
+          <!-- Bank Account Info (Persisted) -->
+          <div class="split-bank-section">
+            <label class="form-field-label">TÀI KHOẢN NHẬN TIỀN CỦA BẠN (VIETQR):</label>
+            <div class="bank-input-grid">
+              <div>
+                <label class="sub-field-label">Ngân hàng:</label>
+                <select id="split-bank-select" class="bank-select-input">
+                  <option value="MB">MB Bank (Quân Đội)</option>
+                  <option value="VCB">Vietcombank</option>
+                  <option value="TCB">Techcombank</option>
+                  <option value="VPB">VPBank</option>
+                  <option value="ACB">ACB</option>
+                  <option value="BIDV">BIDV</option>
+                  <option value="TPB">TPBank</option>
+                  <option value="VIB">VIB</option>
+                  <option value="STB">Sacombank</option>
+                  <option value="ICB">VietinBank</option>
+                  <option value="MOMO">Ví MoMo</option>
+                </select>
+              </div>
+              <div>
+                <label class="sub-field-label">Số tài khoản / SĐT:</label>
+                <input type="text" id="split-account-no" class="bank-text-input" placeholder="VD: 0912345678" value="">
+              </div>
+              <div>
+                <label class="sub-field-label">Tên chủ tài khoản:</label>
+                <input type="text" id="split-account-name" class="bank-text-input" placeholder="VD: NGUYEN THI THUONG" value="">
+              </div>
+            </div>
+          </div>
+
+          <!-- Live VietQR Code Preview Card -->
+          <div class="vietqr-preview-box">
+            <div class="vietqr-header">
+              <span class="vietqr-tag">MÃ VIETQR CHUẨN NAPAS247</span>
+              <small>Mở ứng dụng ngân hàng bất kỳ để quét thanh toán</small>
+            </div>
+            <div class="qr-image-wrap">
+              <img id="split-qr-img" src="" alt="Mã VietQR Chuyển Khoản" loading="lazy">
+              <div id="split-qr-loading" class="qr-loading-overlay hidden">
+                <div class="spinner"></div>
+                <span>Đang tạo mã VietQR...</span>
+              </div>
+            </div>
+            <div class="qr-meta-text">
+              <span id="split-transfer-content">Nội dung: Tra tien hoa don</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer split-actions-row">
+          <button type="button" id="btn-copy-split-info" class="btn-copy-info" title="Sao chép thông tin chuyển khoản">
+            📋 Sao Chép Số TK & Tiền
+          </button>
+          <a id="btn-download-qr" href="#" download="vietqr_split.png" target="_blank" class="btn-download-qr" title="Mở ảnh QR lớn">
+            📲 Mở Ảnh QR
+          </a>
         </div>
       </div>
     </div>
@@ -947,6 +1091,6 @@ flutter build apk --release</code></pre>
     <span id="sync-toast-msg">Đã đồng bộ với Đám Mây</span>
   </div>
 
-  <script src="app.js?v=32.0"></script>
+  <script src="app.js?v=33.0"></script>
 </body>
 </html>
