@@ -5,7 +5,7 @@
 
 const GOOGLE_CLIENT_ID = '1003178768971-qn13952kqgsbbkqcdkebet5jblf748je.apps.googleusercontent.com';
 
-const CATEGORIES = {
+const DEFAULT_CATEGORIES = {
   food: { name: 'Ăn Uống', color: '#EF4444', icon: '🍲' },
   study: { name: 'Học Tập', color: '#3B82F6', icon: '📚' },
   travel: { name: 'Di Chuyển', color: '#10B981', icon: '🛵' },
@@ -13,6 +13,29 @@ const CATEGORIES = {
   entertainment: { name: 'Giải Trí', color: '#F59E0B', icon: '🎮' },
   other: { name: 'Khác', color: '#6B7280', icon: '🧾' },
 };
+
+const CATEGORIES = { ...DEFAULT_CATEGORIES };
+
+function refreshCategories(customCats = {}) {
+  Object.keys(CATEGORIES).forEach(k => {
+    if (!DEFAULT_CATEGORIES[k]) delete CATEGORIES[k];
+  });
+  Object.assign(CATEGORIES, DEFAULT_CATEGORIES);
+  if (customCats && typeof customCats === 'object') {
+    Object.keys(customCats).forEach(k => {
+      const item = customCats[k];
+      if (item && item.name) {
+        CATEGORIES[k] = {
+          name: item.name,
+          color: item.color || '#6366f1',
+          icon: item.icon || '🏷️',
+          isCustom: true,
+          createdAt: item.createdAt || Date.now()
+        };
+      }
+    });
+  }
+}
 
 const SAMPLE_RECEIPTS = [
   {
@@ -444,6 +467,27 @@ class StorageManager {
       localStorage.setItem(timeKey, String(timestamp || Date.now()));
     } catch (_) {}
   }
+
+  static getCustomCategories(userEmail) {
+    try {
+      const key = this.getUserKey(userEmail, 'custom_categories');
+      const val = localStorage.getItem(key);
+      if (val) {
+        const parsed = JSON.parse(val);
+        if (parsed && typeof parsed === 'object') return parsed;
+      }
+    } catch (_) {}
+    return {};
+  }
+
+  static setCustomCategories(customCatsObj, userEmail, timestamp = null) {
+    try {
+      const key = this.getUserKey(userEmail, 'custom_categories');
+      localStorage.setItem(key, JSON.stringify(customCatsObj || {}));
+      const timeKey = this.getUserKey(userEmail, 'custom_categories_time');
+      localStorage.setItem(timeKey, String(timestamp || Date.now()));
+    } catch (_) {}
+  }
 }
 
 class CloudSyncService {
@@ -478,7 +522,7 @@ class CloudSyncService {
     }
   }
 
-  static async pushToCloud(userEmail, transactions, monthlyBudget, categoryBudgets = {}) {
+  static async pushToCloud(userEmail, transactions, monthlyBudget, categoryBudgets = {}, customCategories = null) {
     if (!userEmail || !navigator.onLine) return null;
     try {
       this.isSyncing = true;
@@ -488,11 +532,13 @@ class CloudSyncService {
         : (/Android/i.test(navigator.userAgent) ? 'Android' : 'Máy tính / PC');
 
       const budgetTime = StorageManager.getBudgetUpdatedAt(userEmail) || Date.now();
+      const catsToPush = customCategories !== null ? customCategories : StorageManager.getCustomCategories(userEmail);
 
       const payload = {
         email: userEmail.trim().toLowerCase(),
         monthlyBudget: monthlyBudget,
         categoryBudgets: categoryBudgets,
+        customCategories: catsToPush,
         budgetUpdatedAt: budgetTime,
         transactions: (transactions || []).map(t => ({
           ...t,
@@ -777,6 +823,7 @@ class RegexReceiptParser {
 class AppController {
   constructor() {
     this.currentUser = AuthService.getCurrentUser();
+    this.loadCategories();
     this.transactions = StorageManager.getTransactions(this.currentUser?.email);
     this.isLoginMode = true;
     this.obscurePassword = true; // Ephemeral state (Week 8 Slide 4)
@@ -1007,6 +1054,12 @@ class AppController {
             hasChanges = true;
           }
 
+          if (cloudData.customCategories && typeof cloudData.customCategories === 'object') {
+            StorageManager.setCustomCategories(cloudData.customCategories, this.currentUser.email);
+            this.loadCategories();
+            hasChanges = true;
+          }
+
           // 2. Merge transactions by id
           const txnMap = new Map();
           localTxns.forEach(t => txnMap.set(t.id, t));
@@ -1038,7 +1091,8 @@ class AppController {
       // Push latest state to cloud to keep Cloudflare KV perfectly synchronized
       const curBudget = StorageManager.getMonthlyBudget(this.currentUser.email);
       const curCatBudgets = StorageManager.getCategoryBudgets(this.currentUser.email);
-      const pushRes = await CloudSyncService.pushToCloud(this.currentUser.email, this.transactions, curBudget, curCatBudgets);
+      const curCustomCats = StorageManager.getCustomCategories(this.currentUser.email);
+      const pushRes = await CloudSyncService.pushToCloud(this.currentUser.email, this.transactions, curBudget, curCatBudgets, curCustomCats);
       if (pushRes) {
         if (userTriggered) {
           this.showSyncToast('✓ Đã đồng bộ hoàn toàn giữa Điện thoại & Máy tính!');
@@ -1151,6 +1205,7 @@ class AppController {
     }
 
     // Authenticated: Load user-specific transactions and show ShellRoute
+    this.loadCategories();
     this.transactions = StorageManager.getTransactions(this.currentUser.email);
     this.syncWithCloud(true, false);
     authScreen.classList.add('hidden');
@@ -1730,6 +1785,11 @@ class AppController {
       btnConfigCatBudget.onclick = () => this.openBudgetModal('categories');
     }
 
+    const btnManageCats = document.getElementById('btn-manage-categories');
+    if (btnManageCats) {
+      btnManageCats.onclick = () => this.openCategoryManagerModal();
+    }
+
     // Bottom NavigationBar (ShellRoute: /dash, /scanner, /reports)
     document.querySelectorAll('.nav-dest').forEach(btn => {
       btn.onclick = () => this.navigateShell(btn.dataset.route);
@@ -2241,6 +2301,263 @@ class AppController {
   }
 
   /**
+   * Opens Category Manager Modal (Create, View, Delete custom categories)
+   */
+  openCategoryManagerModal(onCategoryCreatedCallback = null) {
+    const modal = document.getElementById('category-manager-modal');
+    if (!modal) return;
+
+    this.loadCategories();
+
+    const nameInput = document.getElementById('input-new-cat-name');
+    const iconInput = document.getElementById('input-new-cat-icon');
+    const previewIcon = document.getElementById('preview-new-cat-icon');
+    const errName = document.getElementById('err-new-cat-name');
+    const btnSubmit = document.getElementById('btn-submit-new-category');
+    const listContainer = document.getElementById('category-manager-list');
+    const totalCountEl = document.getElementById('cat-total-count');
+    const emojiPicker = document.getElementById('emoji-quick-picker');
+    const colorPicker = document.getElementById('color-quick-picker');
+
+    if (nameInput) nameInput.value = '';
+    if (errName) errName.classList.add('hidden');
+
+    let selectedEmoji = '🏠';
+    let selectedColor = '#10B981';
+
+    if (iconInput) iconInput.value = selectedEmoji;
+    if (previewIcon) {
+      previewIcon.textContent = selectedEmoji;
+      previewIcon.style.borderColor = selectedColor;
+      previewIcon.style.backgroundColor = `${selectedColor}18`;
+    }
+
+    // Populate Quick Emojis
+    const quickEmojis = [
+      '🏠', '⚡', '💧', '💊', '💄', '🛒', '👶', '🐱', '🐶', '🎁',
+      '☕', '✈️', '🏋️', '💰', '💳', '🔨', '🚗', '🏥', '🍽️', '📚',
+      '💻', '🎮', '🧾', '👔', '🛠️', '🍔', '🎨', '🎵'
+    ];
+    if (emojiPicker) {
+      emojiPicker.innerHTML = '';
+      quickEmojis.forEach(emoji => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `emoji-btn ${emoji === selectedEmoji ? 'selected' : ''}`;
+        btn.textContent = emoji;
+        btn.onclick = () => {
+          selectedEmoji = emoji;
+          if (iconInput) iconInput.value = emoji;
+          if (previewIcon) previewIcon.textContent = emoji;
+          emojiPicker.querySelectorAll('.emoji-btn').forEach(b => b.classList.remove('selected'));
+          btn.classList.add('selected');
+        };
+        emojiPicker.appendChild(btn);
+      });
+    }
+
+    if (iconInput) {
+      iconInput.oninput = () => {
+        const val = iconInput.value.trim();
+        if (val) {
+          selectedEmoji = val;
+          if (previewIcon) previewIcon.textContent = val;
+        }
+      };
+    }
+
+    // Populate Quick Colors
+    const quickColors = [
+      '#EF4444', '#F97316', '#F59E0B', '#10B981', '#06B6D4',
+      '#3B82F6', '#6366F1', '#8B5CF6', '#EC4899', '#6B7280'
+    ];
+    if (colorPicker) {
+      colorPicker.innerHTML = '';
+      quickColors.forEach(color => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `color-swatch-btn ${color === selectedColor ? 'selected' : ''}`;
+        btn.style.backgroundColor = color;
+        btn.title = color;
+        btn.onclick = () => {
+          selectedColor = color;
+          if (previewIcon) {
+            previewIcon.style.borderColor = color;
+            previewIcon.style.backgroundColor = `${color}18`;
+          }
+          colorPicker.querySelectorAll('.color-swatch-btn').forEach(b => b.classList.remove('selected'));
+          btn.classList.add('selected');
+        };
+        colorPicker.appendChild(btn);
+      });
+    }
+
+    // Render Current Category List
+    const renderManagerList = () => {
+      this.loadCategories();
+      const allKeys = Object.keys(CATEGORIES);
+      if (totalCountEl) totalCountEl.textContent = allKeys.length;
+      if (!listContainer) return;
+
+      listContainer.innerHTML = '';
+
+      allKeys.forEach(k => {
+        const cat = CATEGORIES[k];
+        const isCustom = !!cat.isCustom;
+        const txnCount = this.transactions.filter(t => t.category === k).length;
+
+        const row = document.createElement('div');
+        row.className = 'cat-manager-item';
+        row.innerHTML = `
+          <div class="cat-manager-item-left">
+            <span style="font-size: 22px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: ${cat.color}15; border: 1.5px solid ${cat.color}; border-radius: 8px;">
+              ${cat.icon}
+            </span>
+            <div>
+              <div class="cat-manager-item-name">${cat.name}</div>
+              <small style="color: var(--text-muted); font-size: 11px;">
+                ${txnCount} giao dịch • <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: ${cat.color}; vertical-align: middle;"></span>
+              </small>
+            </div>
+          </div>
+          <div class="cat-manager-item-right">
+            ${
+              isCustom
+                ? `<button type="button" class="cat-manager-delete-btn" data-key="${k}">🗑️ Xóa</button>`
+                : `<span class="cat-manager-badge-default">🔒 Mặc định</span>`
+            }
+          </div>
+        `;
+
+        if (isCustom) {
+          const delBtn = row.querySelector('.cat-manager-delete-btn');
+          if (delBtn) {
+            delBtn.onclick = () => {
+              const confirmMsg = txnCount > 0
+                ? `Bạn có chắc muốn xóa danh mục "${cat.name}"?\n${txnCount} giao dịch thuộc danh mục này sẽ được chuyển an toàn sang mục "Khác".`
+                : `Bạn có chắc muốn xóa danh mục "${cat.name}"?`;
+              if (confirm(confirmMsg)) {
+                // Reassign transactions
+                if (txnCount > 0) {
+                  this.transactions.forEach(t => {
+                    if (t.category === k) {
+                      t.category = 'other';
+                      t.updatedAt = Date.now();
+                    }
+                  });
+                  StorageManager.saveTransactions(this.transactions, this.currentUser?.email);
+                }
+
+                // Remove from custom categories
+                const customCats = StorageManager.getCustomCategories(this.currentUser?.email);
+                delete customCats[k];
+                StorageManager.setCustomCategories(customCats, this.currentUser?.email);
+
+                // Remove budget for this category
+                const catBudgets = StorageManager.getCategoryBudgets(this.currentUser?.email);
+                if (catBudgets[k] !== undefined) {
+                  delete catBudgets[k];
+                  StorageManager.setCategoryBudgets(catBudgets, this.currentUser?.email);
+                }
+
+                this.loadCategories();
+                this.render(false);
+                renderManagerList();
+
+                // Push to Cloud
+                CloudSyncService.pushToCloud(
+                  this.currentUser?.email,
+                  this.transactions,
+                  StorageManager.getMonthlyBudget(this.currentUser?.email),
+                  catBudgets,
+                  customCats
+                );
+                this.showSyncToast(`✓ Đã xóa danh mục "${cat.name}"!`);
+              }
+            };
+          }
+        }
+
+        listContainer.appendChild(row);
+      });
+    };
+
+    renderManagerList();
+
+    // Submit New Category
+    if (btnSubmit) {
+      btnSubmit.onclick = () => {
+        const name = (nameInput?.value || '').trim();
+        if (!name || name.length < 2) {
+          if (errName) {
+            errName.textContent = 'Vui lòng nhập tên danh mục (tối thiểu 2 ký tự)!';
+            errName.classList.remove('hidden');
+          }
+          if (nameInput) nameInput.focus();
+          return;
+        }
+
+        if (errName) errName.classList.add('hidden');
+
+        // Check duplicate name
+        const allKeys = Object.keys(CATEGORIES);
+        const isDuplicate = allKeys.some(k => CATEGORIES[k].name.toLowerCase() === name.toLowerCase());
+        if (isDuplicate) {
+          if (errName) {
+            errName.textContent = `Danh mục "${name}" đã tồn tại! Vui lòng chọn tên khác.`;
+            errName.classList.remove('hidden');
+          }
+          if (nameInput) nameInput.focus();
+          return;
+        }
+
+        const newKey = `cat_${Date.now()}`;
+        const newCat = {
+          name: name,
+          icon: selectedEmoji || '🏷️',
+          color: selectedColor || '#6366f1',
+          isCustom: true,
+          createdAt: Date.now()
+        };
+
+        const customCats = StorageManager.getCustomCategories(this.currentUser?.email);
+        customCats[newKey] = newCat;
+        StorageManager.setCustomCategories(customCats, this.currentUser?.email);
+
+        this.loadCategories();
+        this.render(false);
+        renderManagerList();
+
+        if (nameInput) nameInput.value = '';
+        this.showSyncToast(`✓ Đã tạo danh mục mới "${newCat.icon} ${newCat.name}"!`);
+
+        // Cloud sync
+        CloudSyncService.pushToCloud(
+          this.currentUser?.email,
+          this.transactions,
+          StorageManager.getMonthlyBudget(this.currentUser?.email),
+          StorageManager.getCategoryBudgets(this.currentUser?.email),
+          customCats
+        );
+
+        if (typeof onCategoryCreatedCallback === 'function') {
+          modal.classList.add('hidden');
+          onCategoryCreatedCallback(newKey);
+        }
+      };
+    }
+
+    const closeBtn = document.getElementById('btn-close-cat-manager');
+    const closeModal = () => modal.classList.add('hidden');
+    if (closeBtn) closeBtn.onclick = closeModal;
+
+    modal.classList.remove('hidden');
+    setTimeout(() => {
+      if (nameInput) nameInput.focus();
+    }, 150);
+  }
+
+  /**
    * Opens Dedicated Budget Setting Modal
    */
   openBudgetModal(initialTab = 'total') {
@@ -2363,7 +2680,8 @@ class AppController {
     };
 
     // Category input controls
-    const catKeys = ['food', 'travel', 'study', 'gear', 'entertainment', 'other'];
+    this.loadCategories();
+    const catKeys = Object.keys(CATEGORIES);
     const catInputs = {};
     const catHints = {};
 
@@ -2382,15 +2700,45 @@ class AppController {
       }
     };
 
-    catKeys.forEach(k => {
-      catInputs[k] = document.getElementById(`input-cat-budget-${k}`);
-      catHints[k] = document.getElementById(`hint-cat-budget-${k}`);
-      if (catInputs[k]) {
+    const gridEl = document.getElementById('cat-budget-input-grid');
+    if (gridEl) {
+      gridEl.innerHTML = '';
+      catKeys.forEach(k => {
+        const cat = CATEGORIES[k] || { name: k, icon: '🏷️' };
+        const row = document.createElement('div');
+        row.className = 'cat-budget-input-row';
+        row.innerHTML = `
+          <div class="cat-budget-input-label">
+            <span style="font-size: 18px;">${cat.icon}</span>
+            <div>
+              <span>${cat.name}</span>
+              <span id="hint-cat-budget-${k}" class="cat-budget-word-hint"></span>
+            </div>
+          </div>
+          <div class="currency-input-wrap" style="flex:1;">
+            <input type="text" inputmode="numeric" id="input-cat-budget-${k}" class="cat-budget-number-input" placeholder="0">
+            <span class="currency-symbol" style="font-size:13px;right:10px;">₫</span>
+          </div>
+        `;
+        gridEl.appendChild(row);
+
+        catInputs[k] = row.querySelector(`#input-cat-budget-${k}`);
+        catHints[k] = row.querySelector(`#hint-cat-budget-${k}`);
         const initialVal = catBudgets[k] !== undefined ? catBudgets[k] : 0;
         catInputs[k].value = formatNumberWithDots(initialVal);
         bindDotFormatter(catInputs[k], catHints[k], () => updateCatSumPreview());
-      }
-    });
+      });
+    }
+
+    const btnModalOpenCatMgr = document.getElementById('btn-modal-open-cat-manager');
+    if (btnModalOpenCatMgr) {
+      btnModalOpenCatMgr.onclick = () => {
+        closeModal();
+        this.openCategoryManagerModal(() => {
+          this.openBudgetModal('categories');
+        });
+      };
+    }
 
     // Auto split button (45% food, 15% travel, 15% study, 10% gear, 10% entertainment, 5% other)
     const btnAutoSplit = document.getElementById('btn-auto-split-cat-budgets');
@@ -2407,8 +2755,9 @@ class AppController {
         };
         catKeys.forEach(k => {
           if (catInputs[k]) {
-            catInputs[k].value = formatNumberWithDots(autoMap[k]);
-            if (catHints[k]) catHints[k].textContent = formatVNDWords(autoMap[k]);
+            const v = autoMap[k] !== undefined ? autoMap[k] : 0;
+            catInputs[k].value = formatNumberWithDots(v);
+            if (catHints[k]) catHints[k].textContent = formatVNDWords(v);
           }
         });
         updateCatSumPreview();
@@ -2480,7 +2829,7 @@ class AppController {
           this.render(false);
 
           // Sync immediately to cloud across all devices!
-          CloudSyncService.pushToCloud(this.currentUser?.email, this.transactions, val, newCatBudgets);
+          CloudSyncService.pushToCloud(this.currentUser?.email, this.transactions, val, newCatBudgets, StorageManager.getCustomCategories(this.currentUser?.email));
           this.showSyncToast(`✓ Đã lưu & đồng bộ hạn mức các danh mục lên Đám Mây!`);
         } else {
           if (err) err.classList.remove('hidden');
@@ -2896,7 +3245,9 @@ class AppController {
   }
 
   renderReviewCategoryChips(selectedKey) {
+    this.loadCategories();
     const chipsWrap = document.getElementById('category-selector-chips');
+    if (!chipsWrap) return;
     chipsWrap.innerHTML = '';
     Object.keys(CATEGORIES).forEach(k => {
       const cat = CATEGORIES[k];
@@ -2905,11 +3256,24 @@ class AppController {
       chip.className = `category-choice-chip ${selectedKey === k ? 'selected' : ''}`;
       chip.innerHTML = `${cat.icon} ${cat.name}`;
       chip.onclick = () => {
-        this.currentPendingResult.category = k;
+        if (this.currentPendingResult) this.currentPendingResult.category = k;
         this.renderReviewCategoryChips(k);
       };
       chipsWrap.appendChild(chip);
     });
+
+    const addBtn = document.createElement('button');
+    addBtn.type = 'button';
+    addBtn.className = 'category-choice-chip add-custom-cat-chip';
+    addBtn.innerHTML = '➕ Tạo Mới';
+    addBtn.title = 'Tạo danh mục chi tiêu mới';
+    addBtn.onclick = () => {
+      this.openCategoryManagerModal((newCatKey) => {
+        if (this.currentPendingResult) this.currentPendingResult.category = newCatKey;
+        this.renderReviewCategoryChips(newCatKey);
+      });
+    };
+    chipsWrap.appendChild(addBtn);
   }
 
   saveEditedTransaction() {
@@ -3514,6 +3878,7 @@ class AppController {
   }
 
   renderFilterCategoryChips() {
+    this.loadCategories();
     const wrap = document.getElementById('filter-category-chips');
     if (!wrap) return;
     wrap.innerHTML = '';
@@ -3539,6 +3904,14 @@ class AppController {
       };
       wrap.appendChild(btn);
     });
+
+    const addCatBtn = document.createElement('button');
+    addCatBtn.type = 'button';
+    addCatBtn.className = 'sample-chip add-custom-cat-chip';
+    addCatBtn.textContent = '➕ Thêm mục';
+    addCatBtn.title = 'Tạo thêm danh mục chi tiêu mới';
+    addCatBtn.onclick = () => this.openCategoryManagerModal();
+    wrap.appendChild(addCatBtn);
   }
 
   render(animateCharts = false) {
@@ -3821,7 +4194,8 @@ class AppController {
     const catBudgets = StorageManager.getCategoryBudgets(this.currentUser?.email);
     container.innerHTML = '';
 
-    const catKeys = ['food', 'travel', 'study', 'gear', 'entertainment', 'other'];
+    this.loadCategories();
+    const catKeys = Object.keys(CATEGORIES);
 
     catKeys.forEach(k => {
       const cat = CATEGORIES[k] || { name: k, icon: '🏷️', color: '#6366f1' };

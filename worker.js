@@ -144,6 +144,7 @@ export default {
           const existing = (await env.EXPENSE_SYNC_KV.get('user:' + email, { type: 'json' })) || {
             monthlyBudget: 3500000,
             categoryBudgets: {},
+            customCategories: {},
             budgetUpdatedAt: 0,
             transactions: [],
             updatedAt: 0
@@ -176,6 +177,7 @@ export default {
           // 2. Merge Budget
           let monthlyBudget = existing.monthlyBudget || 3500000;
           let categoryBudgets = existing.categoryBudgets || {};
+          let customCategories = existing.customCategories || {};
           let budgetUpdatedAt = existing.budgetUpdatedAt || 0;
 
           const incomingBudgetTime = body.budgetUpdatedAt || body.clientUpdatedAt || 0;
@@ -190,10 +192,15 @@ export default {
             categoryBudgets = { ...categoryBudgets, ...body.categoryBudgets };
           }
 
+          if (body.customCategories && typeof body.customCategories === 'object') {
+            customCategories = { ...body.customCategories };
+          }
+
           const mergedData = {
             email,
             monthlyBudget,
             categoryBudgets,
+            customCategories,
             budgetUpdatedAt,
             transactions: mergedTransactions,
             updatedAt: Date.now(),

@@ -16,13 +16,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=35.5">
+  <link rel="stylesheet" href="style.css?v=36.0">
   <!-- Google Identity Services (OAuth 2.0) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <!-- On-Device Tesseract.js WebAssembly OCR (Local Zero-Latency Engine) -->
   <script src="/tesseract/tesseract.min.js" defer></script>
   <script>
-    const APP_VERSION = '35.5';
+    const APP_VERSION = '36.0';
     if (localStorage.getItem('vku_app_cache_v') !== APP_VERSION) {
       if ('caches' in window) {
         caches.keys().then(function(names) {
@@ -38,7 +38,7 @@
     }
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
-        navigator.serviceWorker.register('/sw.js?v=35.5').then(function (reg) {
+        navigator.serviceWorker.register('/sw.js?v=36.0').then(function (reg) {
           reg.update();
         }).catch(function () {});
       });
@@ -328,9 +328,14 @@
               <h3>🎯 Hạn Mức Từng Danh Mục</h3>
               <p class="cat-budget-sub">Cảnh báo chi tiêu và giới hạn theo từng danh mục</p>
             </div>
-            <button type="button" id="btn-config-cat-budget" class="btn-cat-config-pill" title="Cài đặt hạn mức danh mục">
-              ⚙️ Cài Đặt
-            </button>
+            <div style="display: flex; gap: 8px;">
+              <button type="button" id="btn-manage-categories" class="btn-cat-config-pill" title="Tự tạo & Quản lý danh mục chi tiêu">
+                🏷️ Danh Mục
+              </button>
+              <button type="button" id="btn-config-cat-budget" class="btn-cat-config-pill" title="Cài đặt hạn mức danh mục">
+                ⚙️ Cài Đặt
+              </button>
+            </div>
           </div>
           <div id="cat-budget-list" class="cat-budget-list">
             <!-- Dynamically populated by renderCategoryBudgets() -->
@@ -1119,9 +1124,14 @@ flutter build apk --release</code></pre>
 
           <!-- PANE 2: Category Budgets -->
           <div id="budget-pane-categories" class="hidden">
-            <button type="button" id="btn-auto-split-cat-budgets" class="btn-auto-split" title="Tự động tính hạn mức theo tỷ lệ">
-              ⚡ Tự động chia theo ngân sách tổng (45% Ăn uống, 15% Đi lại...)
-            </button>
+            <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+              <button type="button" id="btn-modal-open-cat-manager" class="btn-auto-split" style="flex: 1; margin-bottom: 0; background: rgba(16, 185, 129, 0.1); border-color: #10b981; color: #10b981;" title="Thêm hoặc quản lý danh mục">
+                ➕ Thêm Danh Mục
+              </button>
+              <button type="button" id="btn-auto-split-cat-budgets" class="btn-auto-split" style="flex: 1.5; margin-bottom: 0;" title="Tự động tính hạn mức theo tỷ lệ">
+                ⚡ Tự động chia theo ngân sách
+              </button>
+            </div>
 
             <div class="cat-budget-input-grid">
               <div class="cat-budget-input-row">
@@ -1227,12 +1237,78 @@ flutter build apk --release</code></pre>
       </div>
   </div>
 
+  <!-- Modal Quản Lý & Tự Tạo Danh Mục Chi Tiêu -->
+  <div id="category-manager-modal" class="modal-overlay hidden">
+    <div class="modal-card modal-card-category-manager" style="max-width: 520px; border-radius: 16px; overflow: hidden;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 24px;">🏷️</span>
+          <div>
+            <h3 style="margin: 0; font-size: 16px; font-weight: 800; color: var(--text-color);">Quản Lý & Tự Tạo Danh Mục</h3>
+            <p style="margin: 0; font-size: 11.5px; color: var(--text-muted);">Thêm danh mục mới, chọn icon Emoji và màu sắc</p>
+          </div>
+        </div>
+        <button type="button" id="btn-close-cat-manager" class="icon-btn" aria-label="Đóng" style="font-size: 18px; width: 34px; height: 34px;">✕</button>
+      </div>
+
+      <div class="modal-body" style="padding: 16px 20px; max-height: 75vh; overflow-y: auto;">
+        <!-- Card Tạo Danh Mục Mới -->
+        <div class="new-category-box">
+          <div style="font-size: 12.5px; font-weight: 800; color: var(--primary); margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+            <span>➕</span>
+            <span>TẠO DANH MỤC MỚI</span>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 12px;">
+            <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted);">TÊN DANH MỤC *</label>
+            <input type="text" id="input-new-cat-name" class="text-input" placeholder="VD: Tiền Nhà / Trọ, Y Tế & Sức Khỏe, Mỹ Phẩm..." maxlength="30" style="padding: 10px 14px; font-size: 14px; font-weight: 600;">
+            <small id="err-new-cat-name" class="field-error hidden">Vui lòng nhập tên danh mục hợp lệ (2 - 30 ký tự).</small>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 12px;">
+            <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted);">BIỂU TƯỢNG (EMOJI)</label>
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+              <span id="preview-new-cat-icon" style="font-size: 26px; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: var(--bg-color); border-radius: 10px; border: 1.5px solid #10b981;">🏠</span>
+              <input type="text" id="input-new-cat-icon" class="text-input" value="🏠" maxlength="4" style="width: 70px; text-align: center; font-size: 20px; padding: 6px;" placeholder="🏠">
+              <span style="font-size: 11.5px; color: var(--text-muted);">Nhấp chọn nhanh bên dưới hoặc tự nhập</span>
+            </div>
+            <div id="emoji-quick-picker" class="emoji-picker-grid">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 14px;">
+            <label style="font-size: 11.5px; font-weight: 700; color: var(--text-muted);">MÀU SẮC ĐẠI DIỆN</label>
+            <div id="color-quick-picker" class="color-picker-row">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
+
+          <button type="button" id="btn-submit-new-category" class="btn-save-primary" style="width: 100%; padding: 11px; font-size: 14px; font-weight: 700;">
+            ✓ Tạo Danh Mục Mới
+          </button>
+        </div>
+
+        <!-- Danh Sách Các Danh Mục Hiện Có -->
+        <div style="margin-top: 20px;">
+          <div style="font-size: 12px; font-weight: 800; color: var(--text-muted); margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+            <span>DANH MỤC HIỆN CÓ (<span id="cat-total-count">6</span>)</span>
+            <span style="font-size: 11px; color: var(--text-muted); font-weight: normal;">(Tự động đồng bộ Đám Mây)</span>
+          </div>
+          <div id="category-manager-list" class="cat-manager-list">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Real-time Cloud Sync Toast Notification -->
   <div id="sync-toast" class="sync-toast">
     <span>☁️</span>
     <span id="sync-toast-msg">Đã đồng bộ với Đám Mây</span>
   </div>
 
-  <script src="app.js?v=35.5"></script>
+  <script src="app.js?v=36.0"></script>
 </body>
 </html>
