@@ -1224,14 +1224,15 @@ class AppController {
       if (viewLogin) viewLogin.classList.toggle('hidden', !loginMode);
       if (viewRegister) viewRegister.classList.toggle('hidden', loginMode);
       if (modalTitle) {
-        modalTitle.textContent = loginMode ? 'Đăng Nhập Tài Khoản' : 'Đăng Ký Tài Khoản Sinh Viên';
+        modalTitle.textContent = loginMode ? 'Đăng Nhập Tài Khoản' : 'Đăng Ký Tài Khoản';
       }
     };
 
     if (tabLogin) tabLogin.onclick = () => switchMode(true);
     if (tabRegister) tabRegister.onclick = () => switchMode(false);
 
-    // Password visibility toggle (Login)
+    // Input fields for Login
+    const idInput = document.getElementById('auth-identifier');
     const pwdInput = document.getElementById('auth-password');
     const pwdBtn = document.getElementById('btn-toggle-pwd');
     if (pwdBtn && pwdInput) {
@@ -1239,6 +1240,11 @@ class AppController {
         const isCurrentlyPassword = pwdInput.type === 'password';
         pwdInput.type = isCurrentlyPassword ? 'text' : 'password';
         pwdBtn.textContent = isCurrentlyPassword ? 'Ẩn' : 'Hiện';
+      };
+    }
+    if (idInput && pwdInput) {
+      idInput.onkeydown = (e) => {
+        if (e.key === 'Enter') pwdInput.focus();
       };
     }
 
@@ -1300,7 +1306,7 @@ class AppController {
         const identifier = idInput.value.trim();
         const password = pwdInput.value;
         if (!identifier) {
-          showError('Vui lòng nhập Mã sinh viên (MSSV) hoặc Email VKU.');
+          showError('Vui lòng nhập Email hoặc Tên đăng nhập.');
           return;
         }
         if (!password) {
@@ -1319,6 +1325,12 @@ class AppController {
         CloudSyncService.pullFromCloud(res.user.email).catch(() => {});
         this.syncRouteGuard();
       };
+
+      if (pwdInput) {
+        pwdInput.onkeydown = (e) => {
+          if (e.key === 'Enter') btnLoginSubmit.click();
+        };
+      }
     }
 
     // Standard Register Submission
