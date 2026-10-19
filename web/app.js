@@ -2277,31 +2277,58 @@ class AppController {
     switchTab(initialTab);
 
     // Category input controls
+    const formatNumberWithDots = (num) => {
+      if (num === null || num === undefined || num === '') return '';
+      const n = typeof num === 'number' ? num : parseInt(String(num).replace(/\D/g, ''), 10);
+      return !isNaN(n) && n > 0 ? n.toLocaleString('vi-VN') : (n === 0 ? '0' : '');
+    };
+
+    const parseNumberFromDots = (str) => {
+      if (!str) return 0;
+      const digits = String(str).replace(/\D/g, '');
+      return parseInt(digits, 10) || 0;
+    };
+
+    const bindDotFormatter = (inputEl, onUpdate) => {
+      if (!inputEl) return;
+      inputEl.addEventListener('input', () => {
+        const raw = parseNumberFromDots(inputEl.value);
+        if (!inputEl.value) {
+          inputEl.value = '';
+        } else if (raw === 0) {
+          inputEl.value = '0';
+        } else {
+          inputEl.value = raw.toLocaleString('vi-VN');
+        }
+        if (typeof onUpdate === 'function') onUpdate();
+      });
+    };
+
+    // Category input controls
     const catKeys = ['food', 'travel', 'study', 'gear', 'entertainment', 'other'];
     const catInputs = {};
-    catKeys.forEach(k => {
-      catInputs[k] = document.getElementById(`input-cat-budget-${k}`);
-      if (catInputs[k]) {
-        catInputs[k].value = catBudgets[k] !== undefined ? catBudgets[k] : 0;
-      }
-    });
 
     const updateCatSumPreview = () => {
       let sum = 0;
       catKeys.forEach(k => {
-        const val = parseInt(catInputs[k]?.value, 10);
-        if (!isNaN(val) && val > 0) sum += val;
+        const val = parseNumberFromDots(catInputs[k]?.value);
+        if (val > 0) sum += val;
       });
       const previewEl = document.getElementById('cat-budgets-sum-preview');
       if (previewEl) {
-        const tot = parseInt(input?.value, 10) || cur;
-        previewEl.innerHTML = `${this.formatVND(sum)} <span style="font-size:11px;color:var(--text-muted);font-weight:normal;">/ Ngân sách: ${this.formatVND(tot)}</span>`;
+        const tot = parseNumberFromDots(input?.value) || cur;
+        const sumWord = sum >= 1000000 ? ` (~${(sum / 1000000).toFixed(1).replace('.0', '')} triệu)` : (sum >= 1000 ? ` (~${Math.round(sum / 1000)}k)` : '');
+        const totWord = tot >= 1000000 ? ` (~${(tot / 1000000).toFixed(1).replace('.0', '')} triệu)` : '';
+        previewEl.innerHTML = `${this.formatVND(sum)} <span style="font-size:11px;color:var(--text-muted);font-weight:normal;">${sumWord} / Ngân sách: ${this.formatVND(tot)}${totWord}</span>`;
       }
     };
 
     catKeys.forEach(k => {
+      catInputs[k] = document.getElementById(`input-cat-budget-${k}`);
       if (catInputs[k]) {
-        catInputs[k].oninput = updateCatSumPreview;
+        const initialVal = catBudgets[k] !== undefined ? catBudgets[k] : 0;
+        catInputs[k].value = formatNumberWithDots(initialVal);
+        bindDotFormatter(catInputs[k], () => updateCatSumPreview());
       }
     });
 
@@ -2309,7 +2336,7 @@ class AppController {
     const btnAutoSplit = document.getElementById('btn-auto-split-cat-budgets');
     if (btnAutoSplit) {
       btnAutoSplit.onclick = () => {
-        const tot = parseInt(input?.value, 10) || cur;
+        const tot = parseNumberFromDots(input?.value) || cur;
         const autoMap = {
           food: Math.round(tot * 0.45),
           travel: Math.round(tot * 0.15),
@@ -2319,7 +2346,7 @@ class AppController {
           other: Math.round(tot * 0.05)
         };
         catKeys.forEach(k => {
-          if (catInputs[k]) catInputs[k].value = autoMap[k];
+          if (catInputs[k]) catInputs[k].value = formatNumberWithDots(autoMap[k]);
         });
         updateCatSumPreview();
       };
@@ -2328,11 +2355,12 @@ class AppController {
     updateCatSumPreview();
 
     const updateDaily = () => {
-      const val = parseInt(input.value, 10);
+      const val = parseNumberFromDots(input.value);
       if (dailyPreview) {
-        if (!isNaN(val) && val > 0) {
+        if (val > 0) {
           const perDay = Math.round(val / 30);
-          dailyPreview.textContent = `${this.formatVND(perDay)} / ngày`;
+          const valWord = val >= 1000000 ? ` (~${(val / 1000000).toFixed(1).replace('.0', '')} triệu VNĐ)` : '';
+          dailyPreview.innerHTML = `Mức chi trung bình dự kiến: <strong>${this.formatVND(perDay)} / ngày</strong> <small style="color:var(--text-muted);">${valWord}</small>`;
         } else {
           dailyPreview.textContent = '-- ₫ / ngày';
         }
@@ -2341,8 +2369,8 @@ class AppController {
     };
 
     if (input) {
-      input.value = cur;
-      input.oninput = updateDaily;
+      input.value = formatNumberWithDots(cur);
+      bindDotFormatter(input, () => updateDaily());
       updateDaily();
     }
     if (err) err.classList.add('hidden');
@@ -2358,7 +2386,7 @@ class AppController {
     modal.querySelectorAll('.budget-preset-btn').forEach(btn => {
       btn.onclick = () => {
         if (input) {
-          input.value = btn.dataset.amount;
+          input.value = formatNumberWithDots(btn.dataset.amount);
           updateDaily();
         }
         if (err) err.classList.add('hidden');
@@ -2367,15 +2395,15 @@ class AppController {
 
     if (saveBtn) {
       saveBtn.onclick = () => {
-        const val = parseInt(input.value, 10);
-        if (!isNaN(val) && val > 0) {
+        const val = parseNumberFromDots(input.value);
+        if (val > 0) {
           StorageManager.setMonthlyBudget(val, this.currentUser?.email);
 
           // Read and save category budgets
           const newCatBudgets = {};
           catKeys.forEach(k => {
-            const cVal = parseInt(catInputs[k]?.value, 10);
-            newCatBudgets[k] = !isNaN(cVal) && cVal >= 0 ? cVal : 0;
+            const cVal = parseNumberFromDots(catInputs[k]?.value);
+            newCatBudgets[k] = cVal >= 0 ? cVal : 0;
           });
           StorageManager.setCategoryBudgets(newCatBudgets, this.currentUser?.email);
 

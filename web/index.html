@@ -16,13 +16,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=35.3">
+  <link rel="stylesheet" href="style.css?v=35.4">
   <!-- Google Identity Services (OAuth 2.0) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <!-- On-Device Tesseract.js WebAssembly OCR (Local Zero-Latency Engine) -->
   <script src="/tesseract/tesseract.min.js" defer></script>
   <script>
-    const APP_VERSION = '35.3';
+    const APP_VERSION = '35.4';
     if (localStorage.getItem('vku_app_cache_v') !== APP_VERSION) {
       if ('caches' in window) {
         caches.keys().then(function(names) {
@@ -1092,7 +1092,7 @@ flutter build apk --release</code></pre>
             <div class="form-group">
               <label>SỐ TIỀN NGÂN SÁCH THÁNG (VNĐ) *</label>
               <div class="currency-input-wrap">
-                <input type="number" id="input-budget-amount" class="text-input font-bold text-blue" placeholder="VD: 3500000" min="200000" step="100000">
+                <input type="text" inputmode="numeric" id="input-budget-amount" class="text-input font-bold text-blue" placeholder="VD: 3.500.000" style="padding-right: 32px; font-family: 'JetBrains Mono', monospace; font-size: 15px;">
                 <span class="currency-symbol">₫</span>
               </div>
               <div id="budget-daily-preview" class="budget-daily-preview">
@@ -1129,8 +1129,8 @@ flutter build apk --release</code></pre>
                   <span>Ăn Uống</span>
                 </div>
                 <div class="currency-input-wrap" style="flex:1;">
-                  <input type="number" id="input-cat-budget-food" class="cat-budget-number-input" placeholder="2000000" min="0" step="50000">
-                  <span class="currency-symbol" style="font-size:12px;right:8px;">₫</span>
+                  <input type="text" inputmode="numeric" id="input-cat-budget-food" class="cat-budget-number-input" placeholder="2.000.000">
+                  <span class="currency-symbol" style="font-size:13px;right:10px;">₫</span>
                 </div>
               </div>
 
@@ -1140,8 +1140,8 @@ flutter build apk --release</code></pre>
                   <span>Di Chuyển</span>
                 </div>
                 <div class="currency-input-wrap" style="flex:1;">
-                  <input type="number" id="input-cat-budget-travel" class="cat-budget-number-input" placeholder="500000" min="0" step="50000">
-                  <span class="currency-symbol" style="font-size:12px;right:8px;">₫</span>
+                  <input type="text" inputmode="numeric" id="input-cat-budget-travel" class="cat-budget-number-input" placeholder="500.000">
+                  <span class="currency-symbol" style="font-size:13px;right:10px;">₫</span>
                 </div>
               </div>
 
@@ -1151,8 +1151,8 @@ flutter build apk --release</code></pre>
                   <span>Học Tập</span>
                 </div>
                 <div class="currency-input-wrap" style="flex:1;">
-                  <input type="number" id="input-cat-budget-study" class="cat-budget-number-input" placeholder="500000" min="0" step="50000">
-                  <span class="currency-symbol" style="font-size:12px;right:8px;">₫</span>
+                  <input type="text" inputmode="numeric" id="input-cat-budget-study" class="cat-budget-number-input" placeholder="500.000">
+                  <span class="currency-symbol" style="font-size:13px;right:10px;">₫</span>
                 </div>
               </div>
 
@@ -1162,8 +1162,8 @@ flutter build apk --release</code></pre>
                   <span>Thiết Bị</span>
                 </div>
                 <div class="currency-input-wrap" style="flex:1;">
-                  <input type="number" id="input-cat-budget-gear" class="cat-budget-number-input" placeholder="300000" min="0" step="50000">
-                  <span class="currency-symbol" style="font-size:12px;right:8px;">₫</span>
+                  <input type="text" inputmode="numeric" id="input-cat-budget-gear" class="cat-budget-number-input" placeholder="300.000">
+                  <span class="currency-symbol" style="font-size:13px;right:10px;">₫</span>
                 </div>
               </div>
 
@@ -1173,8 +1173,8 @@ flutter build apk --release</code></pre>
                   <span>Giải Trí</span>
                 </div>
                 <div class="currency-input-wrap" style="flex:1;">
-                  <input type="number" id="input-cat-budget-entertainment" class="cat-budget-number-input" placeholder="300000" min="0" step="50000">
-                  <span class="currency-symbol" style="font-size:12px;right:8px;">₫</span>
+                  <input type="text" inputmode="numeric" id="input-cat-budget-entertainment" class="cat-budget-number-input" placeholder="300.000">
+                  <span class="currency-symbol" style="font-size:13px;right:10px;">₫</span>
                 </div>
               </div>
 
@@ -1184,8 +1184,8 @@ flutter build apk --release</code></pre>
                   <span>Khác</span>
                 </div>
                 <div class="currency-input-wrap" style="flex:1;">
-                  <input type="number" id="input-cat-budget-other" class="cat-budget-number-input" placeholder="200000" min="0" step="50000">
-                  <span class="currency-symbol" style="font-size:12px;right:8px;">₫</span>
+                  <input type="text" inputmode="numeric" id="input-cat-budget-other" class="cat-budget-number-input" placeholder="200.000">
+                  <span class="currency-symbol" style="font-size:13px;right:10px;">₫</span>
                 </div>
               </div>
             </div>
@@ -1214,6 +1214,6 @@ flutter build apk --release</code></pre>
     <span id="sync-toast-msg">Đã đồng bộ với Đám Mây</span>
   </div>
 
-  <script src="app.js?v=35.3"></script>
+  <script src="app.js?v=35.4"></script>
 </body>
 </html>
