@@ -1,9 +1,9 @@
-const CACHE_NAME = 'smartspend-expense-v33';
+const CACHE_NAME = 'smartspend-expense-v34';
 const ASSETS = [
   '/',
   '/index.html',
-  '/style.css?v=33.0',
-  '/app.js?v=33.0',
+  '/style.css?v=34.0',
+  '/app.js?v=34.0',
   '/oauth-bridge.html',
   '/manifest.json',
   '/icons/icon-192.png',

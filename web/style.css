@@ -2222,6 +2222,7 @@ body.dark-mode .diag-item {
     max-width: 680px;
     border-radius: 16px 16px 0 0;
   }
+  .fab-action-stack,
   .fab-circle-56 {
     right: max(24px, calc(50vw - 320px));
   }
@@ -2588,6 +2589,102 @@ body.dark-mode .btn-manual-entry {
   align-items: center;
   justify-content: center;
   box-shadow: 0 2px 6px rgba(2, 132, 199, 0.35);
+}
+
+/* Floating Action Button Stack (Camera & AI Advisor at camera location) */
+.fab-action-stack {
+  position: fixed;
+  bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+  right: max(18px, calc(50vw - 220px));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  z-index: 90;
+}
+
+.fab-action-stack.hidden {
+  display: none !important;
+}
+
+.fab-action-stack .fab-circle-56 {
+  position: static;
+  margin: 0;
+}
+
+/* Circular 50px Floating Action Button for AI Advisor */
+.fab-circle-ai {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #ffffff;
+  border: 2px solid rgba(255, 255, 255, 0.45);
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+}
+
+.fab-circle-ai:hover {
+  transform: scale(1.1);
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.6);
+}
+
+.fab-circle-ai:active {
+  transform: scale(0.92);
+}
+
+.fab-ai-icon {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.fab-ai-badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  background: #ec4899;
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: 800;
+  padding: 1.5px 4.5px;
+  border-radius: 8px;
+  border: 1.5px solid #ffffff;
+  letter-spacing: 0.5px;
+  line-height: 1.1;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.fab-circle-ai .fab-tooltip {
+  position: absolute;
+  right: 58px;
+  background: rgba(15, 23, 42, 0.9);
+  color: #ffffff;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 5px 10px;
+  border-radius: 8px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateX(6px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.fab-circle-ai:hover .fab-tooltip {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* Modal AI Advisor Card */
+.ai-advisor-modal-card {
+  max-width: 620px !important;
+  max-height: 85vh !important;
 }
 
 /* Circular 56px Floating Action Button (FAB - C13) */
@@ -3002,6 +3099,7 @@ body.dark-mode .btn-manual-entry {
     max-width: 880px;
     border-radius: 16px 16px 0 0;
   }
+  .fab-action-stack,
   .fab-circle-56 {
     right: max(24px, calc(50vw - 420px));
   }

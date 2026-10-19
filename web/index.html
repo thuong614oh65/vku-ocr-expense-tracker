@@ -16,13 +16,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=33.0">
+  <link rel="stylesheet" href="style.css?v=34.0">
   <!-- Google Identity Services (OAuth 2.0) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <!-- On-Device Tesseract.js WebAssembly OCR (Local Zero-Latency Engine) -->
   <script src="/tesseract/tesseract.min.js" defer></script>
   <script>
-    const APP_VERSION = '33.0';
+    const APP_VERSION = '34.0';
     if (localStorage.getItem('vku_app_cache_v') !== APP_VERSION) {
       if ('caches' in window) {
         caches.keys().then(function(names) {
@@ -38,7 +38,7 @@
     }
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
-        navigator.serviceWorker.register('/sw.js?v=33.0').then(function (reg) {
+        navigator.serviceWorker.register('/sw.js?v=34.0').then(function (reg) {
           reg.update();
         }).catch(function () {});
       });
@@ -332,6 +332,9 @@
             <p>Báo cáo tổng hợp số liệu, biểu đồ trực quan và đánh giá tài chính thông minh</p>
           </div>
           <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+            <button type="button" id="btn-open-advisor-report" class="btn-secondary-action" title="Mở Cố Vấn Tài Chính AI" style="background:linear-gradient(135deg, #6366f1, #8b5cf6); color:#fff; border:none; border-radius:10px; padding:9px 14px; font-weight:700; font-size:12.5px; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
+              <span>🤖 Cố Vấn AI</span>
+            </button>
             <button type="button" id="btn-print-report" class="btn-secondary-action" title="In hoặc Lưu Báo Cáo PDF" style="background:rgba(255,255,255,0.12); color:#fff; border:1px solid rgba(255,255,255,0.22); border-radius:10px; padding:9px 14px; font-weight:700; font-size:12.5px; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
               <span>🖨️ Xuất PDF / In</span>
             </button>
@@ -363,32 +366,6 @@
             <span class="report-kpi-label">Tỷ Lệ Đã Dùng</span>
             <strong id="rep-kpi-pct" class="report-kpi-val">0%</strong>
             <small id="rep-kpi-status" class="report-kpi-sub text-success">Ngân sách an toàn</small>
-          </div>
-        </section>
-
-        <!-- AI Financial Advisor Section -->
-        <section class="ai-advisor-card">
-          <div class="ai-advisor-header">
-            <div class="ai-advisor-title-wrap">
-              <span class="ai-advisor-icon">🤖</span>
-              <div>
-                <h3>Cố Vấn Tài Chính AI (SmartSpend Advisor)</h3>
-                <p>Đánh giá tốc độ chi tiêu, dự báo ngân sách & tư vấn tiết kiệm thông minh</p>
-              </div>
-            </div>
-            <button type="button" id="btn-run-ai-advisor" class="btn-ai-analyze">
-              ✨ Phân Tích Bằng AI
-            </button>
-          </div>
-
-          <div id="ai-advisor-body" class="ai-advisor-body">
-            <div class="ai-advisor-placeholder">
-              <div class="placeholder-icon">💡</div>
-              <div class="placeholder-text">
-                <strong>Chưa có phân tích cho kỳ này</strong>
-                <p>Bấm nút <strong>"Phân Tích Bằng AI"</strong> để trợ lý đọc số liệu hóa đơn, dự báo nguy cơ bội chi và đưa ra 3 lời khuyên tài chính tối ưu cho bạn.</p>
-              </div>
-            </div>
           </div>
         </section>
 
@@ -572,13 +549,21 @@
       </div>
     </main>
 
-    <!-- Circular 56px FloatingActionButton for OCR Camera Scan -->
-    <button id="fab-scan-receipt" class="fab-circle-56 hidden" title="Quét Hóa Đơn AI" aria-label="Quét hóa đơn AI">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
-        <circle cx="12" cy="13" r="3"/>
-      </svg>
-    </button>
+    <!-- Floating Action Buttons Stack (At camera location: Camera OCR & AI Advisor) -->
+    <div id="fab-action-stack" class="fab-action-stack hidden">
+      <button id="fab-ai-advisor" class="fab-circle-ai" title="Cố Vấn Tài Chính AI (Bấm để phân tích)" aria-label="Cố vấn tài chính AI">
+        <span class="fab-ai-icon">🤖</span>
+        <span class="fab-ai-badge">AI</span>
+        <span class="fab-tooltip">✨ Cố Vấn AI</span>
+      </button>
+
+      <button id="fab-scan-receipt" class="fab-circle-56" title="Quét Hóa Đơn AI" aria-label="Quét hóa đơn AI">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+          <circle cx="12" cy="13" r="3"/>
+        </svg>
+      </button>
+    </div>
 
     <!-- Persistent Bottom NavigationBar -->
     <nav id="bottom-nav-bar" class="bottom-nav hidden">
@@ -768,6 +753,39 @@
           <a id="btn-download-qr" href="#" download="vietqr_split.png" target="_blank" class="btn-download-qr" title="Mở ảnh QR lớn">
             📲 Mở Ảnh QR
           </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================================================================
+         MODAL: AI FINANCIAL ADVISOR (SMARTSPEND ADVISOR)
+         ==================================================================== -->
+    <div id="ai-advisor-modal" class="modal-overlay hidden">
+      <div class="review-modal-card ai-advisor-modal-card">
+        <div class="modal-header">
+          <div class="header-title-wrap">
+            <span class="modal-icon">🤖</span>
+            <div>
+              <h3>Cố Vấn Tài Chính AI</h3>
+              <p>Phân tích tốc độ chi tiêu & Tư vấn tiết kiệm thông minh</p>
+            </div>
+          </div>
+          <button id="btn-close-ai-advisor" class="icon-btn-close" aria-label="Đóng Cố Vấn AI">✕</button>
+        </div>
+
+        <div class="modal-body-scroll">
+          <div id="ai-advisor-modal-body">
+            <!-- Dynamically populated by runAiFinancialAdvisor() -->
+          </div>
+        </div>
+
+        <div class="modal-footer" style="display: flex; gap: 10px; padding: 12px 18px;">
+          <button type="button" id="btn-run-ai-advisor-modal" class="btn-ai-analyze" style="flex: 1; padding: 12px; font-size: 13.5px;">
+            🔄 Phân Tích Lại Bằng AI
+          </button>
+          <button type="button" id="btn-dismiss-ai-advisor" class="btn-secondary-full" style="width: auto; padding: 10px 18px;">
+            Đóng
+          </button>
         </div>
       </div>
     </div>
@@ -1091,6 +1109,6 @@ flutter build apk --release</code></pre>
     <span id="sync-toast-msg">Đã đồng bộ với Đám Mây</span>
   </div>
 
-  <script src="app.js?v=33.0"></script>
+  <script src="app.js?v=34.0"></script>
 </body>
 </html>

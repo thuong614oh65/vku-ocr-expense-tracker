@@ -1102,6 +1102,7 @@ class AppController {
     const mainShell = document.getElementById('main-app-shell');
     const bottomNav = document.getElementById('bottom-nav-bar');
     const fab = document.getElementById('fab-scan-receipt');
+    const fabStack = document.getElementById('fab-action-stack');
 
     // Route Guard: Redirect unauthenticated user to /login
     if (!this.currentUser) {
@@ -1109,7 +1110,8 @@ class AppController {
       authScreen.classList.remove('hidden');
       mainShell.classList.add('hidden');
       bottomNav.classList.add('hidden');
-      fab.classList.add('hidden');
+      if (fab) fab.classList.add('hidden');
+      if (fabStack) fabStack.classList.add('hidden');
       return;
     }
 
@@ -1119,7 +1121,8 @@ class AppController {
     authScreen.classList.add('hidden');
     mainShell.classList.remove('hidden');
     bottomNav.classList.remove('hidden');
-    fab.classList.remove('hidden');
+    if (fab) fab.classList.remove('hidden');
+    if (fabStack) fabStack.classList.remove('hidden');
 
     // Populate UserProfile in /profile Pane and AppBar
     const initials = (this.currentUser.fullName || 'User')
@@ -1165,6 +1168,7 @@ class AppController {
     const viewReports = document.getElementById('view-reports');
     const viewProfile = document.getElementById('view-profile');
     const fab = document.getElementById('fab-scan-receipt');
+    const fabStack = document.getElementById('fab-action-stack');
     const mainShell = document.getElementById('main-app-shell');
 
     if (mainShell) {
@@ -1176,17 +1180,20 @@ class AppController {
       if (viewReports) viewReports.classList.add('hidden');
       if (viewProfile) viewProfile.classList.remove('hidden');
       if (fab) fab.classList.add('hidden');
+      if (fabStack) fabStack.classList.add('hidden');
     } else if (route === '/reports') {
       if (viewDash) viewDash.classList.add('hidden');
       if (viewReports) viewReports.classList.remove('hidden');
       if (viewProfile) viewProfile.classList.add('hidden');
       if (fab) fab.classList.remove('hidden');
+      if (fabStack) fabStack.classList.remove('hidden');
     } else {
       // /dash
       if (viewDash) viewDash.classList.remove('hidden');
       if (viewReports) viewReports.classList.add('hidden');
       if (viewProfile) viewProfile.classList.add('hidden');
       if (fab) fab.classList.remove('hidden');
+      if (fabStack) fabStack.classList.remove('hidden');
     }
 
     document.querySelectorAll('.nav-dest').forEach(btn => {
@@ -1652,10 +1659,29 @@ class AppController {
       btnPrint.onclick = () => window.print();
     }
 
-    // AI Financial Advisor
-    const btnAiAdvisor = document.getElementById('btn-run-ai-advisor');
-    if (btnAiAdvisor) {
-      btnAiAdvisor.onclick = () => this.runAiFinancialAdvisor();
+    // AI Financial Advisor (Floating Action Button at camera location & Modal)
+    const fabAi = document.getElementById('fab-ai-advisor');
+    if (fabAi) {
+      fabAi.onclick = () => this.openAiAdvisorModal();
+    }
+
+    const btnOpenAdvisorRep = document.getElementById('btn-open-advisor-report');
+    if (btnOpenAdvisorRep) {
+      btnOpenAdvisorRep.onclick = () => this.openAiAdvisorModal();
+    }
+
+    const modalAiAdvisor = document.getElementById('ai-advisor-modal');
+    if (modalAiAdvisor) {
+      const btnCloseAi = document.getElementById('btn-close-ai-advisor');
+      const btnDismissAi = document.getElementById('btn-dismiss-ai-advisor');
+      const closeModal = () => modalAiAdvisor.classList.add('hidden');
+      if (btnCloseAi) btnCloseAi.onclick = closeModal;
+      if (btnDismissAi) btnDismissAi.onclick = closeModal;
+
+      const btnRerun = document.getElementById('btn-run-ai-advisor-modal');
+      if (btnRerun) {
+        btnRerun.onclick = () => this.runAiFinancialAdvisor();
+      }
     }
 
     // Edit Monthly Budget via dedicated Budget Setting Modal
@@ -2927,9 +2953,16 @@ class AppController {
     modal.classList.remove('hidden');
   }
 
+  openAiAdvisorModal() {
+    const modal = document.getElementById('ai-advisor-modal');
+    if (!modal) return;
+    modal.classList.remove('hidden');
+    this.runAiFinancialAdvisor();
+  }
+
   async runAiFinancialAdvisor(customPrompt = '') {
-    const bodyEl = document.getElementById('ai-advisor-body');
-    const btn = document.getElementById('btn-run-ai-advisor');
+    const bodyEl = document.getElementById('ai-advisor-modal-body') || document.getElementById('ai-advisor-body');
+    const btn = document.getElementById('btn-run-ai-advisor-modal') || document.getElementById('btn-run-ai-advisor');
     if (!bodyEl) return;
 
     if (btn) {
