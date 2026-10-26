@@ -1295,7 +1295,7 @@ class AppController {
       if (fabStack) fabStack.classList.remove('hidden');
     }
 
-    document.querySelectorAll('.nav-dest').forEach(btn => {
+    document.querySelectorAll('.nav-dest, .desktop-nav-btn').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.route === route);
     });
 
@@ -1809,8 +1809,8 @@ class AppController {
       btnConfigCatBudgetRep.onclick = () => this.openBudgetModal('categories');
     }
 
-    // Bottom NavigationBar (ShellRoute: /dash, /scanner, /reports)
-    document.querySelectorAll('.nav-dest').forEach(btn => {
+    // Navigation (Bottom NavigationBar & Desktop Navigation Tabs)
+    document.querySelectorAll('.nav-dest, .desktop-nav-btn').forEach(btn => {
       btn.onclick = () => this.navigateShell(btn.dataset.route);
     });
 
@@ -2225,22 +2225,45 @@ class AppController {
     const headerInstallBtn = document.getElementById('btn-install-app');
     const modalPwaBtn = document.getElementById('btn-trigger-pwa');
     const feedbackBox = document.getElementById('pwa-install-feedback');
+    const profileInstallPill = document.getElementById('profile-install-status-pill');
+    const profileInstallDesc = document.getElementById('profile-install-desc');
 
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-    if (isStandalone && headerInstallBtn) {
-      headerInstallBtn.textContent = '🟢 Đang Trong App';
-    }
+    const updateInstallStatusUI = (installed = false) => {
+      const isStandalone = installed || window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true || localStorage.getItem('vku_app_installed') === 'true';
+      if (headerInstallBtn) {
+        headerInstallBtn.classList.add('hidden'); // Keep header clean as requested!
+      }
+      if (profileInstallPill) {
+        if (isStandalone) {
+          profileInstallPill.textContent = '🟢 Đang Trong App';
+          profileInstallPill.className = 'pill-badge-sm installed';
+        } else {
+          profileInstallPill.textContent = '📲 Sẵn sàng cài';
+          profileInstallPill.className = 'pill-badge-sm';
+        }
+      }
+      if (profileInstallDesc) {
+        if (isStandalone) {
+          profileInstallDesc.textContent = 'Đang chạy bản ứng dụng độc lập trên thiết bị này. Bấm để xem tùy chọn hoặc tải APK.';
+        } else {
+          profileInstallDesc.textContent = 'Cài đặt ứng dụng máy tính (Desktop App) / PWA hoặc tải file APK Android.';
+        }
+      }
+    };
+
+    updateInstallStatusUI();
 
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       deferredPrompt = e;
-      if (headerInstallBtn) headerInstallBtn.textContent = '📲 Cài App Ngay';
+      updateInstallStatusUI(false);
       if (modalPwaBtn) modalPwaBtn.textContent = '📲 Bấm Để Cài Đặt App (Native PWA)';
     });
 
     window.addEventListener('appinstalled', () => {
       deferredPrompt = null;
-      if (headerInstallBtn) headerInstallBtn.textContent = '🟢 Đã Cài App';
+      localStorage.setItem('vku_app_installed', 'true');
+      updateInstallStatusUI(true);
       if (modalPwaBtn) modalPwaBtn.textContent = '✅ Đã Cài Đặt Thành Công — Mở App Ngay';
       if (feedbackBox) feedbackBox.classList.remove('hidden');
     });
@@ -2251,7 +2274,8 @@ class AppController {
         const choice = await deferredPrompt.userChoice;
         if (choice && choice.outcome === 'accepted') {
           deferredPrompt = null;
-          if (headerInstallBtn) headerInstallBtn.textContent = '🟢 Đã Cài App';
+          localStorage.setItem('vku_app_installed', 'true');
+          updateInstallStatusUI(true);
           modalPwaBtn.textContent = '✅ Đã Cài Đặt Thành Công!';
         }
         return;
@@ -2262,7 +2286,7 @@ class AppController {
         window.open(
           window.location.href,
           'VKU_OCR_Expense_App',
-          'width=430,height=840,menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=yes'
+          'width=1200,height=800,menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=yes'
         );
         modalPwaBtn.textContent = '🚀 Mở Lại Cửa Sổ App Độc Lập (Standalone)';
       }, 300);
@@ -3019,7 +3043,7 @@ class AppController {
     const topPad = 16;
     const bottomPad = 26;
     const parentW = canvas.parentElement ? canvas.parentElement.clientWidth : 640;
-    const w = Math.min(Math.max(parentW - 16, 320), 720);
+    const w = Math.min(Math.max(parentW - 16, 320), 1360);
     const h = topPad + sortedKeys.length * rowH + bottomPad;
 
     canvas.width = w * dpr;
@@ -4701,8 +4725,9 @@ class AppController {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     const dpr = window.devicePixelRatio || 1;
-    const w = 340;
-    const h = 190;
+    const parentW = canvas.parentElement ? canvas.parentElement.clientWidth : 340;
+    const w = Math.min(Math.max(parentW, 280), 640);
+    const h = 200;
 
     canvas.width = w * dpr;
     canvas.height = h * dpr;
