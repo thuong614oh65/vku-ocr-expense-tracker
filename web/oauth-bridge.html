@@ -139,6 +139,18 @@
         <span>Tiếp tục với Google</span>
       </button>
 
+      <div style="margin: 14px 0 8px; border-top: 1px solid #334155; padding-top: 12px; text-align: left;">
+        <label style="font-size: 11.5px; color: #94a3b8; font-weight: 700; display: block; margin-bottom: 6px;">
+          ✉️ HOẶC ĐĂNG NHẬP NHANH VỚI EMAIL BẤT KỲ:
+        </label>
+        <div style="display: flex; gap: 6px;">
+          <input type="email" id="quick-email-input" placeholder="nhapemail@gmail.com" style="flex: 1; background: #0f172a; border: 1px solid #475569; border-radius: 10px; padding: 10px 12px; color: #fff; font-size: 13px; outline: none;">
+          <button type="button" id="btn-quick-email-login" class="btn-action btn-blue" style="width: auto; margin: 0; padding: 10px 16px; border-radius: 10px; font-size: 13px; font-weight: 700; white-space: nowrap;">
+            Vào App ➔
+          </button>
+        </div>
+      </div>
+
       <a id="btn-cancel" href="/" class="btn-action btn-outline" style="margin-top:10px;">
         Quay Lại Ứng Dụng
       </a>
@@ -275,6 +287,30 @@
     btnLogin.onclick = () => {
       startOAuthDirect();
     };
+
+    const btnQuickEmail = document.getElementById('btn-quick-email-login');
+    const quickEmailInput = document.getElementById('quick-email-input');
+    if (btnQuickEmail && quickEmailInput) {
+      const handleQuickEmail = () => {
+        const val = (quickEmailInput.value || '').trim();
+        if (!val || !val.includes('@')) {
+          statusText.textContent = 'Vui lòng nhập địa chỉ email hợp lệ.';
+          quickEmailInput.focus();
+          return;
+        }
+        const namePart = val.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        completeAuth({
+          email: val,
+          name: namePart,
+          picture: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=400&q=80',
+          sub: 'usr_' + Date.now()
+        });
+      };
+      btnQuickEmail.onclick = handleQuickEmail;
+      quickEmailInput.onkeydown = (e) => {
+        if (e.key === 'Enter') handleQuickEmail();
+      };
+    }
 
     // Tự động khởi chạy trình chọn tài khoản Google ngay khi trang cầu nối sẵn sàng
     let autoStarted = false;

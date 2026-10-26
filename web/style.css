@@ -4358,13 +4358,22 @@ body.dark-mode .ai-advisor-card {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
   margin-bottom: 14px;
+}
+
+.cat-budget-header > div:first-child {
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .cat-budget-header h3 {
   font-size: 14.5px;
   font-weight: 800;
   color: var(--text-color);
+  margin: 0;
+  white-space: nowrap;
 }
 
 .cat-budget-sub {
@@ -4386,6 +4395,7 @@ body.dark-mode .ai-advisor-card {
   align-items: center;
   gap: 4px;
   transition: all 0.15s ease;
+  white-space: nowrap;
 }
 
 .btn-cat-config-pill:hover {
@@ -4396,19 +4406,22 @@ body.dark-mode .ai-advisor-card {
 .cat-budget-list {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 12px;
+  gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-@media (min-width: 640px) {
-  .cat-budget-list {
-    grid-template-columns: repeat(2, 1fr);
-  }
+/* On desktop 2-column sidebar: MUST ALWAYS BE 1 COLUMN so items never squish or overflow into the right column! */
+.dashboard-col-left .cat-budget-list,
+.category-budget-section .cat-budget-list {
+  grid-template-columns: 1fr !important;
+  gap: 10px !important;
+  width: 100% !important;
 }
 
-@media (min-width: 1024px) {
-  .cat-budget-list {
-    grid-template-columns: repeat(3, 1fr);
-  }
+/* Standalone wide modals or reports can use multi-column responsive grid */
+.category-report-modal-body .cat-budget-list {
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)) !important;
 }
 
 .cat-budget-item {
@@ -4419,7 +4432,15 @@ body.dark-mode .ai-advisor-card {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  transition: border-color 0.15s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.cat-budget-item:hover {
+  border-color: var(--primary);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
 }
 
 .cat-budget-item.warning {
@@ -4439,45 +4460,61 @@ body.dark-mode .ai-advisor-card {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 10px;
+  min-width: 0;
 }
 
 .cat-budget-item-name {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
+  flex: 1;
 }
 
 .cat-budget-icon {
-  font-size: 20px;
+  font-size: 22px;
   line-height: 1;
+  flex-shrink: 0;
 }
 
 .cat-budget-item-name strong {
   display: block;
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 800;
   color: var(--text-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .cat-budget-item-name small {
-  font-size: 10.5px;
+  font-size: 11px;
   color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
 }
 
 .cat-budget-item-amounts {
   text-align: right;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .cat-budget-item-amounts strong {
   font-size: 13.5px;
   font-weight: 800;
   color: var(--text-color);
+  display: block;
 }
 
 .cat-budget-target {
-  font-size: 11.5px;
+  font-size: 11px;
   color: var(--text-muted);
   font-weight: 600;
+  display: block;
 }
 
 .cat-budget-progress-track {

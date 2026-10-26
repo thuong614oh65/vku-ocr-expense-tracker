@@ -341,7 +341,11 @@ ${prompt ? `Câu hỏi bổ sung từ người dùng: ${prompt}` : 'Hãy đánh 
     // ========================================================================
     // 2. SERVE STATIC ASSETS WITH ENFORCED SECURITY HEADERS (A6)
     // ========================================================================
-    const response = await env.ASSETS.fetch(request);
+    let assetRequest = request;
+    if (url.pathname === '/oauth-bridge') {
+      assetRequest = new Request(new URL('/oauth-bridge.html', request.url), request);
+    }
+    const response = await env.ASSETS.fetch(assetRequest);
     const newHeaders = new Headers(response.headers);
 
     // Prevent MIME-sniffing
@@ -364,7 +368,7 @@ ${prompt ? `Câu hỏi bổ sung từ người dùng: ${prompt}` : 'Hãy đánh 
       "font-src 'self' https://fonts.gstatic.com; " +
       "worker-src 'self' blob: https://cdn.jsdelivr.net; " +
       "child-src 'self' blob: https://cdn.jsdelivr.net; " +
-      "frame-src 'self' https://accounts.google.com https://vku-room-booking-17t.pages.dev;"
+      "frame-src 'self' https://accounts.google.com;"
     );
 
     // Cache static OCR models & WebAssembly permanently, but keep app code fresh

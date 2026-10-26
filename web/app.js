@@ -325,9 +325,31 @@ class AuthService {
     }
 
     if (!user) {
+      if (q.includes('@') && password) {
+        // Tự động kích hoạt tài khoản cho bất kỳ email nào (Gmail, VKU, Outlook, Yahoo...)
+        const derived = deriveVkuProfileFromEmail(q);
+        const newUser = {
+          id: 'USR-' + Date.now(),
+          fullName: derived.suggestedName,
+          studentId: derived.suggestedStudentId,
+          className: 'Cá nhân',
+          email: q,
+          role: 'Thành viên SmartSpend',
+          avatar: derived.avatar,
+          passwordHash: this.hashPassword(password)
+        };
+        users[q] = newUser;
+        this.saveUsers(users);
+        this.setCurrentUser(newUser);
+        return {
+          success: true,
+          message: `Chào mừng ${newUser.fullName}! Đã tự động kích hoạt tài khoản thành công.`,
+          user: newUser
+        };
+      }
       return {
         success: false,
-        message: 'Không tìm thấy tài khoản. Vui lòng kiểm tra lại Email hoặc bấm "Đăng Ký Mới".'
+        message: 'Không tìm thấy tài khoản. Vui lòng nhập địa chỉ Email để hệ thống tự động kích hoạt tài khoản cho bạn!'
       };
     }
 
@@ -1667,8 +1689,8 @@ class AppController {
       });
     };
 
-    // Real Google OAuth Launch via Authorized Origin Bridge (100% accounts.google.com)
-    // Client ID is authorized on https://vku-room-booking-17t.pages.dev, completely eliminating origin_mismatch
+    // Real Google OAuth Launch via SmartSpend Authorized Origin Bridge (100% accounts.google.com)
+    // Runs on current domain directly, supporting all Gmail, Google Workspace & VKU accounts
     const openRealGooglePopupWindow = () => {
       hideError();
       if (isEmbeddedWebView()) {
@@ -1684,7 +1706,7 @@ class AppController {
       }
 
       const returnUrl = encodeURIComponent(window.location.origin + window.location.pathname);
-      const bridgeUrl = `https://vku-room-booking-17t.pages.dev/oauth-bridge?return_to=${returnUrl}`;
+      const bridgeUrl = `${window.location.origin}/oauth-bridge.html?return_to=${returnUrl}`;
 
       const width = 480;
       const height = 620;
@@ -4596,9 +4618,9 @@ class AppController {
         <div class="cat-budget-item-top">
           <div class="cat-budget-item-name">
             <span class="cat-budget-icon">${cat.icon}</span>
-            <div>
-              <strong>${cat.name}</strong>
-              <small>${count} giao dịch tháng này</small>
+            <div style="min-width:0; overflow:hidden; flex:1;">
+              <strong style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${cat.name}</strong>
+              <small style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:block;">${count} giao dịch tháng này</small>
             </div>
           </div>
           <div class="cat-budget-item-amounts">

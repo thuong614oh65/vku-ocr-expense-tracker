@@ -16,13 +16,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=36.8">
+  <link rel="stylesheet" href="style.css?v=36.9">
   <!-- Google Identity Services (OAuth 2.0) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <!-- On-Device Tesseract.js WebAssembly OCR (Local Zero-Latency Engine) -->
   <script src="/tesseract/tesseract.min.js" defer></script>
   <script>
-    const APP_VERSION = '36.8';
+    const APP_VERSION = '36.9';
     if (localStorage.getItem('vku_app_cache_v') !== APP_VERSION) {
       if ('caches' in window) {
         caches.keys().then(function(names) {
@@ -38,7 +38,7 @@
     }
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
-        navigator.serviceWorker.register('/sw.js?v=36.8').then(function (reg) {
+        navigator.serviceWorker.register('/sw.js?v=36.9').then(function (reg) {
           reg.update();
         }).catch(function () {});
       });
@@ -141,6 +141,9 @@
             </span>
             <span id="btn-google-text" class="vku-google-btn-text">Tiếp tục với Google</span>
           </button>
+          <div style="font-size: 11.5px; color: var(--text-muted); text-align: center; margin: 6px 0 10px; font-weight: 600;">
+            🌐 Hỗ trợ tất cả Email (Gmail, Outlook, Yahoo, VKU...)
+          </div>
 
           <!-- Zalo Security Box -->
           <div id="zalo-security-box" class="zalo-security-box hidden">
@@ -1403,6 +1406,6 @@ flutter build apk --release</code></pre>
     <span id="sync-toast-msg">Đã đồng bộ với Đám Mây</span>
   </div>
 
-  <script src="app.js?v=36.8"></script>
+  <script src="app.js?v=36.9"></script>
 </body>
 </html>
